@@ -1,76 +1,63 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class RoleService : IRoleService
 {
-    private readonly MockDataStore _store;
+    private readonly IRoleRepository _repo;
+    private readonly IPersonnelRepository _personnelRepo;
 
-    public RoleService(MockDataStore store)
+    public RoleService(IRoleRepository repo, IPersonnelRepository personnelRepo)
     {
-        _store = store;
+        _repo = repo;
+        _personnelRepo = personnelRepo;
     }
 
-    public IReadOnlyList<Role> GetAll() => _store.Roles.ToList();
+    public IReadOnlyList<Role> GetAll() => _repo.GetAll();
 
-    public Role? GetById(Guid id) => _store.Roles.FirstOrDefault(r => r.Id == id);
+    public Role? GetById(int id) => _repo.GetById(id);
 
-    public IReadOnlyList<RolePermission> GetPermissionsByRole(Guid roleId) =>
-        _store.RolePermissions.Where(rp => rp.RoleId == roleId).ToList();
+    public IReadOnlyList<RolePermission> GetPermissionsByRole(int roleId) => _repo.GetPermissionsByRoleId(roleId);
 
-    public IReadOnlyList<RolePermission> GetAllRolePermissions() => _store.RolePermissions.ToList();
+    public IReadOnlyList<RolePermission> GetAllRolePermissions() => _repo.GetAllRolePermissions();
 
     public Role CreateRole(Role role)
     {
         ArgumentNullException.ThrowIfNull(role);
-        role.Id = Guid.NewGuid();
-        _store.Roles.Add(role);
+        role.Id = _repo.Insert(role);
         return role;
     }
 
     public void UpdateRole(Role role)
     {
         ArgumentNullException.ThrowIfNull(role);
-        var idx = _store.Roles.FindIndex(r => r.Id == role.Id);
-        if (idx >= 0)
-            _store.Roles[idx] = role;
+        _repo.Update(role);
     }
 
-    public bool DeleteRole(Guid roleId)
+    public bool DeleteRole(int roleId)
     {
-        if (_store.Personnel.Any(p => p.RoleId == roleId))
+        if (_personnelRepo.GetAll().Any(p => p.RoleId == roleId))
             return false;
-        var idx = _store.Roles.FindIndex(r => r.Id == roleId);
-        if (idx < 0) return true;
-        _store.Roles.RemoveAt(idx);
-        _store.RolePermissions.RemoveAll(rp => rp.RoleId == roleId);
-        return true;
+        return _repo.Delete(roleId);
     }
 
-    public RolePermission AddPermissionToRole(Guid roleId, Guid resourceSystemId, PermissionType permissionType, bool isDefault = true)
+    public RolePermission AddPermissionToRole(int roleId, int resourceSystemId, PermissionType permissionType, bool isDefault = true)
     {
-        if (_store.RolePermissions.Any(rp => rp.RoleId == roleId && rp.ResourceSystemId == resourceSystemId && rp.PermissionType == permissionType))
-            return _store.RolePermissions.First(rp => rp.RoleId == roleId && rp.ResourceSystemId == resourceSystemId && rp.PermissionType == permissionType);
+        var existing = _repo.GetPermissionsByRoleId(roleId).FirstOrDefault(rp => rp.ResourceSystemId == resourceSystemId && rp.PermissionType == permissionType);
+        if (existing != null) return existing;
         var rp = new RolePermission
         {
-            Id = Guid.NewGuid(),
             RoleId = roleId,
             ResourceSystemId = resourceSystemId,
             PermissionType = permissionType,
             IsDefault = isDefault
         };
-        _store.RolePermissions.Add(rp);
+        rp.Id = _repo.AddPermission(rp);
         return rp;
     }
 
-    public bool RemoveRolePermission(Guid rolePermissionId)
-    {
-        var idx = _store.RolePermissions.FindIndex(rp => rp.Id == rolePermissionId);
-        if (idx < 0) return false;
-        _store.RolePermissions.RemoveAt(idx);
-        return true;
-    }
+    public bool RemoveRolePermission(int rolePermissionId) => _repo.RemovePermission(rolePermissionId);
 }

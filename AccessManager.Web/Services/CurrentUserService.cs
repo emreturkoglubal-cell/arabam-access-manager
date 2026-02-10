@@ -18,12 +18,12 @@ public class CurrentUserService : ICurrentUserService
 
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
 
-    public Guid? UserId
+    public int? UserId
     {
         get
         {
             var value = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(value, out var id) ? id : null;
+            return int.TryParse(value, out var id) ? id : null;
         }
     }
 

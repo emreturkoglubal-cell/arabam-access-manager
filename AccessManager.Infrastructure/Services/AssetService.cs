@@ -1,78 +1,69 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class AssetService : IAssetService
 {
-    private readonly MockDataStore _store;
+    private readonly IAssetRepository _assetRepo;
+    private readonly IAssetAssignmentRepository _assignmentRepo;
+    private readonly IPersonnelRepository _personnelRepo;
     private readonly IAuditService _auditService;
 
-    public AssetService(MockDataStore store, IAuditService auditService)
+    public AssetService(IAssetRepository assetRepo, IAssetAssignmentRepository assignmentRepo, IPersonnelRepository personnelRepo, IAuditService auditService)
     {
-        _store = store;
+        _assetRepo = assetRepo;
+        _assignmentRepo = assignmentRepo;
+        _personnelRepo = personnelRepo;
         _auditService = auditService;
     }
 
-    public IReadOnlyList<Asset> GetAll() => _store.Assets.ToList();
+    public IReadOnlyList<Asset> GetAll() => _assetRepo.GetAll();
 
-    public IReadOnlyList<Asset> GetByStatus(AssetStatus status) =>
-        _store.Assets.Where(a => a.Status == status).ToList();
+    public IReadOnlyList<Asset> GetByStatus(AssetStatus status) => _assetRepo.GetByStatus(status);
 
-    public IReadOnlyList<Asset> GetByType(AssetType type) =>
-        _store.Assets.Where(a => a.AssetType == type).ToList();
+    public IReadOnlyList<Asset> GetByType(AssetType type) => _assetRepo.GetByType(type);
 
-    public Asset? GetById(Guid id) => _store.Assets.FirstOrDefault(a => a.Id == id);
+    public Asset? GetById(int id) => _assetRepo.GetById(id);
 
-    public IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(Guid personnelId) =>
-        _store.AssetAssignments
-            .Where(x => x.PersonnelId == personnelId && x.ReturnedAt == null)
-            .OrderByDescending(x => x.AssignedAt)
-            .ToList();
-
-    public IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(Guid assetId) =>
-        _store.AssetAssignments
-            .Where(x => x.AssetId == assetId)
-            .OrderByDescending(x => x.AssignedAt)
-            .ToList();
-
-    public AssetAssignment? GetActiveAssignmentForAsset(Guid assetId) =>
-        _store.AssetAssignments.FirstOrDefault(x => x.AssetId == assetId && x.ReturnedAt == null);
-
-    public AssetAssignment? GetAssignmentById(Guid assignmentId) =>
-        _store.AssetAssignments.FirstOrDefault(x => x.Id == assignmentId);
-
-    public IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(Guid assignmentId) =>
-        _store.AssetAssignmentNotes
-            .Where(n => n.AssetAssignmentId == assignmentId)
-            .OrderByDescending(n => n.CreatedAt)
-            .ToList();
-
-    public void AddNoteToAssignment(Guid assignmentId, string content, Guid? createdByUserId, string? createdByUserName)
+    public IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(int personnelId)
     {
-        var assignment = GetAssignmentById(assignmentId);
+        return _assignmentRepo.GetByPersonnelId(personnelId).Where(x => x.ReturnedAt == null).OrderByDescending(x => x.AssignedAt).ToList();
+    }
+
+    public IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(int assetId) =>
+        _assignmentRepo.GetByAssetId(assetId).OrderByDescending(x => x.AssignedAt).ToList();
+
+    public AssetAssignment? GetActiveAssignmentForAsset(int assetId) => _assignmentRepo.GetActiveByAssetId(assetId);
+
+    public AssetAssignment? GetAssignmentById(int assignmentId) => _assignmentRepo.GetById(assignmentId);
+
+    public IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(int assignmentId) => _assignmentRepo.GetNotesByAssignmentId(assignmentId);
+
+    public void AddNoteToAssignment(int assignmentId, string content, int? createdByUserId, string? createdByUserName)
+    {
+        var assignment = _assignmentRepo.GetById(assignmentId);
         if (assignment == null) return;
         var note = new AssetAssignmentNote
         {
-            Id = Guid.NewGuid(),
             AssetAssignmentId = assignmentId,
             Content = content?.Trim() ?? string.Empty,
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = createdByUserId,
             CreatedByUserName = createdByUserName ?? "?"
         };
-        _store.AssetAssignmentNotes.Add(note);
+        _assignmentRepo.AddNote(note);
+        _auditService.Log(AuditAction.AssetAssignmentNoteAdded, createdByUserId, createdByUserName ?? "?", "AssetAssignment", assignmentId.ToString(), content);
     }
 
     public Asset Create(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
-        asset.Id = Guid.NewGuid();
         asset.CreatedAt = DateTime.UtcNow;
         if (asset.Status == default) asset.Status = AssetStatus.Available;
-        _store.Assets.Add(asset);
+        asset.Id = _assetRepo.Insert(asset);
         _auditService.Log(AuditAction.AssetCreated, null, "Sistem", "Asset", asset.Id.ToString(), asset.Name);
         return asset;
     }
@@ -80,40 +71,35 @@ public class AssetService : IAssetService
     public void Update(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
-        var idx = _store.Assets.FindIndex(a => a.Id == asset.Id);
-        if (idx >= 0)
-        {
-            _store.Assets[idx] = asset;
-            _auditService.Log(AuditAction.AssetUpdated, null, "Sistem", "Asset", asset.Id.ToString(), asset.Name);
-        }
+        _assetRepo.Update(asset);
+        _auditService.Log(AuditAction.AssetUpdated, null, "Sistem", "Asset", asset.Id.ToString(), asset.Name);
     }
 
-    public void Delete(Guid assetId)
+    public void Delete(int assetId)
     {
-        var asset = GetById(assetId);
+        var asset = _assetRepo.GetById(assetId);
         if (asset == null) return;
-        var active = GetActiveAssignmentForAsset(assetId);
+        var active = _assignmentRepo.GetActiveByAssetId(assetId);
         if (active != null)
             throw new InvalidOperationException("Zimmette olan donanım silinemez. Önce iade alın.");
-        _store.Assets.RemoveAll(a => a.Id == assetId);
+        _assetRepo.Delete(assetId);
         _auditService.Log(AuditAction.AssetDeleted, null, "Sistem", "Asset", assetId.ToString(), asset.Name);
     }
 
-    public AssetAssignment Assign(Guid assetId, Guid personnelId, string? notes, Guid? assignedByUserId, string? assignedByUserName)
+    public AssetAssignment Assign(int assetId, int personnelId, string? notes, int? assignedByUserId, string? assignedByUserName)
     {
-        var asset = GetById(assetId);
+        var asset = _assetRepo.GetById(assetId);
         if (asset == null) throw new ArgumentException("Donanım bulunamadı.", nameof(assetId));
         if (asset.Status == AssetStatus.Assigned)
             throw new InvalidOperationException("Bu donanım zaten zimmette.");
         if (asset.Status == AssetStatus.Retired)
             throw new InvalidOperationException("Hurdaya çıkarılmış donanım zimmetlenemez.");
 
-        var personnel = _store.Personnel.FirstOrDefault(p => p.Id == personnelId);
+        var personnel = _personnelRepo.GetById(personnelId);
         if (personnel == null) throw new ArgumentException("Personel bulunamadı.", nameof(personnelId));
 
         var assignment = new AssetAssignment
         {
-            Id = Guid.NewGuid(),
             AssetId = assetId,
             PersonnelId = personnelId,
             AssignedAt = DateTime.UtcNow,
@@ -121,29 +107,30 @@ public class AssetService : IAssetService
             AssignedByUserName = assignedByUserName ?? "—",
             Notes = notes
         };
-        _store.AssetAssignments.Add(assignment);
+        assignment.Id = _assignmentRepo.Insert(assignment);
         asset.Status = AssetStatus.Assigned;
+        _assetRepo.Update(asset);
         _auditService.Log(AuditAction.AssetAssigned, assignedByUserId, assignedByUserName ?? "?", "Asset", asset.Id.ToString(),
             $"{asset.Name} → {personnel.FirstName} {personnel.LastName}");
         return assignment;
     }
 
-    public void Return(Guid assignmentId, string? returnCondition, string? notes)
+    public void Return(int assignmentId, string? returnCondition, string? notes)
     {
-        var assignment = _store.AssetAssignments.FirstOrDefault(x => x.Id == assignmentId);
+        var assignment = _assignmentRepo.GetById(assignmentId);
         if (assignment == null) throw new ArgumentException("Zimmet kaydı bulunamadı.", nameof(assignmentId));
         if (assignment.ReturnedAt.HasValue)
             throw new InvalidOperationException("Bu zimmet zaten iade edilmiş.");
 
-        assignment.ReturnedAt = DateTime.UtcNow;
-        assignment.ReturnCondition = returnCondition;
-        if (notes != null) assignment.Notes = (assignment.Notes ?? "") + (string.IsNullOrEmpty(assignment.Notes) ? "" : " | ") + "İade: " + notes;
+        var now = DateTime.UtcNow;
+        _assignmentRepo.SetReturned(assignmentId, now, returnCondition, notes);
 
-        var asset = GetById(assignment.AssetId);
+        var asset = _assetRepo.GetById(assignment.AssetId);
         if (asset != null)
         {
             asset.Status = AssetStatus.Available;
-            var personnel = _store.Personnel.FirstOrDefault(p => p.Id == assignment.PersonnelId);
+            _assetRepo.Update(asset);
+            var personnel = _personnelRepo.GetById(assignment.PersonnelId);
             _auditService.Log(AuditAction.AssetReturned, null, "Sistem", "Asset", asset.Id.ToString(),
                 $"{asset.Name} iade: {(personnel != null ? personnel.FirstName + " " + personnel.LastName : "?")}");
         }

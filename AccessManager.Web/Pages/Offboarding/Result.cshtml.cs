@@ -20,7 +20,7 @@ public class ResultModel : PageModel
 
     public PersonnelEntity? Personnel { get; set; }
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         Personnel = _personnelService.GetById(id);
         if (Personnel == null) return NotFound();

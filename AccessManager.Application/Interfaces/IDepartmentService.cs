@@ -5,5 +5,5 @@ namespace AccessManager.Application.Interfaces;
 public interface IDepartmentService
 {
     IReadOnlyList<Department> GetAll();
-    Department? GetById(Guid id);
+    Department? GetById(int id);
 }

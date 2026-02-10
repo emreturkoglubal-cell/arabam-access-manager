@@ -33,18 +33,18 @@ public class CreateModel : PageModel
 
     public class InputModel
     {
-        public Guid PersonnelId { get; set; }
-        public Guid ResourceSystemId { get; set; }
+        public int PersonnelId { get; set; }
+        public int ResourceSystemId { get; set; }
         public PermissionType RequestedPermission { get; set; }
         public string? Reason { get; set; }
         public DateTime? EndDate { get; set; }
     }
 
-    public void OnGet(Guid? personnelId)
+    public void OnGet(int? personnelId)
     {
         PersonnelList = _personnelService.GetActive();
         Systems = _systemService.GetAll();
-        if (personnelId.HasValue && personnelId.Value != Guid.Empty)
+        if (personnelId.HasValue && personnelId.Value != 0)
         {
             var p = _personnelService.GetById(personnelId.Value);
             if (p != null)
@@ -57,7 +57,7 @@ public class CreateModel : PageModel
 
     public IActionResult OnPost()
     {
-        if (Input.PersonnelId == Guid.Empty || Input.ResourceSystemId == Guid.Empty)
+        if (Input.PersonnelId == 0 || Input.ResourceSystemId == 0)
         {
             PersonnelList = _personnelService.GetActive();
             Systems = _systemService.GetAll();

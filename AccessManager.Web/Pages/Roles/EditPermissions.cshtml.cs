@@ -27,12 +27,12 @@ public class EditPermissionsModel : PageModel
     public Role? Role { get; set; }
     public IReadOnlyList<RolePermission> Permissions { get; set; } = new List<RolePermission>();
     public IReadOnlyList<ResourceSystem> Systems { get; set; } = new List<ResourceSystem>();
-    public Dictionary<Guid, string> SystemNames { get; set; } = new();
+    public Dictionary<int, string> SystemNames { get; set; } = new();
 
     [BindProperty]
     public AddPermissionInput AddPermission { get; set; } = new();
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         Role = _roleService.GetById(id);
         if (Role == null) return NotFound();
@@ -40,7 +40,7 @@ public class EditPermissionsModel : PageModel
         return Page();
     }
 
-    public IActionResult OnPostAdd(Guid id)
+    public IActionResult OnPostAdd(int id)
     {
         Role = _roleService.GetById(id);
         if (Role == null) return NotFound();
@@ -53,7 +53,7 @@ public class EditPermissionsModel : PageModel
         return RedirectToPage(new { id });
     }
 
-    public IActionResult OnPostRemove(Guid id, Guid permissionId)
+    public IActionResult OnPostRemove(int id, int permissionId)
     {
         Role = _roleService.GetById(id);
         if (Role == null) return NotFound();
@@ -67,7 +67,7 @@ public class EditPermissionsModel : PageModel
         return RedirectToPage(new { id });
     }
 
-    private void LoadData(Guid roleId)
+    private void LoadData(int roleId)
     {
         Permissions = _roleService.GetPermissionsByRole(roleId);
         Systems = _systemService.GetAll();
@@ -76,7 +76,7 @@ public class EditPermissionsModel : PageModel
 
     public class AddPermissionInput
     {
-        public Guid ResourceSystemId { get; set; }
+        public int ResourceSystemId { get; set; }
         public PermissionType PermissionType { get; set; }
         public bool IsDefault { get; set; } = true;
     }

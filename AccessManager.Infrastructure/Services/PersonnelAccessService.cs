@@ -1,41 +1,31 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class PersonnelAccessService : IPersonnelAccessService
 {
-    private readonly MockDataStore _store;
+    private readonly IPersonnelAccessRepository _repo;
 
-    public PersonnelAccessService(MockDataStore store)
+    public PersonnelAccessService(IPersonnelAccessRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
-    public IReadOnlyList<PersonnelAccess> GetByPersonnel(Guid personnelId) =>
-        _store.PersonnelAccesses.Where(a => a.PersonnelId == personnelId).ToList();
+    public IReadOnlyList<PersonnelAccess> GetByPersonnel(int personnelId) => _repo.GetByPersonnel(personnelId);
 
-    public IReadOnlyList<PersonnelAccess> GetActive() =>
-        _store.PersonnelAccesses.Where(a => a.IsActive).ToList();
+    public IReadOnlyList<PersonnelAccess> GetActive() => _repo.GetActive();
 
-    public IReadOnlyList<PersonnelAccess> GetExpiringWithinDays(int days)
+    public IReadOnlyList<PersonnelAccess> GetExpiringWithinDays(int days) => _repo.GetExpiringWithinDays(days);
+
+    public IReadOnlyList<PersonnelAccess> GetExceptions() => _repo.GetExceptions();
+
+    public void Grant(int personnelId, int resourceSystemId, PermissionType permissionType, bool isException, DateTime? expiresAt = null, int? requestId = null)
     {
-        var limit = DateTime.UtcNow.AddDays(days);
-        return _store.PersonnelAccesses
-            .Where(a => a.IsActive && a.ExpiresAt.HasValue && a.ExpiresAt <= limit)
-            .ToList();
-    }
-
-    public IReadOnlyList<PersonnelAccess> GetExceptions() =>
-        _store.PersonnelAccesses.Where(a => a.IsActive && a.IsException).ToList();
-
-    public void Grant(Guid personnelId, Guid resourceSystemId, PermissionType permissionType, bool isException, DateTime? expiresAt = null, Guid? requestId = null)
-    {
-        _store.PersonnelAccesses.Add(new PersonnelAccess
+        var access = new PersonnelAccess
         {
-            Id = Guid.NewGuid(),
             PersonnelId = personnelId,
             ResourceSystemId = resourceSystemId,
             PermissionType = permissionType,
@@ -44,12 +34,12 @@ public class PersonnelAccessService : IPersonnelAccessService
             ExpiresAt = expiresAt,
             IsActive = true,
             GrantedByRequestId = requestId
-        });
+        };
+        access.Id = _repo.Insert(access);
     }
 
-    public void Revoke(Guid personnelAccessId)
+    public void Revoke(int personnelAccessId)
     {
-        var a = _store.PersonnelAccesses.FirstOrDefault(x => x.Id == personnelAccessId);
-        if (a != null) a.IsActive = false;
+        _repo.SetActive(personnelAccessId, false);
     }
 }

@@ -1,19 +1,19 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class DepartmentService : IDepartmentService
 {
-    private readonly MockDataStore _store;
+    private readonly IDepartmentRepository _repo;
 
-    public DepartmentService(MockDataStore store)
+    public DepartmentService(IDepartmentRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
-    public IReadOnlyList<Department> GetAll() => _store.Departments.ToList();
+    public IReadOnlyList<Department> GetAll() => _repo.GetAll();
 
-    public Department? GetById(Guid id) => _store.Departments.FirstOrDefault(d => d.Id == id);
+    public Department? GetById(int id) => _repo.GetById(id);
 }

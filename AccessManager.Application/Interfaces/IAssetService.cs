@@ -8,18 +8,18 @@ public interface IAssetService
     IReadOnlyList<Asset> GetAll();
     IReadOnlyList<Asset> GetByStatus(AssetStatus status);
     IReadOnlyList<Asset> GetByType(AssetType type);
-    Asset? GetById(Guid id);
-    IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(Guid personnelId);
-    IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(Guid assetId);
-    AssetAssignment? GetActiveAssignmentForAsset(Guid assetId);
-    AssetAssignment? GetAssignmentById(Guid assignmentId);
-    IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(Guid assignmentId);
-    void AddNoteToAssignment(Guid assignmentId, string content, Guid? createdByUserId, string? createdByUserName);
+    Asset? GetById(int id);
+    IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(int personnelId);
+    IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(int assetId);
+    AssetAssignment? GetActiveAssignmentForAsset(int assetId);
+    AssetAssignment? GetAssignmentById(int assignmentId);
+    IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(int assignmentId);
+    void AddNoteToAssignment(int assignmentId, string content, int? createdByUserId, string? createdByUserName);
 
     Asset Create(Asset asset);
     void Update(Asset asset);
-    void Delete(Guid assetId);
+    void Delete(int assetId);
 
-    AssetAssignment Assign(Guid assetId, Guid personnelId, string? notes, Guid? assignedByUserId, string? assignedByUserName);
-    void Return(Guid assignmentId, string? returnCondition, string? notes);
+    AssetAssignment Assign(int assetId, int personnelId, string? notes, int? assignedByUserId, string? assignedByUserName);
+    void Return(int assignmentId, string? returnCondition, string? notes);
 }

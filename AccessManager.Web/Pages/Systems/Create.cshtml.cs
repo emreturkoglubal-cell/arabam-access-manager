@@ -51,7 +51,7 @@ public class CreateModel : PageModel
             Code = string.IsNullOrWhiteSpace(Input.Code) ? null : Input.Code.Trim(),
             SystemType = Input.SystemType,
             CriticalLevel = Input.CriticalLevel,
-            OwnerId = Input.OwnerId == Guid.Empty ? null : Input.OwnerId,
+            OwnerId = Input.OwnerId == 0 ? null : Input.OwnerId,
             Description = string.IsNullOrWhiteSpace(Input.Description) ? null : Input.Description.Trim()
         };
         _systemService.Create(system);
@@ -69,7 +69,7 @@ public class CreateModel : PageModel
         public string? Code { get; set; }
         public SystemType SystemType { get; set; } = SystemType.Application;
         public CriticalLevel CriticalLevel { get; set; } = CriticalLevel.Medium;
-        public Guid OwnerId { get; set; }
+        public int OwnerId { get; set; }
         public string? Description { get; set; }
     }
 }

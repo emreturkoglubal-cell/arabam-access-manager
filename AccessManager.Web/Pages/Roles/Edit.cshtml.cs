@@ -27,7 +27,7 @@ public class EditModel : PageModel
 
     public Role? Role { get; set; }
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         Role = _roleService.GetById(id);
         if (Role == null) return NotFound();
@@ -37,7 +37,7 @@ public class EditModel : PageModel
         return Page();
     }
 
-    public IActionResult OnPost(Guid id)
+    public IActionResult OnPost(int id)
     {
         Role = _roleService.GetById(id);
         if (Role == null) return NotFound();

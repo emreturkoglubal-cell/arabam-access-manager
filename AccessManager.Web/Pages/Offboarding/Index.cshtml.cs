@@ -24,7 +24,7 @@ public class IndexModel : PageModel
     public IReadOnlyList<PersonnelEntity> ActivePersonnel { get; set; } = new List<PersonnelEntity>();
 
     [BindProperty]
-    public Guid? SelectedPersonnelId { get; set; }
+    public int? SelectedPersonnelId { get; set; }
 
     [BindProperty]
     public DateTime EndDate { get; set; } = DateTime.Today;

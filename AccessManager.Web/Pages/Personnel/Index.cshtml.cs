@@ -24,11 +24,11 @@ public class IndexModel : PageModel
     public IReadOnlyList<PersonnelEntity> PersonnelList { get; set; } = new List<PersonnelEntity>();
     public IReadOnlyList<Department> Departments { get; set; } = new List<Department>();
     public IReadOnlyList<Role> Roles { get; set; } = new List<Role>();
-    public Dictionary<Guid, string> ManagerNames { get; set; } = new();
-    public Guid? FilterDepartmentId { get; set; }
+    public Dictionary<int, string> ManagerNames { get; set; } = new();
+    public int? FilterDepartmentId { get; set; }
     public bool? FilterActiveOnly { get; set; } = true;
 
-    public void OnGet(Guid? departmentId, bool? activeOnly)
+    public void OnGet(int? departmentId, bool? activeOnly)
     {
         FilterDepartmentId = departmentId;
         FilterActiveOnly = activeOnly ?? true;

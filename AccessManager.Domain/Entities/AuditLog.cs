@@ -4,8 +4,8 @@ namespace AccessManager.Domain.Entities;
 
 public class AuditLog
 {
-    public Guid Id { get; set; }
-    public Guid? ActorId { get; set; }
+    public int Id { get; set; }
+    public int? ActorId { get; set; }
     public string ActorName { get; set; } = string.Empty;
     public AuditAction Action { get; set; }
     public string TargetType { get; set; } = string.Empty;

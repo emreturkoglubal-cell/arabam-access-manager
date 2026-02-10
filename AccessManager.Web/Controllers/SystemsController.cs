@@ -35,7 +35,7 @@ public class SystemsController : Controller
     public IActionResult Index()
     {
         var systems = _systemService.GetAll();
-        var ownerNames = new Dictionary<Guid, string>();
+        var ownerNames = new Dictionary<int, string>();
         var accessCounts = new Dictionary<Guid, int>();
         foreach (var s in systems)
         {
@@ -77,7 +77,7 @@ public class SystemsController : Controller
             Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim(),
             SystemType = input.SystemType,
             CriticalLevel = input.CriticalLevel,
-            OwnerId = input.OwnerId == Guid.Empty ? null : input.OwnerId,
+            OwnerId = input.OwnerId == 0 ? null : input.OwnerId,
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim()
         };
         _systemService.Create(system);
@@ -88,7 +88,7 @@ public class SystemsController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id)
+    public IActionResult Edit(int id)
     {
         var system = _systemService.GetById(id);
         if (system == null) return NotFound();
@@ -100,7 +100,7 @@ public class SystemsController : Controller
             Code = system.Code,
             SystemType = system.SystemType,
             CriticalLevel = system.CriticalLevel,
-            OwnerId = system.OwnerId ?? Guid.Empty,
+            OwnerId = system.OwnerId ?? 0,
             Description = system.Description
         });
     }
@@ -108,7 +108,7 @@ public class SystemsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id, SystemEditInputModel input)
+    public IActionResult Edit(int id, SystemEditInputModel input)
     {
         var system = _systemService.GetById(id);
         if (system == null) return NotFound();
@@ -123,7 +123,7 @@ public class SystemsController : Controller
         system.Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim();
         system.SystemType = input.SystemType;
         system.CriticalLevel = input.CriticalLevel;
-        system.OwnerId = input.OwnerId == Guid.Empty ? null : input.OwnerId;
+        system.OwnerId = input.OwnerId == 0 ? null : input.OwnerId;
         system.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         _systemService.Update(system);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
@@ -133,7 +133,7 @@ public class SystemsController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Delete(Guid id)
+    public IActionResult Delete(int id)
     {
         var system = _systemService.GetById(id);
         if (system == null) return NotFound();
@@ -145,7 +145,7 @@ public class SystemsController : Controller
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult DeletePost(Guid id)
+    public IActionResult DeletePost(int id)
     {
         var system = _systemService.GetById(id);
         if (system == null) return NotFound();

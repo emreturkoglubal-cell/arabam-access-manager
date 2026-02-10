@@ -44,7 +44,7 @@ public class OffboardingController : Controller
     }
 
     [HttpGet]
-    public IActionResult Result(Guid id)
+    public IActionResult Result(int id)
     {
         var personnel = _personnelService.GetById(id);
         if (personnel == null) return NotFound();
@@ -55,6 +55,6 @@ public class OffboardingController : Controller
 
 public class OffboardingInputModel
 {
-    public Guid? SelectedPersonnelId { get; set; }
+    public int? SelectedPersonnelId { get; set; }
     public DateTime EndDate { get; set; } = DateTime.Today;
 }

@@ -1,56 +1,44 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class SystemService : ISystemService
 {
-    private readonly MockDataStore _store;
+    private readonly IResourceSystemRepository _repo;
 
-    public SystemService(MockDataStore store)
+    public SystemService(IResourceSystemRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
-    public IReadOnlyList<ResourceSystem> GetAll() => _store.ResourceSystems.ToList();
+    public IReadOnlyList<ResourceSystem> GetAll() => _repo.GetAll();
 
-    public ResourceSystem? GetById(Guid id) => _store.ResourceSystems.FirstOrDefault(s => s.Id == id);
+    public ResourceSystem? GetById(int id) => _repo.GetById(id);
 
-    public IReadOnlyList<ResourceSystem> GetByType(SystemType type) =>
-        _store.ResourceSystems.Where(s => s.SystemType == type).ToList();
+    public IReadOnlyList<ResourceSystem> GetByType(SystemType type) => _repo.GetByType(type);
 
-    public IReadOnlyList<ResourceSystem> GetByCriticalLevel(CriticalLevel level) =>
-        _store.ResourceSystems.Where(s => s.CriticalLevel == level).ToList();
+    public IReadOnlyList<ResourceSystem> GetByCriticalLevel(CriticalLevel level) => _repo.GetByCriticalLevel(level);
 
     public ResourceSystem Create(ResourceSystem system)
     {
         ArgumentNullException.ThrowIfNull(system);
-        system.Id = Guid.NewGuid();
-        _store.ResourceSystems.Add(system);
+        system.Id = _repo.Insert(system);
         return system;
     }
 
     public void Update(ResourceSystem system)
     {
         ArgumentNullException.ThrowIfNull(system);
-        var idx = _store.ResourceSystems.FindIndex(s => s.Id == system.Id);
-        if (idx >= 0)
-            _store.ResourceSystems[idx] = system;
+        _repo.Update(system);
     }
 
-    public bool Delete(Guid id)
+    public bool Delete(int id)
     {
-        if (_store.AccessRequests.Any(r => r.ResourceSystemId == id))
+        if (_repo.ExistsInAccessRequests(id) || _repo.ExistsInRolePermissions(id) || _repo.ExistsInPersonnelAccesses(id))
             return false;
-        if (_store.RolePermissions.Any(rp => rp.ResourceSystemId == id))
-            return false;
-        if (_store.PersonnelAccesses.Any(pa => pa.ResourceSystemId == id))
-            return false;
-        var idx = _store.ResourceSystems.FindIndex(s => s.Id == id);
-        if (idx < 0) return true;
-        _store.ResourceSystems.RemoveAt(idx);
-        return true;
+        return _repo.Delete(id);
     }
 }

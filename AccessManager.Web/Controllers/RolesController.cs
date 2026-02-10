@@ -28,7 +28,7 @@ public class RolesController : Controller
     {
         var roles = _roleService.GetAll();
         var systems = _systemService.GetAll().ToDictionary(s => s.Id, s => s.Name ?? s.Code ?? s.Id.ToString());
-        var details = new Dictionary<Guid, List<(string SystemName, string Permission)>>();
+        var details = new Dictionary<int, List<(string SystemName, string Permission)>>();
         foreach (var role in roles)
         {
             var perms = _roleService.GetPermissionsByRole(role.Id);
@@ -67,7 +67,7 @@ public class RolesController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id)
+    public IActionResult Edit(int id)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -78,7 +78,7 @@ public class RolesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id, RoleEditInputModel input)
+    public IActionResult Edit(int id, RoleEditInputModel input)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -99,7 +99,7 @@ public class RolesController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult EditPermissions(Guid id)
+    public IActionResult EditPermissions(int id)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -114,7 +114,7 @@ public class RolesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult AddPermission(Guid id, RoleAddPermissionInputModel input)
+    public IActionResult AddPermission(int id, RoleAddPermissionInputModel input)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -127,7 +127,7 @@ public class RolesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult RemovePermission(Guid id, Guid permissionId)
+    public IActionResult RemovePermission(int id, int permissionId)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -141,7 +141,7 @@ public class RolesController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Delete(Guid id)
+    public IActionResult Delete(int id)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -154,7 +154,7 @@ public class RolesController : Controller
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult DeletePost(Guid id)
+    public IActionResult DeletePost(int id)
     {
         var role = _roleService.GetById(id);
         if (role == null) return NotFound();
@@ -181,7 +181,7 @@ public class RoleEditInputModel
 
 public class RoleAddPermissionInputModel
 {
-    public Guid ResourceSystemId { get; set; }
+    public int ResourceSystemId { get; set; }
     public PermissionType PermissionType { get; set; }
     public bool IsDefault { get; set; } = true;
 }

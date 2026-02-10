@@ -5,7 +5,7 @@ namespace AccessManager.Domain.Entities;
 /// <summary>Donanım / varlık (bilgisayar, telefon vb.).</summary>
 public class Asset
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
     public AssetType AssetType { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? SerialNumber { get; set; }

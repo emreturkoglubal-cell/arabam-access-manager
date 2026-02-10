@@ -20,7 +20,7 @@ public class IndexModel : PageModel
     }
 
     public IReadOnlyList<Role> Roles { get; set; } = new List<Role>();
-    public Dictionary<Guid, List<(string SystemName, string Permission)>> RolePermissionDetails { get; set; } = new();
+    public Dictionary<int, List<(string SystemName, string Permission)>> RolePermissionDetails { get; set; } = new();
 
     public void OnGet()
     {

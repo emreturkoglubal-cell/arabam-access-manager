@@ -6,12 +6,12 @@ namespace AccessManager.Application.Interfaces;
 public interface ISystemService
 {
     IReadOnlyList<ResourceSystem> GetAll();
-    ResourceSystem? GetById(Guid id);
+    ResourceSystem? GetById(int id);
     IReadOnlyList<ResourceSystem> GetByType(SystemType type);
     IReadOnlyList<ResourceSystem> GetByCriticalLevel(CriticalLevel level);
 
     ResourceSystem Create(ResourceSystem system);
     void Update(ResourceSystem system);
     /// <summary>Siler. Yetki talebi, rol yetkisi veya personel erişiminde kullanılıyorsa false döner.</summary>
-    bool Delete(Guid id);
+    bool Delete(int id);
 }

@@ -5,7 +5,7 @@ namespace AccessManager.Application.Interfaces;
 public interface ICurrentUserService
 {
     bool IsAuthenticated { get; }
-    Guid? UserId { get; }
+    int? UserId { get; }
     string? UserName { get; }
     string? DisplayName { get; }
     AppRole? Role { get; }

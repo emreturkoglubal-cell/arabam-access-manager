@@ -31,7 +31,7 @@ public class EditModel : PageModel
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         System = _systemService.GetById(id);
         if (System == null) return NotFound();
@@ -40,12 +40,12 @@ public class EditModel : PageModel
         Input.Code = System.Code;
         Input.SystemType = System.SystemType;
         Input.CriticalLevel = System.CriticalLevel;
-        Input.OwnerId = System.OwnerId ?? Guid.Empty;
+        Input.OwnerId = System.OwnerId ?? 0;
         Input.Description = System.Description;
         return Page();
     }
 
-    public IActionResult OnPost(Guid id)
+    public IActionResult OnPost(int id)
     {
         System = _systemService.GetById(id);
         if (System == null) return NotFound();
@@ -61,7 +61,7 @@ public class EditModel : PageModel
         System.Code = string.IsNullOrWhiteSpace(Input.Code) ? null : Input.Code.Trim();
         System.SystemType = Input.SystemType;
         System.CriticalLevel = Input.CriticalLevel;
-        System.OwnerId = Input.OwnerId == Guid.Empty ? null : Input.OwnerId;
+        System.OwnerId = Input.OwnerId == 0 ? null : Input.OwnerId;
         System.Description = string.IsNullOrWhiteSpace(Input.Description) ? null : Input.Description.Trim();
         _systemService.Update(System);
 
@@ -78,7 +78,7 @@ public class EditModel : PageModel
         public string? Code { get; set; }
         public SystemType SystemType { get; set; }
         public CriticalLevel CriticalLevel { get; set; }
-        public Guid OwnerId { get; set; }
+        public int OwnerId { get; set; }
         public string? Description { get; set; }
     }
 }

@@ -19,7 +19,7 @@ public class IndexModel : PageModel
     }
 
     public IReadOnlyList<Department> Departments { get; set; } = new List<Department>();
-    public Dictionary<Guid, int> PersonnelCountByDepartment { get; set; } = new();
+    public Dictionary<int, int> PersonnelCountByDepartment { get; set; } = new();
 
     public void OnGet()
     {

@@ -39,11 +39,11 @@ public class CreateModel : PageModel
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public Guid DepartmentId { get; set; }
+        public int DepartmentId { get; set; }
         public string? Position { get; set; }
-        public Guid? ManagerId { get; set; }
+        public int? ManagerId { get; set; }
         public DateTime StartDate { get; set; } = DateTime.Today;
-        public Guid? RoleId { get; set; }
+        public int? RoleId { get; set; }
     }
 
     public void OnGet()

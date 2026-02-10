@@ -28,12 +28,12 @@ public class DetailModel : PageModel
     public IReadOnlyList<ApprovalStep> Steps { get; set; } = new List<ApprovalStep>();
     public string? PersonName { get; set; }
     public string? SystemName { get; set; }
-    public Dictionary<Guid, string> ApproverNames { get; set; } = new();
+    public Dictionary<int, string> ApproverNames { get; set; } = new();
 
     public bool CanApprove { get; set; }
     public string? NextStepName { get; set; }
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         AccessRequestItem = _requestService.GetById(id);
         if (AccessRequestItem == null) return NotFound();
@@ -58,11 +58,11 @@ public class DetailModel : PageModel
         return Page();
     }
 
-    public IActionResult OnPostApprove(Guid id, string stepName, bool approved, string? comment)
+    public IActionResult OnPostApprove(int id, string stepName, bool approved, string? comment)
     {
         var req = _requestService.GetById(id);
         if (req == null) return NotFound();
-        var approverId = _currentUser.UserId ?? Guid.Empty;
+        var approverId = _currentUser.UserId ?? 0;
         var approverDisplayName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
         _requestService.ApproveStep(id, stepName, approverId, approverDisplayName, approved, comment);
         req = _requestService.GetById(id);

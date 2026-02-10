@@ -28,15 +28,15 @@ public class AccessRequestsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(Guid? personnelId, string? status)
+    public IActionResult Index(int? personnelId, string? status)
     {
         var list = _requestService.GetAll();
         if (personnelId.HasValue) list = list.Where(r => r.PersonnelId == personnelId.Value).ToList();
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<AccessRequestStatus>(status, out var s))
             list = list.Where(r => r.Status == s).ToList();
 
-        var personNames = new Dictionary<Guid, string>();
-        var systemNames = new Dictionary<Guid, string>();
+        var personNames = new Dictionary<int, string>();
+        var systemNames = new Dictionary<int, string>();
         foreach (var pid in list.Select(r => r.PersonnelId).Distinct())
         {
             var p = _personnelService.GetById(pid);
@@ -57,25 +57,25 @@ public class AccessRequestsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create(Guid? personnelId)
+    public IActionResult Create(int? personnelId)
     {
         ViewBag.PersonnelList = _personnelService.GetActive();
         ViewBag.Systems = _systemService.GetAll();
         Personnel? preselectedPerson = null;
-        if (personnelId.HasValue && personnelId.Value != Guid.Empty)
+        if (personnelId.HasValue && personnelId.Value != 0)
         {
             preselectedPerson = _personnelService.GetById(personnelId.Value);
             if (preselectedPerson != null)
                 ViewBag.PreselectedPerson = preselectedPerson;
         }
-        return View(new AccessRequestCreateInputModel { PersonnelId = personnelId ?? Guid.Empty });
+        return View(new AccessRequestCreateInputModel { PersonnelId = personnelId ?? 0 });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(AccessRequestCreateInputModel input)
     {
-        if (input.PersonnelId == Guid.Empty || input.ResourceSystemId == Guid.Empty)
+        if (input.PersonnelId == 0 || input.ResourceSystemId == 0)
         {
             ModelState.AddModelError(string.Empty, "Personel ve sistem seçiniz.");
             ViewBag.PersonnelList = _personnelService.GetActive();
@@ -98,13 +98,13 @@ public class AccessRequestsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Detail(Guid id)
+    public IActionResult Detail(int id)
     {
         var req = _requestService.GetById(id);
         if (req == null) return NotFound();
         var steps = _requestService.GetApprovalSteps(id);
         var person = _personnelService.GetById(req.PersonnelId);
-        var approverNames = new Dictionary<Guid, string>();
+        var approverNames = new Dictionary<int, string>();
         foreach (var s in steps.Where(s => s.ApprovedBy.HasValue))
         {
             approverNames[s.ApprovedBy!.Value] = !string.IsNullOrWhiteSpace(s.ApprovedByName)
@@ -126,11 +126,11 @@ public class AccessRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Approve(Guid id, string stepName, bool approved, string? comment)
+    public IActionResult Approve(int id, string stepName, bool approved, string? comment)
     {
         var req = _requestService.GetById(id);
         if (req == null) return NotFound();
-        var approverId = _currentUser.UserId ?? Guid.Empty;
+        var approverId = _currentUser.UserId ?? 0;
         var approverDisplayName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
         _requestService.ApproveStep(id, stepName, approverId, approverDisplayName, approved, comment);
         req = _requestService.GetById(id);
@@ -142,8 +142,8 @@ public class AccessRequestsController : Controller
 
 public class AccessRequestCreateInputModel
 {
-    public Guid PersonnelId { get; set; }
-    public Guid ResourceSystemId { get; set; }
+    public int PersonnelId { get; set; }
+    public int ResourceSystemId { get; set; }
     public PermissionType RequestedPermission { get; set; }
     public string? Reason { get; set; }
     public DateTime? EndDate { get; set; }

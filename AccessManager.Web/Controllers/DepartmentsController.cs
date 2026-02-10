@@ -21,7 +21,7 @@ public class DepartmentsController : Controller
     public IActionResult Index()
     {
         var departments = _departmentService.GetAll();
-        var countByDept = new Dictionary<Guid, int>();
+        var countByDept = new Dictionary<int, int>();
         foreach (var d in departments)
             countByDept[d.Id] = _personnelService.GetByDepartmentId(d.Id).Count;
 

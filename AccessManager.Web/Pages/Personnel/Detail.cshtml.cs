@@ -32,9 +32,9 @@ public class DetailModel : PageModel
     public string? DepartmentName { get; set; }
     public string? RoleName { get; set; }
     public string? ManagerName { get; set; }
-    public Dictionary<Guid, string> SystemNames { get; set; } = new();
+    public Dictionary<int, string> SystemNames { get; set; } = new();
 
-    public IActionResult OnGet(Guid id)
+    public IActionResult OnGet(int id)
     {
         var (personnel, accesses) = _personnelService.GetWithAccesses(id);
         if (personnel == null) return NotFound();
@@ -55,7 +55,7 @@ public class DetailModel : PageModel
         return Page();
     }
 
-    public IActionResult OnPostRevokeAccess(Guid id, Guid accessId)
+    public IActionResult OnPostRevokeAccess(int id, int accessId)
     {
         var personnel = _personnelService.GetById(id);
         if (personnel == null) return NotFound();

@@ -1,97 +1,77 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class PersonnelService : IPersonnelService
 {
-    private readonly MockDataStore _store;
+    private readonly IPersonnelRepository _repo;
+    private readonly IPersonnelAccessRepository _accessRepo;
 
-    public PersonnelService(MockDataStore store)
+    public PersonnelService(IPersonnelRepository repo, IPersonnelAccessRepository accessRepo)
     {
-        _store = store;
+        _repo = repo;
+        _accessRepo = accessRepo;
     }
 
-    public IReadOnlyList<Personnel> GetAll() => _store.Personnel.ToList();
+    public IReadOnlyList<Personnel> GetAll() => _repo.GetAll();
 
-    public IReadOnlyList<Personnel> GetActive() =>
-        _store.Personnel.Where(p => p.Status == PersonnelStatus.Active).ToList();
+    public IReadOnlyList<Personnel> GetActive() => _repo.GetActive();
 
-    public Personnel? GetById(Guid id) => _store.Personnel.FirstOrDefault(p => p.Id == id);
+    public Personnel? GetById(int id) => _repo.GetById(id);
 
-    public Personnel? GetBySicilNo(string sicilNo) =>
-        _store.Personnel.FirstOrDefault(p => string.Equals(p.SicilNo, sicilNo, StringComparison.OrdinalIgnoreCase));
+    public Personnel? GetBySicilNo(string sicilNo) => _repo.GetBySicilNo(sicilNo);
 
-    public IReadOnlyList<Personnel> GetByManagerId(Guid managerId) =>
-        _store.Personnel.Where(p => p.ManagerId == managerId).ToList();
+    public IReadOnlyList<Personnel> GetByManagerId(int managerId) => _repo.GetByManagerId(managerId);
 
-    public IReadOnlyList<Personnel> GetByDepartmentId(Guid departmentId) =>
-        _store.Personnel.Where(p => p.DepartmentId == departmentId).ToList();
+    public IReadOnlyList<Personnel> GetByDepartmentId(int departmentId) => _repo.GetByDepartmentId(departmentId);
 
-    public (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(Guid personnelId)
+    public (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId)
     {
-        var p = GetById(personnelId);
+        var p = _repo.GetById(personnelId);
         if (p == null) return (null, new List<PersonnelAccess>());
-        // Faz 1: Tüm yetkiler görünsün (aktif + pasif)
-        var accesses = _store.PersonnelAccesses.Where(a => a.PersonnelId == personnelId).ToList();
-        return (p, accesses);
+        var accesses = _accessRepo.GetByPersonnel(personnelId);
+        return (p, accesses.ToList());
     }
 
     public Personnel Add(Personnel personnel)
     {
         ArgumentNullException.ThrowIfNull(personnel);
-        personnel.Id = Guid.NewGuid();
-        _store.Personnel.Add(personnel);
+        personnel.Id = _repo.Insert(personnel);
         return personnel;
     }
 
     public void Update(Personnel personnel)
     {
         ArgumentNullException.ThrowIfNull(personnel);
-        var idx = _store.Personnel.FindIndex(p => p.Id == personnel.Id);
-        if (idx >= 0) _store.Personnel[idx] = personnel;
+        _repo.Update(personnel);
     }
 
-    public void SetOffboarded(Guid personnelId, DateTime endDate)
+    public void SetOffboarded(int personnelId, DateTime endDate)
     {
-        var p = GetById(personnelId);
-        if (p == null) return;
-        p.EndDate = endDate;
-        p.Status = PersonnelStatus.Offboarded;
-        foreach (var a in _store.PersonnelAccesses.Where(x => x.PersonnelId == personnelId))
-            a.IsActive = false;
+        _repo.SetOffboarded(personnelId, endDate);
     }
 
-    public void UpdateRating(Guid personnelId, decimal? rating, string? managerComment)
+    public void UpdateRating(int personnelId, decimal? rating, string? managerComment)
     {
-        var p = GetById(personnelId);
-        if (p == null) return;
-        p.Rating = rating;
-        p.ManagerComment = string.IsNullOrWhiteSpace(managerComment) ? null : managerComment.Trim();
+        _repo.UpdateRating(personnelId, rating, managerComment);
     }
 
-    public IReadOnlyList<PersonnelNote> GetNotes(Guid personnelId)
-    {
-        return _store.PersonnelNotes
-            .Where(n => n.PersonnelId == personnelId)
-            .OrderByDescending(n => n.CreatedAt)
-            .ToList();
-    }
+    public IReadOnlyList<PersonnelNote> GetNotes(int personnelId) => _repo.GetNotes(personnelId);
 
-    public void AddNote(Guid personnelId, string content, Guid? createdByUserId, string? createdByUserName)
+    public void AddNote(int personnelId, string content, int? createdByUserId, string? createdByUserName)
     {
-        if (GetById(personnelId) == null) return;
+        if (_repo.GetById(personnelId) == null) return;
         var note = new PersonnelNote
         {
-            Id = Guid.NewGuid(),
             PersonnelId = personnelId,
             Content = content?.Trim() ?? string.Empty,
             CreatedAt = DateTime.UtcNow,
             CreatedByUserId = createdByUserId,
             CreatedByUserName = createdByUserName ?? "?"
         };
-        _store.PersonnelNotes.Add(note);
+        _repo.AddNote(note);
     }
 }

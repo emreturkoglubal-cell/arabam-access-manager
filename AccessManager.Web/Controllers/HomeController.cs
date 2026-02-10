@@ -17,7 +17,7 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(Guid? departmentId, int? periodMonths)
+    public IActionResult Index(int? departmentId, int? periodMonths)
     {
         var stats = _reportService.GetDashboardStats(departmentId, periodMonths);
         ViewBag.Departments = _departmentService.GetAll();

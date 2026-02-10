@@ -1,24 +1,23 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class AuditService : IAuditService
 {
-    private readonly MockDataStore _store;
+    private readonly IAuditLogRepository _repo;
 
-    public AuditService(MockDataStore store)
+    public AuditService(IAuditLogRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
-    public void Log(AuditAction action, Guid? actorId, string actorName, string targetType, string? targetId, string? details = null, string? ipAddress = null)
+    public void Log(AuditAction action, int? actorId, string actorName, string targetType, string? targetId, string? details = null, string? ipAddress = null)
     {
-        _store.AuditLogs.Add(new AuditLog
+        _repo.Insert(new AuditLog
         {
-            Id = Guid.NewGuid(),
             ActorId = actorId,
             ActorName = actorName,
             Action = action,
@@ -30,16 +29,9 @@ public class AuditService : IAuditService
         });
     }
 
-    public IReadOnlyList<AuditLog> GetRecent(int count = 100) =>
-        _store.AuditLogs.OrderByDescending(l => l.Timestamp).Take(count).ToList();
+    public IReadOnlyList<AuditLog> GetRecent(int count = 100) => _repo.GetRecent(count);
 
-    public IReadOnlyList<AuditLog> GetByTarget(string targetType, string? targetId = null)
-    {
-        var q = _store.AuditLogs.Where(l => l.TargetType == targetType);
-        if (targetId != null) q = q.Where(l => l.TargetId == targetId);
-        return q.OrderByDescending(l => l.Timestamp).ToList();
-    }
+    public IReadOnlyList<AuditLog> GetByTarget(string targetType, string? targetId = null) => _repo.GetByTarget(targetType, targetId);
 
-    public IReadOnlyList<AuditLog> GetByDateRange(DateTime from, DateTime to) =>
-        _store.AuditLogs.Where(l => l.Timestamp >= from && l.Timestamp <= to).OrderByDescending(l => l.Timestamp).ToList();
+    public IReadOnlyList<AuditLog> GetByDateRange(DateTime from, DateTime to) => _repo.GetByDateRange(from, to);
 }

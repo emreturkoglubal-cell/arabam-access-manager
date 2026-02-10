@@ -6,6 +6,8 @@
     <RootNamespace>AccessManager.Infrastructure</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Npgsql" Version="8.0.5" />
     <ProjectReference Include="..\AccessManager.Application\AccessManager.Application.csproj" />
     <ProjectReference Include="..\AccessManager.Domain\AccessManager.Domain.csproj" />
   </ItemGroup>

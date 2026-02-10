@@ -1,36 +1,30 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 
 namespace AccessManager.Infrastructure.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly MockDataStore _store;
+    private readonly IAppUserRepository _repo;
 
-    public AuthService(MockDataStore store)
+    public AuthService(IAppUserRepository repo)
     {
-        _store = store;
+        _repo = repo;
     }
 
     public AppUser? ValidateUser(string userName, string password)
     {
         if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
             return null;
-
-        // Mock: parola düz metin karşılaştırma (gerçek ortamda hash kullanılmalı)
-        var user = _store.AppUsers.Find(u =>
-            string.Equals(u.UserName, userName, StringComparison.OrdinalIgnoreCase) &&
-            u.PasswordHash == password);
-        return user;
+        return _repo.ValidateUser(userName, password);
     }
 
     public string? GetPersonnelPhotoUrlByUsername(string userName)
     {
         if (string.IsNullOrWhiteSpace(userName)) return null;
-        var user = _store.AppUsers.Find(u => string.Equals(u.UserName, userName, StringComparison.OrdinalIgnoreCase));
+        var user = _repo.GetByUserName(userName);
         if (user?.PersonnelId == null) return null;
-        var personnel = _store.Personnel.Find(p => p.Id == user.PersonnelId);
-        return string.IsNullOrWhiteSpace(personnel?.ImageUrl) ? null : personnel.ImageUrl;
+        return _repo.GetPersonnelImageUrlByPersonnelId(user.PersonnelId);
     }
 }

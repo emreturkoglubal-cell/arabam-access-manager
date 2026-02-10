@@ -1,0 +1,19 @@
+using AccessManager.Domain.Entities;
+
+namespace AccessManager.Infrastructure.Repositories;
+
+public interface IPersonnelRepository
+{
+    IReadOnlyList<Personnel> GetAll();
+    IReadOnlyList<Personnel> GetActive();
+    Personnel? GetById(int id);
+    Personnel? GetBySicilNo(string sicilNo);
+    IReadOnlyList<Personnel> GetByManagerId(int managerId);
+    IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
+    int Insert(Personnel personnel);
+    void Update(Personnel personnel);
+    void SetOffboarded(int personnelId, DateTime endDate);
+    void UpdateRating(int personnelId, decimal? rating, string? managerComment);
+    IReadOnlyList<PersonnelNote> GetNotes(int personnelId);
+    void AddNote(PersonnelNote note);
+}

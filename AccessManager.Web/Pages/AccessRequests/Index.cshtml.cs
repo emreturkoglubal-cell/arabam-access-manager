@@ -22,12 +22,12 @@ public class IndexModel : PageModel
     }
 
     public IReadOnlyList<AccessRequest> Requests { get; set; } = new List<AccessRequest>();
-    public Dictionary<Guid, string> PersonNames { get; set; } = new();
-    public Dictionary<Guid, string> SystemNames { get; set; } = new();
-    public Guid? FilterPersonnelId { get; set; }
+    public Dictionary<int, string> PersonNames { get; set; } = new();
+    public Dictionary<int, string> SystemNames { get; set; } = new();
+    public int? FilterPersonnelId { get; set; }
     public string? FilterStatus { get; set; }
 
-    public void OnGet(Guid? personnelId, string? status)
+    public void OnGet(int? personnelId, string? status)
     {
         FilterPersonnelId = personnelId;
         FilterStatus = status;

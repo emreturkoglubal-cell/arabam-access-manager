@@ -41,7 +41,7 @@ public class PersonnelController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(Guid? departmentId, bool? activeOnly)
+    public IActionResult Index(int? departmentId, bool? activeOnly)
     {
         var vm = new PersonnelIndexViewModel
         {
@@ -114,14 +114,14 @@ public class PersonnelController : Controller
     }
 
     [HttpGet]
-    public IActionResult Detail(Guid id)
+    public IActionResult Detail(int id)
     {
         var (personnel, accesses) = _personnelService.GetWithAccesses(id);
         if (personnel == null) return NotFound();
 
         var assetAssignments = _assetService.GetActiveAssignmentsByPersonnel(id).ToList();
-        var assetNames = new Dictionary<Guid, string>();
-        var assetTypes = new Dictionary<Guid, Domain.Enums.AssetType>();
+        var assetNames = new Dictionary<int, string>();
+        var assetTypes = new Dictionary<int, Domain.Enums.AssetType>();
         foreach (var a in assetAssignments)
         {
             var asset = _assetService.GetById(a.AssetId);
@@ -155,7 +155,7 @@ public class PersonnelController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AddZimmetNote(Guid id, Guid assignmentId, ZimmetNoteInputModel input)
+    public IActionResult AddZimmetNote(int id, int assignmentId, ZimmetNoteInputModel input)
     {
         var personnel = _personnelService.GetById(id);
         if (personnel == null) return NotFound();
@@ -185,7 +185,7 @@ public class PersonnelController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AddNote(Guid id, PersonnelNoteInputModel input)
+    public IActionResult AddNote(int id, PersonnelNoteInputModel input)
     {
         var personnel = _personnelService.GetById(id);
         if (personnel == null) return NotFound();
@@ -208,7 +208,7 @@ public class PersonnelController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult RevokeAccess(Guid id, Guid accessId)
+    public IActionResult RevokeAccess(int id, int accessId)
     {
         var personnel = _personnelService.GetById(id);
         if (personnel == null) return NotFound();

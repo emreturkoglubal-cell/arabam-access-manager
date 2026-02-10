@@ -30,8 +30,8 @@ public class AssetsController : Controller
         if (status.HasValue) assets = assets.Where(a => a.Status == status.Value).ToList();
         if (type.HasValue) assets = assets.Where(a => a.AssetType == type.Value).ToList();
 
-        var assignmentByAsset = new Dictionary<Guid, AssetAssignment>();
-        var personNames = new Dictionary<Guid, string>();
+        var assignmentByAsset = new Dictionary<int, AssetAssignment>();
+        var personNames = new Dictionary<int, string>();
         foreach (var a in assets.Where(x => x.Status == AssetStatus.Assigned))
         {
             var assign = _assetService.GetActiveAssignmentForAsset(a.Id);
@@ -84,7 +84,7 @@ public class AssetsController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id)
+    public IActionResult Edit(int id)
     {
         var asset = _assetService.GetById(id);
         if (asset == null) return NotFound();
@@ -104,7 +104,7 @@ public class AssetsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Edit(Guid id, AssetEditInputModel input)
+    public IActionResult Edit(int id, AssetEditInputModel input)
     {
         var asset = _assetService.GetById(id);
         if (asset == null) return NotFound();
@@ -127,7 +127,7 @@ public class AssetsController : Controller
 
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult Delete(Guid id)
+    public IActionResult Delete(int id)
     {
         var asset = _assetService.GetById(id);
         if (asset == null) return NotFound();
@@ -138,7 +138,7 @@ public class AssetsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
-    public IActionResult DeleteConfirmed(Guid id)
+    public IActionResult DeleteConfirmed(int id)
     {
         try
         {
@@ -153,7 +153,7 @@ public class AssetsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Assign(Guid id)
+    public IActionResult Assign(int id)
     {
         var asset = _assetService.GetById(id);
         if (asset == null) return NotFound();
@@ -195,7 +195,7 @@ public class AssetsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Return(Guid id)
+    public IActionResult Return(int id)
     {
         var assignment = _assetService.GetAssignmentById(id);
         if (assignment == null) return NotFound();

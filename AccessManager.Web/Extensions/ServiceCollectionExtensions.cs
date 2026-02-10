@@ -1,5 +1,5 @@
 using AccessManager.Application.Interfaces;
-using AccessManager.Infrastructure.Data;
+using AccessManager.Infrastructure.Repositories;
 using AccessManager.Infrastructure.Services;
 using AccessManager.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -10,7 +10,63 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAccessManagerServices(this IServiceCollection services)
     {
-        services.AddSingleton<MockDataStore>();
+        // Connection string ile repository'leri kaydet (Dapper)
+        services.AddScoped<IDepartmentRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
+            return new DepartmentRepository(cs);
+        });
+        services.AddScoped<IRoleRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new RoleRepository(cs);
+        });
+        services.AddScoped<IPersonnelRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new PersonnelRepository(cs);
+        });
+        services.AddScoped<IResourceSystemRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ResourceSystemRepository(cs);
+        });
+        services.AddScoped<IAppUserRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AppUserRepository(cs);
+        });
+        services.AddScoped<IPersonnelAccessRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new PersonnelAccessRepository(cs);
+        });
+        services.AddScoped<IAccessRequestRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AccessRequestRepository(cs);
+        });
+        services.AddScoped<IApprovalStepRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ApprovalStepRepository(cs);
+        });
+        services.AddScoped<IAuditLogRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AuditLogRepository(cs);
+        });
+        services.AddScoped<IAssetRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AssetRepository(cs);
+        });
+        services.AddScoped<IAssetAssignmentRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AssetAssignmentRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

@@ -21,8 +21,8 @@ public class IndexModel : PageModel
     }
 
     public IReadOnlyList<ResourceSystem> Systems { get; set; } = new List<ResourceSystem>();
-    public Dictionary<Guid, string> OwnerNames { get; set; } = new();
-    public Dictionary<Guid, int> AccessCounts { get; set; } = new();
+    public Dictionary<int, string> OwnerNames { get; set; } = new();
+    public Dictionary<int, int> AccessCounts { get; set; } = new();
 
     public void OnGet()
     {
