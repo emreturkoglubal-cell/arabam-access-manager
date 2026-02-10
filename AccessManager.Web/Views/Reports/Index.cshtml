@@ -1,0 +1,117 @@
+@using AccessManager.Application.Dtos
+@{
+    ViewData["Title"] = "Raporlar";
+    var accessBySystem = ViewBag.AccessBySystem as IReadOnlyList<AccessBySystemReportRow> ?? new List<AccessBySystemReportRow>();
+    var offboardedReport = ViewBag.OffboardedReport as IReadOnlyList<OffboardedReportRow> ?? new List<OffboardedReportRow>();
+    var exceptionReport = ViewBag.ExceptionReport as IReadOnlyList<ExceptionReportRow> ?? new List<ExceptionReportRow>();
+}
+
+<div class="am-page-title">Raporlar</div>
+
+<h5 class="mt-4 mb-3">Sisteme göre aktif erişim sayıları</h5>
+<div class="am-card">
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table">
+                <thead>
+                    <tr>
+                        <th>Sistem</th>
+                        <th>Kod</th>
+                        <th>Aktif erişim</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (accessBySystem.Any())
+                    {
+                        @foreach (var r in accessBySystem)
+                        {
+                            <tr>
+                                <td>@(r.SystemName ?? "—")</td>
+                                <td>@(r.SystemCode ?? "—")</td>
+                                <td>@r.ActiveAccessCount</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="3" class="text-muted">Kayıt yok.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<h5 class="mt-4 mb-3">İşten çıkanlar</h5>
+<div class="am-card">
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table">
+                <thead>
+                    <tr>
+                        <th>Sicil No</th>
+                        <th>Ad Soyad</th>
+                        <th>Çıkış tarihi</th>
+                        <th>Departman</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (offboardedReport.Any())
+                    {
+                        @foreach (var r in offboardedReport)
+                        {
+                            <tr>
+                                <td>@(r.SicilNo ?? "—")</td>
+                                <td><a asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId">@(r.FullName ?? "—")</a></td>
+                                <td>@(r.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                                <td>@(r.Department ?? "—")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="4" class="text-muted">Kayıt yok.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<h5 class="mt-4 mb-3">Rol dışı yetkiler (Exception)</h5>
+<div class="am-card">
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table">
+                <thead>
+                    <tr>
+                        <th>Personel</th>
+                        <th>Sicil No</th>
+                        <th>Sistem</th>
+                        <th>Yetki</th>
+                        <th>Bitiş tarihi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (exceptionReport.Any())
+                    {
+                        @foreach (var r in exceptionReport)
+                        {
+                            <tr>
+                                <td><a asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId">@(r.Person ?? "—")</a></td>
+                                <td>@(r.SicilNo ?? "—")</td>
+                                <td>@(r.System ?? "—")</td>
+                                <td>@(r.Permission ?? "—")</td>
+                                <td>@(r.ExpiresAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-muted">Kayıt yok.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,79 @@
+@using AccessManager.Domain.Constants
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Roller ve Yetkiler";
+    var roles = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
+    var details = ViewBag.RolePermissionDetails as Dictionary<Guid, List<(string SystemName, string Permission)>> ?? new Dictionary<Guid, List<(string SystemName, string Permission)>>();
+}
+
+<div class="am-page-title">Roller ve Yetkiler</div>
+
+@if (User.IsInRole(AppRoleNames.Admin))
+{
+    <div class="am-toolbar mb-4">
+        <div class="am-toolbar-end">
+            <a asp-controller="Roles" asp-action="Create" class="btn btn-am-primary">Yeni Rol</a>
+        </div>
+    </div>
+}
+
+<div class="am-card">
+    <div class="am-card-header">Tanımlı roller</div>
+    <div class="am-card-body p-0">
+        @if (roles.Any())
+        {
+            <div class="accordion accordion-flush" id="rolesAccordion">
+                @foreach (var role in roles)
+                {
+                    var roleDetails = details.TryGetValue(role.Id, out var d) ? d : new List<(string SystemName, string Permission)>();
+                    var id = "role-" + role.Id.ToString("N")[..8];
+                    <div class="accordion-item border-bottom">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-white py-3" type="button" data-bs-toggle="collapse" data-bs-target="#@id">
+                                <span class="fw-semibold">@role.Name</span>
+                                @if (!string.IsNullOrEmpty(role.Code))
+                                {
+                                    <span class="text-muted ms-2">(@role.Code)</span>
+                                }
+                            </button>
+                        </h2>
+                        <div id="@id" class="accordion-collapse collapse" data-bs-parent="#rolesAccordion">
+                            <div class="accordion-body pt-0">
+                                @if (User.IsInRole(AppRoleNames.Admin))
+                                {
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        <a asp-controller="Roles" asp-action="Edit" asp-route-id="@role.Id" class="btn btn-am-outline btn-am-outline-solid">Düzenle</a>
+                                        <a asp-controller="Roles" asp-action="EditPermissions" asp-route-id="@role.Id" class="btn btn-am-outline btn-am-outline-solid">Yetkileri düzenle</a>
+                                        <a asp-controller="Roles" asp-action="Delete" asp-route-id="@role.Id" class="btn btn-am-outline-danger">Sil</a>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(role.Description))
+                                {
+                                    <p class="text-muted small mb-2">@role.Description</p>
+                                }
+                                <p class="mb-2 small fw-semibold">Varsayılan yetkiler (işe girişte atanır):</p>
+                                @if (roleDetails.Any())
+                                {
+                                    <ul class="list-unstyled mb-0 small">
+                                        @foreach (var (sysName, perm) in roleDetails)
+                                        {
+                                            <li class="py-1">@sysName — @perm</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">Tanımlı yetki yok.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0 p-3">Henüz rol tanımlanmamış.</p>
+        }
+    </div>
+</div>

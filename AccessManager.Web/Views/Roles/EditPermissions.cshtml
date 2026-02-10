@@ -1,0 +1,84 @@
+@model AccessManager.UI.Controllers.RoleAddPermissionInputModel
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Entities
+@using AccessManager.UI.Helpers
+@{
+    ViewData["Title"] = "Rol yetkileri";
+    var role = ViewBag.Role as Role;
+    var permissions = ViewBag.Permissions as IReadOnlyList<RolePermission> ?? new List<RolePermission>();
+    var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
+    var systemNames = ViewBag.SystemNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+}
+
+<div class="am-page-title">Yetkiler: @(role?.Name ?? "")</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="am-card mb-4">
+            <div class="am-card-header">Yeni yetki ekle</div>
+            <div class="am-card-body">
+                <form method="post" asp-controller="Roles" asp-action="AddPermission" asp-route-id="@role?.Id">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label asp-for="ResourceSystemId" class="form-label">Sistem</label>
+                            <select asp-for="ResourceSystemId" class="form-select" required>
+                                <option value="">Seçin</option>
+                                @foreach (var s in systems)
+                                {
+                                    <option value="@s.Id">@s.Name (@(s.Code ?? ""))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="PermissionType" class="form-label">Yetki</label>
+                            <select asp-for="PermissionType" class="form-select">
+                                <option value="@PermissionType.Open">Açık</option>
+                                <option value="@PermissionType.Closed">Kapalı</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input asp-for="IsDefault" class="form-check-input" />
+                                <label asp-for="IsDefault" class="form-check-label">Varsayılan (işe girişte atanır)</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-am-primary">Ekle</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="am-card">
+            <div class="am-card-header">Mevcut yetkiler</div>
+            <div class="am-card-body p-0">
+                @if (permissions.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var p in permissions)
+                        {
+                            var sysName = systemNames.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString());
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>@sysName — @StatusLabels.PermissionTypeLabel(p.PermissionType) @(p.IsDefault ? "(varsayılan)" : "")</span>
+                                <form method="post" asp-controller="Roles" asp-action="RemovePermission" asp-route-id="@role?.Id" asp-route-permissionId="@p.Id" class="d-inline" data-am-confirm="Bu yetki kaldırılsın mı?">
+                                    <button type="submit" class="btn btn-am-ghost text-danger py-0">Kaldır</button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0 p-3">Bu role ait yetki tanımı yok. Yukarıdan ekleyebilirsiniz.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-controller="Roles" asp-action="Edit" asp-route-id="@role?.Id" class="btn btn-am-ghost">Rol bilgilerini düzenle</a>
+    <a asp-controller="Roles" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+</div>

@@ -1,0 +1,84 @@
+@model AccessManager.UI.ViewModels.PersonnelCreateInputModel
+@{
+    ViewData["Title"] = "Yeni Personel";
+    var departments = ViewBag.Departments as IReadOnlyList<AccessManager.Domain.Entities.Department> ?? new List<AccessManager.Domain.Entities.Department>();
+    var roles = ViewBag.Roles as IReadOnlyList<AccessManager.Domain.Entities.Role> ?? new List<AccessManager.Domain.Entities.Role>();
+    var managers = ViewBag.Managers as IReadOnlyList<AccessManager.Domain.Entities.Personnel> ?? new List<AccessManager.Domain.Entities.Personnel>();
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Personnel" asp-action="Index">Personel</a></li>
+        <li class="breadcrumb-item active">Yeni</li>
+    </ol>
+</nav>
+
+<div class="am-page-title">Yeni Personel</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Personnel" asp-action="Create" class="row g-3">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="col-md-6">
+                <label asp-for="SicilNo" class="form-label">Sicil No *</label>
+                <input asp-for="SicilNo" class="form-control" />
+                <span asp-validation-for="SicilNo" class="text-danger small"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="FirstName" class="form-label">Ad *</label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger small"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="LastName" class="form-label">Soyad *</label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Email" class="form-label">E-posta *</label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DepartmentId" class="form-label">Departman</label>
+                <select asp-for="DepartmentId" class="form-select" asp-items="@(new SelectList(departments, "Id", "Name"))"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="RoleId" class="form-label">Rol</label>
+                <select asp-for="RoleId" class="form-select">
+                    <option value="">Seçiniz</option>
+                    @foreach (var r in roles)
+                    {
+                        <option value="@r.Id">@r.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ManagerId" class="form-label">Yönetici</label>
+                <select asp-for="ManagerId" class="form-select">
+                    <option value="">Seçiniz</option>
+                    @foreach (var m in managers)
+                    {
+                        <option value="@m.Id">@m.FirstName @m.LastName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Position" class="form-label">Pozisyon</label>
+                <input asp-for="Position" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="StartDate" class="form-label">İşe giriş tarihi</label>
+                <input asp-for="StartDate" class="form-control" type="date" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                <a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

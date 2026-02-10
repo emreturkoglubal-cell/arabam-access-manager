@@ -1,0 +1,88 @@
+@model AccessManager.UI.Controllers.LoginInputModel
+@{
+    ViewData["Title"] = "Giriş";
+    Layout = null;
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Content("~/");
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş - arabam.com</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/images/favicon-32x32.png" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+</head>
+<body class="am-login-page">
+    <div class="am-login-card">
+        <div class="header">
+            <img src="~/images/favicon-32x32.png" alt="arabam.com" class="am-login-logo" asp-append-version="true" /> Access Manager
+        </div>
+        <div class="body">
+            <form method="post" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <div class="mb-3">
+                    <label asp-for="UserName" class="form-label">Kullanıcı adı</label>
+                    <input asp-for="UserName" class="form-control" placeholder="Kullanıcı adınız" autofocus autocomplete="username" />
+                    <span asp-validation-for="UserName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label">Parola</label>
+                    <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <div class="mb-3 form-check">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Beni hatırla</label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input asp-for="UseFaceVerification" class="form-check-input" id="useFaceVerification" />
+                    <label asp-for="UseFaceVerification" class="form-check-label" for="useFaceVerification">Yüz ile doğrula</label>
+                </div>
+                <button type="submit" class="btn btn-am-primary" id="btnLogin">Giriş yap</button>
+            </form>
+            <p class="demo-hint mb-0">
+                Demo: <strong>admin</strong> / Password1 · <strong>manager</strong> / Password1 (yüz doğrulama demo) · <strong>user</strong> / Password1 · <strong>auditor</strong> / Password1 · <strong>viewer</strong> / Password1
+            </p>
+        </div>
+    </div>
+
+    <!-- Yüz doğrulama modal -->
+    <div class="modal fade" id="faceVerifyModal" tabindex="-1" aria-labelledby="faceVerifyModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="faceVerifyModalLabel"><i class="bi bi-camera-fill"></i> Yüz doğrulama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat" id="faceVerifyClose"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p id="faceVerifyStatus" class="text-muted">Hazırlanıyor...</p>
+                    <div id="faceVerifyRefArea" class="mb-3 d-none">
+                        <img id="faceRefImage" alt="Referans" class="rounded am-face-ref-img" />
+                        <p class="small text-muted mt-1">Sistemde kayıtlı fotoğrafınız</p>
+                    </div>
+                    <div id="faceVerifyVideoWrap" class="position-relative d-inline-block">
+                        <video id="faceVerifyVideo" autoplay playsinline muted class="rounded am-face-video"></video>
+                        <canvas id="faceVerifyCanvas" class="position-absolute top-0 start-0 d-none"></canvas>
+                    </div>
+                    <p class="small text-muted mt-2">Kameranıza izin verin ve yüzünüzü çerçeveye getirin.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-am-ghost" data-bs-dismiss="modal" id="faceVerifyCancel">İptal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="~/js/face-verify-login.js" asp-append-version="true"></script>
+</body>
+</html>

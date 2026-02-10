@@ -1,0 +1,256 @@
+@model AccessManager.UI.ViewModels.PersonnelDetailViewModel
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Personel Detay";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Personnel" asp-action="Index">Personel</a></li>
+        <li class="breadcrumb-item active">@(Model.Personnel?.FirstName) @(Model.Personnel?.LastName)</li>
+    </ol>
+</nav>
+
+@if (Model.Personnel == null) { return; }
+
+@if (TempData["RevokeSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["RevokeSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["RevokeError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["RevokeError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<div class="am-page-title">@Model.Personnel.FirstName @Model.Personnel.LastName</div>
+
+<div class="am-personnel-detail-header mb-4">
+    @if (!string.IsNullOrWhiteSpace(Model.Personnel.ImageUrl))
+    {
+        <img src="@Model.Personnel.ImageUrl" alt="" class="am-avatar am-avatar-lg" />
+    }
+    else
+    {
+        <span class="am-avatar am-avatar-lg am-avatar-default" aria-hidden="true"><i class="bi bi-person-circle"></i></span>
+    }
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="am-card mb-3">
+            <div class="am-card-header">Kişisel Bilgiler</div>
+            <div class="am-card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Sicil No</dt>
+                    <dd class="col-sm-8">@Model.Personnel.SicilNo</dd>
+                    <dt class="col-sm-4">E-posta</dt>
+                    <dd class="col-sm-8">@Model.Personnel.Email</dd>
+                    <dt class="col-sm-4">Departman</dt>
+                    <dd class="col-sm-8">@Model.DepartmentName</dd>
+                    <dt class="col-sm-4">Pozisyon</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.Position ?? "-")</dd>
+                    <dt class="col-sm-4">Rol</dt>
+                    <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
+                    <dt class="col-sm-4">Yönetici</dt>
+                    <dd class="col-sm-8">@(Model.ManagerName ?? "-")</dd>
+                    <dt class="col-sm-4">İşe giriş</dt>
+                    <dd class="col-sm-8">@Model.Personnel.StartDate.ToString("dd.MM.yyyy")</dd>
+                    <dt class="col-sm-4">İşten çıkış</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.EndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
+                    <dt class="col-sm-4">Durum</dt>
+                    <dd class="col-sm-8"><span class="am-badge @(Model.Personnel.Status == PersonnelStatus.Active ? "success" : "secondary")">@StatusLabels.PersonnelStatus(Model.Personnel.Status)</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="am-card mb-3">
+            <div class="am-card-header">Aktif Yetkiler</div>
+            <div class="am-card-body">
+                <p class="small text-muted mb-2">Tüm uygulamalar; yetkisi olan ve olmayan (açılıp kapatılan dahil).</p>
+                @if (Model.AllSystems.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var sys in Model.AllSystems)
+                        {
+                            var access = Model.AccessList.FirstOrDefault(a => a.ResourceSystemId == sys.Id);
+                            var sysName = Model.SystemNames.GetValueOrDefault(sys.Id, sys.Name ?? sys.Code ?? sys.Id.ToString());
+                            if (access != null)
+                            {
+                                var isOffboardedWithOpen = Model.Personnel?.EndDate.HasValue == true && access.IsActive;
+                                <li class="list-group-item d-flex justify-content-between align-items-center @(isOffboardedWithOpen ? "am-row-warning" : "")">
+                                    <span>@sysName @(access.IsException ? "(Rol dışı)" : "")</span>
+                                    <span class="d-flex align-items-center gap-2">
+                                        <span class="am-badge @(access.IsActive ? "success" : "secondary")">@(access.IsActive ? "Açık" : "Kapatıldı")</span>
+                                        @if (access.ExpiresAt.HasValue)
+                                        {
+                                            <span class="text-muted small">Bitiş: @access.ExpiresAt.Value.ToString("dd.MM.yyyy")</span>
+                                        }
+                                        @if (access.IsActive)
+                                        {
+                                            <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@access.Id" class="d-inline" data-am-confirm="Bu yetki kapatılsın mı?">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-am-ghost btn-sm text-danger py-0">Yetkiyi kapat</button>
+                                            </form>
+                                        }
+                                    </span>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>@sysName</span>
+                                    <span class="am-badge secondary">Yetki yok</span>
+                                </li>
+                            }
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Uygulama tanımı yok.</p>
+                }
+                <a asp-controller="AccessRequests" asp-action="Create" asp-route-personnelId="@Model.Personnel.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Yetki talebi oluştur</a>
+            </div>
+        </div>
+        <div class="am-card mb-3">
+            <div class="am-card-header">Notlar</div>
+            <div class="am-card-body">
+                @if (TempData["NoteSuccess"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+                        @TempData["NoteSuccess"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                    </div>
+                }
+                @if (TempData["NoteError"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                        @TempData["NoteError"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                    </div>
+                }
+                <form method="post" asp-controller="Personnel" asp-action="AddNote" asp-route-id="@Model.Personnel.Id" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label for="Content" class="form-label">Yeni not</label>
+                        <textarea name="Content" id="Content" class="form-control" rows="2" maxlength="2000" placeholder="Notunuzu yazın..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-am-primary btn-sm">Not ekle</button>
+                </form>
+                @if (Model.Notes.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var n in Model.Notes)
+                        {
+                            <li class="list-group-item px-0">
+                                <div class="small text-muted mb-1">@n.CreatedAt.ToString("dd.MM.yyyy HH:mm") — @(n.CreatedByUserName ?? "?")</div>
+                                <div>@n.Content</div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0 small">Henüz not yok.</p>
+                }
+            </div>
+        </div>
+        @if (Model.Personnel?.EndDate.HasValue == true && Model.AccessList.Any(a => a.IsActive))
+        {
+            <div class="am-card mb-3 border-warning">
+                <div class="am-card-header text-warning">İşten çıkmış ama açık yetkisi olan</div>
+                <div class="am-card-body">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.AccessList.Where(a => a.IsActive))
+                        {
+                            var sysName = Model.SystemNames.TryGetValue(a.ResourceSystemId, out var n) ? n : a.ResourceSystemId.ToString();
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>@sysName</span>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="am-badge success">Açık</span>
+                                    <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@a.Id" class="d-inline" data-am-confirm="Bu yetki kapatılsın mı?">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-am-ghost btn-sm text-danger py-0">Yetkiyi kapat</button>
+                                    </form>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        <div class="am-card mb-3">
+            <div class="am-card-header">Zimmetteki donanım</div>
+            <div class="am-card-body">
+                @if (TempData["ZimmetNoteSuccess"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+                        @TempData["ZimmetNoteSuccess"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                    </div>
+                }
+                @if (TempData["ZimmetNoteError"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                        @TempData["ZimmetNoteError"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+                    </div>
+                }
+                @if (Model.AssetAssignments.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var z in Model.AssetAssignments)
+                        {
+                            var assetName = Model.AssetNames.TryGetValue(z.AssetId, out var an) ? an : "—";
+                            var assetType = Model.AssetTypes.TryGetValue(z.AssetId, out var at) ? StatusLabels.AssetTypeLabel(at) : "—";
+                            var zNotes = Model.AssignmentNotes.GetValueOrDefault(z.Id, new List<AssetAssignmentNote>());
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>@assetName <small class="text-muted">(@assetType)</small></span>
+                                    <span class="small text-muted">@z.AssignedAt.ToString("dd.MM.yyyy")</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(z.Notes))
+                                {
+                                    <div class="mt-1 small text-muted"><strong>Açıklama:</strong> @z.Notes</div>
+                                }
+                                <div class="mt-2">
+                                    <div class="small fw-semibold mb-1">Notlar</div>
+                                    @if (zNotes.Any())
+                                    {
+                                        <ul class="list-unstyled small mb-2">
+                                            @foreach (var zn in zNotes)
+                                            {
+                                                <li class="mb-1"><span class="text-muted">@zn.CreatedAt.ToString("dd.MM.yyyy HH:mm") — @(zn.CreatedByUserName ?? "?"):</span> @zn.Content</li>
+                                            }
+                                        </ul>
+                                    }
+                                    <form method="post" asp-controller="Personnel" asp-action="AddZimmetNote" asp-route-id="@Model.Personnel.Id" asp-route-assignmentId="@z.Id" class="d-flex gap-2 align-items-end">
+                                        @Html.AntiForgeryToken()
+                                        <div class="flex-grow-1">
+                                            <input type="text" name="Content" class="form-control form-control-sm" placeholder="Not ekle..." maxlength="2000" required />
+                                        </div>
+                                        <button type="submit" class="btn btn-am-primary btn-sm">Ekle</button>
+                                    </form>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Zimmette donanım yok.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>

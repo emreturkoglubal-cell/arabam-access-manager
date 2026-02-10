@@ -1,0 +1,77 @@
+@model AccessManager.UI.ViewModels.PersonnelCreateInputModel
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "İşe Giriş";
+    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var roles = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
+    var managers = ViewBag.Managers as IReadOnlyList<Personnel> ?? new List<Personnel>();
+}
+
+<div class="am-page-title">İşe Giriş (Onboarding)</div>
+
+<p class="text-muted">Yeni personel ekleyin. Rol seçilirse varsayılan yetkiler otomatik atanır.</p>
+
+<div class="am-card">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Onboarding" asp-action="Index" class="row g-3">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="col-md-4">
+                <label asp-for="SicilNo" class="form-label">Sicil No *</label>
+                <input asp-for="SicilNo" class="form-control" />
+                <span asp-validation-for="SicilNo" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="FirstName" class="form-label">Ad *</label>
+                <input asp-for="FirstName" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="LastName" class="form-label">Soyad *</label>
+                <input asp-for="LastName" class="form-control" />
+            </div>
+            <div class="col-12">
+                <label asp-for="Email" class="form-label">E-posta *</label>
+                <input asp-for="Email" class="form-control" type="email" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DepartmentId" class="form-label">Departman</label>
+                <select asp-for="DepartmentId" class="form-select" asp-items="@(new SelectList(departments, "Id", "Name"))"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="RoleId" class="form-label">Rol (varsayılan yetkiler atanır)</label>
+                <select asp-for="RoleId" class="form-select">
+                    <option value="">Seçiniz</option>
+                    @foreach (var r in roles)
+                    {
+                        <option value="@r.Id">@r.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ManagerId" class="form-label">Yönetici</label>
+                <select asp-for="ManagerId" class="form-select">
+                    <option value="">Seçiniz</option>
+                    @foreach (var m in managers)
+                    {
+                        <option value="@m.Id">@m.FirstName @m.LastName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Position" class="form-label">Pozisyon</label>
+                <input asp-for="Position" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="StartDate" class="form-label">İşe başlama tarihi</label>
+                <input asp-for="StartDate" class="form-control" type="date" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-am-primary">Personel ekle ve yetkileri ata</button>
+                <a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">Personel listesi</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

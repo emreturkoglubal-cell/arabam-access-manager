@@ -1,0 +1,67 @@
+@page
+@model AccessManager.UI.Pages.Systems.IndexModel
+@using AccessManager.Domain.Constants
+@using AccessManager.Domain.Enums
+@{
+    ViewData["Title"] = "Uygulamalar";
+}
+
+<div class="am-page-title">Uygulamalar</div>
+
+@if (User.IsInRole(AppRoleNames.Admin))
+{
+    <div class="am-toolbar mb-4">
+        <div class="am-toolbar-end">
+            <a asp-page="Create" class="btn btn-am-primary">Yeni Sistem</a>
+        </div>
+    </div>
+}
+
+<div class="am-card">
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table">
+                <thead>
+                    <tr>
+                        <th>Kod</th>
+                        <th>Ad</th>
+                        <th>Tür</th>
+                        <th>Kritik seviye</th>
+                        <th>Sahip</th>
+                        <th>Aktif erişim sayısı</th>
+                        @if (User.IsInRole(AppRoleNames.Admin))
+                        {
+                            <th class="am-table-col-actions--wide"></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Systems)
+                    {
+                        <tr>
+                            <td>@(s.Code ?? "-")</td>
+                            <td>@s.Name</td>
+                            <td>@s.SystemType</td>
+                            <td><span class="badge bg-@(s.CriticalLevel == CriticalLevel.High ? "danger" : s.CriticalLevel == CriticalLevel.Medium ? "warning" : "secondary")">@s.CriticalLevel</span></td>
+                            <td>@(Model.OwnerNames.TryGetValue(s.Id, out var owner) ? owner : "-")</td>
+                            <td>@(Model.AccessCounts.TryGetValue(s.Id, out var cnt) ? cnt : 0)</td>
+                            @if (User.IsInRole(AppRoleNames.Admin))
+                            {
+                                <td>
+                                    <div class="d-flex flex-nowrap gap-2">
+                                        <a asp-page="Edit" asp-route-id="@s.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Düzenle</a>
+                                        <a asp-page="Delete" asp-route-id="@s.Id" class="btn btn-am-outline-danger btn-sm">Sil</a>
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Model.Systems.Any())
+        {
+            <p class="text-muted mb-0 p-3">Henüz sistem tanımlanmamış.</p>
+        }
+    </div>
+</div>

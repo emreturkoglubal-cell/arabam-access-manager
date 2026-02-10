@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AccessManager.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AccessManager.Application\AccessManager.Application.csproj" />
+    <ProjectReference Include="..\AccessManager.Domain\AccessManager.Domain.csproj" />
+  </ItemGroup>
+</Project>

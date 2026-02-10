@@ -1,0 +1,38 @@
+@model AccessManager.UI.Controllers.AssetAssignInputModel
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Donanım zimmetle";
+    var asset = ViewBag.Asset as Asset;
+    var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+}
+@if (asset == null) { return; }
+
+<div class="am-page-title">Zimmetle: @asset.Name</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <p class="text-muted small mb-3">@StatusLabels.AssetTypeLabel(asset.AssetType) — @(asset.SerialNumber ?? "-")</p>
+        <form method="post" asp-controller="Assets" asp-action="Assign">
+            <input type="hidden" asp-for="AssetId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="PersonnelId" class="form-label">Personel <span class="text-danger">*</span></label>
+                <select asp-for="PersonnelId" class="form-select" required>
+                    <option value="">— Seçin —</option>
+                    @foreach (var p in personnelList)
+                    {
+                        <option value="@p.Id">@p.FirstName @p.LastName — @p.SicilNo (@p.Email)</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">Açıklama</label>
+                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Zimmet açıklaması (isteğe bağlı)"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Zimmetle</button>
+                <a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>

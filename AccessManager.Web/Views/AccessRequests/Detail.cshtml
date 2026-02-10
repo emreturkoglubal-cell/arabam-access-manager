@@ -1,0 +1,88 @@
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@{
+    ViewData["Title"] = "Talep Detay";
+    var req = ViewBag.AccessRequestItem as AccessRequest;
+    var steps = ViewBag.Steps as IReadOnlyList<ApprovalStep> ?? new List<ApprovalStep>();
+    var personName = ViewBag.PersonName as string;
+    var systemName = ViewBag.SystemName as string;
+    var approverNames = ViewBag.ApproverNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var nextStepName = ViewBag.NextStepName as string;
+    var canApprove = ViewBag.CanApprove as bool? ?? false;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="AccessRequests" asp-action="Index">Yetki Talepleri</a></li>
+        <li class="breadcrumb-item active">Talep</li>
+    </ol>
+</nav>
+
+@if (req == null) { return; }
+
+<div class="am-page-title">Yetki Talebi Detayı</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="am-card mb-3">
+            <div class="am-card-header">Talep bilgisi</div>
+            <div class="am-card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Talep eden</dt>
+                    <dd class="col-sm-8">@personName</dd>
+                    <dt class="col-sm-4">Sistem</dt>
+                    <dd class="col-sm-8">@systemName</dd>
+                    <dt class="col-sm-4">İstenen yetki</dt>
+                    <dd class="col-sm-8">@req.RequestedPermission</dd>
+                    <dt class="col-sm-4">Sebep</dt>
+                    <dd class="col-sm-8">@(req.Reason ?? "-")</dd>
+                    <dt class="col-sm-4">Süre</dt>
+                    <dd class="col-sm-8">@(req.EndDate.HasValue ? req.CreatedAt.ToString("dd.MM.yyyy") + " - " + req.EndDate?.ToString("dd.MM.yyyy") : "Süresiz")</dd>
+                    <dt class="col-sm-4">Durum</dt>
+                    <dd class="col-sm-8"><span class="am-badge @(req.Status == AccessRequestStatus.Applied ? "success" : req.Status == AccessRequestStatus.Rejected ? "danger" : "warning")">@StatusLabels.AccessRequestStatus(req.Status)</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="am-card">
+            <div class="am-card-header">Onay adımları</div>
+            <div class="am-card-body">
+                <ul class="list-group list-group-flush">
+                    @foreach (var step in steps)
+                    {
+                        var approverName = !string.IsNullOrWhiteSpace(step.ApprovedByName) ? step.ApprovedByName : (step.ApprovedBy.HasValue && approverNames.TryGetValue(step.ApprovedBy.Value, out var an) ? an : "-");
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@step.StepName: @(step.Approved == null ? "Bekliyor" : step.Approved == true ? "Onaylandı" : "Reddedildi")</span>
+                            @if (step.ApprovedAt.HasValue)
+                            {
+                                <span class="text-muted small">@step.ApprovedAt.Value.ToString("dd.MM.yyyy HH:mm") - @approverName</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                @if (canApprove && nextStepName != null)
+                {
+                    <hr />
+                    <form method="post" asp-controller="AccessRequests" asp-action="Approve" asp-route-id="@req.Id" asp-route-stepName="@nextStepName" class="row g-2">
+                        <input type="hidden" name="approved" value="true" />
+                        <div class="col-12">
+                            <label class="form-label">Yorum (opsiyonel)</label>
+                            <input type="text" name="comment" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-success">Onayla</button>
+                        </div>
+                    </form>
+                    <form method="post" asp-controller="AccessRequests" asp-action="Approve" asp-route-id="@req.Id" asp-route-stepName="@nextStepName" class="d-inline">
+                        <input type="hidden" name="approved" value="false" />
+                        <input type="hidden" name="comment" value="" />
+                        <button type="submit" class="btn btn-sm btn-danger">Reddet</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<a asp-controller="AccessRequests" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>

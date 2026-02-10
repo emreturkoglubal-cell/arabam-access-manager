@@ -1,0 +1,60 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Aktif Personel</h6>
+                <h2 class="card-title text-primary">@Model.Stats.ActivePersonnelCount</h2>
+                <a asp-page="/Personnel/Index" class="btn btn-sm btn-outline-primary">Listele</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Bekleyen Talepler</h6>
+                <h2 class="card-title text-warning">@Model.Stats.PendingRequestsCount</h2>
+                <a asp-page="/AccessRequests/Index" class="btn btn-sm btn-outline-warning">İncele</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Süresi Dolacak Yetkiler (30 gün)</h6>
+                <h2 class="card-title text-info">@Model.Stats.ExpiringAccessCount</h2>
+                <a asp-page="/Reports/Index" class="btn btn-sm btn-outline-info">Raporlar</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-secondary">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Rol Dışı Yetkiler</h6>
+                <h2 class="card-title text-secondary">@Model.Stats.ExceptionAccessCount</h2>
+                <a asp-page="/Reports/Index" class="btn btn-sm btn-outline-secondary">Raporlar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Hoş geldiniz</div>
+            <div class="card-body">
+                <p class="mb-0">
+                    AccessManager ile personel yaşam döngüsü, yetki talepleri ve denetim kayıtlarını tek merkezden yönetebilirsiniz.
+                    Sol menüden <strong>Personel</strong>, <strong>Uygulamalar</strong>, <strong>Yetki Talepleri</strong>, <strong>İşe Giriş / İşten Çıkış</strong> ve <strong>Raporlar</strong> bölümlerine erişebilirsiniz.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

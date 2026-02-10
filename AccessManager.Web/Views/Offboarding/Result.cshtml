@@ -1,0 +1,24 @@
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "İşten Çıkış Tamamlandı";
+    var personnel = ViewBag.Personnel as Personnel;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Offboarding" asp-action="Index">İşten Çıkış</a></li>
+        <li class="breadcrumb-item active">Sonuç</li>
+    </ol>
+</nav>
+
+@if (personnel == null) { return; }
+
+<div class="alert alert-success am-card">
+    <h4>İşten çıkış işlemi tamamlandı</h4>
+    <p class="mb-0"><strong>@personnel.FirstName @personnel.LastName</strong> (@personnel.SicilNo) için tüm yetkiler kapatıldı. Çıkış tarihi: @personnel.EndDate?.ToString("dd.MM.yyyy").</p>
+</div>
+
+<p class="text-muted">Denetim kaydında bu işlem loglanmıştır.</p>
+
+<a asp-controller="Personnel" asp-action="Index" class="btn btn-am-primary">Personel listesine dön</a>
+<a asp-controller="Audit" asp-action="Index" class="btn btn-am-outline btn-am-outline-solid">Denetim kaydını görüntüle</a>

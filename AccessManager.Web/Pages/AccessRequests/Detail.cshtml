@@ -1,0 +1,81 @@
+@page
+@model AccessManager.UI.Pages.AccessRequests.DetailModel
+@{
+    ViewData["Title"] = "Talep Detay";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/AccessRequests/Index">Yetki Talepleri</a></li>
+        <li class="breadcrumb-item active">Talep</li>
+    </ol>
+</nav>
+
+@if (Model.AccessRequestItem == null) { return; }
+
+<h1 class="mb-4">Yetki Talebi Detayı</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Talep bilgisi</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Talep eden</dt>
+                    <dd class="col-sm-8">@Model.PersonName</dd>
+                    <dt class="col-sm-4">Sistem</dt>
+                    <dd class="col-sm-8">@Model.SystemName</dd>
+                    <dt class="col-sm-4">İstenen yetki</dt>
+                    <dd class="col-sm-8">@Model.AccessRequestItem.RequestedPermission</dd>
+                    <dt class="col-sm-4">Sebep</dt>
+                    <dd class="col-sm-8">@(Model.AccessRequestItem.Reason ?? "-")</dd>
+                    <dt class="col-sm-4">Süre</dt>
+                    <dd class="col-sm-8">@(Model.AccessRequestItem.EndDate.HasValue ? Model.AccessRequestItem.StartDate?.ToString("dd.MM.yyyy") + " - " + Model.AccessRequestItem.EndDate?.ToString("dd.MM.yyyy") : "Süresiz")</dd>
+                    <dt class="col-sm-4">Durum</dt>
+                    <dd class="col-sm-8"><span class="badge bg-@(Model.AccessRequestItem.Status == AccessRequestStatus.Applied ? "success" : Model.AccessRequestItem.Status == AccessRequestStatus.Rejected ? "danger" : "warning")">@Model.AccessRequestItem.Status</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Onay adımları</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    @foreach (var step in Model.Steps)
+                    {
+                        var approverName = !string.IsNullOrWhiteSpace(step.ApprovedByName) ? step.ApprovedByName : (step.ApprovedBy.HasValue && Model.ApproverNames.TryGetValue(step.ApprovedBy.Value, out var an) ? an : "-");
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@step.StepName: @(step.Approved == null ? "Bekliyor" : step.Approved == true ? "Onaylandı" : "Reddedildi")</span>
+                            @if (step.ApprovedAt.HasValue)
+                            {
+                                <span class="text-muted small">@step.ApprovedAt.Value.ToString("dd.MM.yyyy HH:mm") - @approverName</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                @if (Model.CanApprove && Model.NextStepName != null)
+                {
+                    <hr />
+                    <form method="post" asp-page-handler="Approve" asp-route-id="@Model.AccessRequestItem.Id" asp-route-stepName="@Model.NextStepName" class="row g-2">
+                        <input type="hidden" name="approved" value="true" />
+                        <div class="col-12">
+                            <label class="form-label">Yorum (opsiyonel)</label>
+                            <input type="text" name="comment" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-success">Onayla</button>
+                        </div>
+                    </form>
+                    <form method="post" asp-page-handler="Approve" asp-route-id="@Model.AccessRequestItem.Id" asp-route-stepName="@Model.NextStepName" class="d-inline">
+                        <input type="hidden" name="approved" value="false" />
+                        <input type="hidden" name="comment" value="" />
+                        <button type="submit" class="btn btn-sm btn-danger">Reddet</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<a asp-page="Index" class="btn btn-secondary">Listeye dön</a>

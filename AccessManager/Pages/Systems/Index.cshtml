@@ -1,0 +1,35 @@
+@page
+@model AccessManager.Pages.Systems.IndexModel
+@{
+    ViewData["Title"] = "Uygulamalar";
+}
+
+<h1 class="mb-4">Uygulamalar</h1>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Kod</th>
+                <th>Ad</th>
+                <th>Tür</th>
+                <th>Kritik seviye</th>
+                <th>Sahip</th>
+                <th>Aktif erişim sayısı</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model.Systems)
+            {
+                <tr>
+                    <td>@(s.Code ?? "-")</td>
+                    <td>@s.Name</td>
+                    <td>@s.SystemType</td>
+                    <td><span class="badge bg-@(s.CriticalLevel == AccessManager.Models.CriticalLevel.High ? "danger" : s.CriticalLevel == AccessManager.Models.CriticalLevel.Medium ? "warning" : "secondary")">@s.CriticalLevel</span></td>
+                    <td>@(Model.OwnerNames.TryGetValue(s.Id, out var owner) ? owner : "-")</td>
+                    <td>@(Model.AccessCounts.TryGetValue(s.Id, out var cnt) ? cnt : 0)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

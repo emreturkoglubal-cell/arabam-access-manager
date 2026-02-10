@@ -1,0 +1,304 @@
+/* ===== AccessManager – Arabamcom tema (kırmızı-beyaz) ===== */
+/* Tema rengi: arabamcom ikon kırmızısı #e40030 */
+
+:root {
+  --am-brand: #e40030;
+  --am-brand-hover: #ab0025;
+  --am-sidebar-bg: #ffffff;
+  --am-sidebar-text: #374151;
+  --am-sidebar-text-active: #111827;
+  --am-sidebar-hover: #fef2f2;
+  --am-sidebar-border: #e5e7eb;
+  --am-sidebar-width: 240px;
+  --am-topbar-height: 56px;
+  --am-content-max-width: 1200px;
+  --am-content-padding: 1.5rem;
+  --am-footer-border: #e5e7eb;
+  --am-footer-text: #6b7280;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+/* ----- Sidebar: beyaz, kırmızı vurgu ----- */
+.app-sidebar {
+  width: var(--am-sidebar-width);
+  background: var(--am-sidebar-bg);
+  color: var(--am-sidebar-text);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1030;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+  border-right: 1px solid var(--am-sidebar-border);
+}
+
+.app-sidebar-brand {
+  padding: 1.25rem 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--am-sidebar-text-active);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--am-sidebar-border);
+}
+
+.app-sidebar-brand:hover {
+  color: var(--am-brand);
+}
+
+.app-sidebar-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.app-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+}
+
+.app-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  margin: 0 0.5rem;
+  color: var(--am-sidebar-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-sidebar-nav a:hover {
+  background: var(--am-sidebar-hover);
+  color: var(--am-brand);
+}
+
+.app-sidebar-nav a.active {
+  background: var(--am-sidebar-hover);
+  color: var(--am-brand);
+  border-left: 3px solid var(--am-brand);
+  padding-left: calc(1.25rem - 3px);
+  margin-left: 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.app-sidebar-nav a i {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.app-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1025;
+}
+
+.app-sidebar-overlay.show {
+  display: block;
+}
+
+.app-main-wrap {
+  flex: 1;
+  margin-left: var(--am-sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - var(--am-sidebar-width));
+}
+
+.app-topbar {
+  height: var(--am-topbar-height);
+  background: #fff;
+  border-bottom: 1px solid var(--am-sidebar-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.app-topbar-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--am-sidebar-text-active);
+}
+
+.app-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-topbar-user .user-name {
+  font-size: 0.875rem;
+  color: var(--am-text-muted, #6b7280);
+}
+
+.app-topbar-user .btn-logout {
+  font-size: 0.8125rem;
+  color: var(--am-text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-topbar-user .btn-logout:hover {
+  background: #fef2f2;
+  color: var(--am-brand);
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--am-content-padding);
+  max-width: var(--am-content-max-width);
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.app-footer {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--am-footer-text);
+  border-top: 1px solid var(--am-footer-border);
+  background: #fff;
+  margin-top: auto;
+}
+
+/* ----- Login: arabamcom kırmızı-beyaz ----- */
+.am-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: #f9fafb;
+}
+
+.am-login-card {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.am-login-card .header {
+  padding: 1.25rem 1.5rem;
+  background: var(--am-brand);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.am-login-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  margin-right: 0.5rem;
+}
+
+.am-login-card .body {
+  padding: 1.5rem;
+}
+
+.am-login-card .form-control {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.am-login-card .btn-am-primary {
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.am-login-card .demo-hint {
+  font-size: 0.75rem;
+  color: var(--am-text-muted, #6b7280);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Yüz doğrulama modal (giriş sayfası) */
+.am-face-ref-img {
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: cover;
+  border: 2px solid var(--am-border, #e5e7eb);
+}
+.am-face-video {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  background: #000;
+  border: 2px solid var(--am-border, #e5e7eb);
+}
+#faceVerifyVideoWrap {
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* ----- Utility ----- */
+.am-card--narrow { max-width: 500px; }
+.am-card--narrow-sm { max-width: 480px; }
+.am-toolbar-select { width: auto; min-width: 160px; }
+.am-toolbar-select--wide { min-width: 200px; }
+.am-toolbar-select--sm { min-width: 140px; }
+.btn-am-outline-solid { border-style: solid; }
+.btn-am-danger {
+  background: var(--am-danger, #dc2626) !important;
+  color: #fff !important;
+  border: none;
+}
+.btn-am-danger:hover {
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+.am-table-col-actions { width: 120px; }
+.am-table-col-actions--wide { width: 140px; }
+
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+  .app-main-wrap {
+    margin-left: 0;
+    width: 100%;
+  }
+  .app-content {
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,150 @@
+using AccessManager.Application.Interfaces;
+using AccessManager.Domain.Entities;
+using AccessManager.Domain.Enums;
+using AccessManager.UI.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace AccessManager.UI.Controllers;
+
+[Authorize(Roles = AuthorizationRolePolicies.AdminManagerUser)]
+public class AccessRequestsController : Controller
+{
+    private readonly IAccessRequestService _requestService;
+    private readonly IPersonnelService _personnelService;
+    private readonly ISystemService _systemService;
+    private readonly ICurrentUserService _currentUser;
+
+    public AccessRequestsController(
+        IAccessRequestService requestService,
+        IPersonnelService personnelService,
+        ISystemService systemService,
+        ICurrentUserService currentUser)
+    {
+        _requestService = requestService;
+        _personnelService = personnelService;
+        _systemService = systemService;
+        _currentUser = currentUser;
+    }
+
+    [HttpGet]
+    public IActionResult Index(Guid? personnelId, string? status)
+    {
+        var list = _requestService.GetAll();
+        if (personnelId.HasValue) list = list.Where(r => r.PersonnelId == personnelId.Value).ToList();
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<AccessRequestStatus>(status, out var s))
+            list = list.Where(r => r.Status == s).ToList();
+
+        var personNames = new Dictionary<Guid, string>();
+        var systemNames = new Dictionary<Guid, string>();
+        foreach (var pid in list.Select(r => r.PersonnelId).Distinct())
+        {
+            var p = _personnelService.GetById(pid);
+            personNames[pid] = p != null ? $"{p.FirstName} {p.LastName}" : pid.ToString();
+        }
+        foreach (var sid in list.Select(r => r.ResourceSystemId).Distinct())
+        {
+            var sys = _systemService.GetById(sid);
+            systemNames[sid] = sys?.Name ?? sid.ToString();
+        }
+
+        ViewBag.Requests = list;
+        ViewBag.PersonNames = personNames;
+        ViewBag.SystemNames = systemNames;
+        ViewBag.FilterPersonnelId = personnelId;
+        ViewBag.FilterStatus = status;
+        return View();
+    }
+
+    [HttpGet]
+    public IActionResult Create(Guid? personnelId)
+    {
+        ViewBag.PersonnelList = _personnelService.GetActive();
+        ViewBag.Systems = _systemService.GetAll();
+        Personnel? preselectedPerson = null;
+        if (personnelId.HasValue && personnelId.Value != Guid.Empty)
+        {
+            preselectedPerson = _personnelService.GetById(personnelId.Value);
+            if (preselectedPerson != null)
+                ViewBag.PreselectedPerson = preselectedPerson;
+        }
+        return View(new AccessRequestCreateInputModel { PersonnelId = personnelId ?? Guid.Empty });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Create(AccessRequestCreateInputModel input)
+    {
+        if (input.PersonnelId == Guid.Empty || input.ResourceSystemId == Guid.Empty)
+        {
+            ModelState.AddModelError(string.Empty, "Personel ve sistem seçiniz.");
+            ViewBag.PersonnelList = _personnelService.GetActive();
+            ViewBag.Systems = _systemService.GetAll();
+            return View(input);
+        }
+        var person = _personnelService.GetById(input.PersonnelId);
+        if (person == null) return NotFound();
+        var request = new AccessRequest
+        {
+            PersonnelId = input.PersonnelId,
+            ResourceSystemId = input.ResourceSystemId,
+            RequestedPermission = input.RequestedPermission,
+            Reason = input.Reason,
+            EndDate = input.EndDate,
+            CreatedBy = input.PersonnelId
+        };
+        _requestService.Create(request);
+        return RedirectToAction(nameof(Detail), new { id = request.Id });
+    }
+
+    [HttpGet]
+    public IActionResult Detail(Guid id)
+    {
+        var req = _requestService.GetById(id);
+        if (req == null) return NotFound();
+        var steps = _requestService.GetApprovalSteps(id);
+        var person = _personnelService.GetById(req.PersonnelId);
+        var approverNames = new Dictionary<Guid, string>();
+        foreach (var s in steps.Where(s => s.ApprovedBy.HasValue))
+        {
+            approverNames[s.ApprovedBy!.Value] = !string.IsNullOrWhiteSpace(s.ApprovedByName)
+                ? s.ApprovedByName
+                : _personnelService.GetById(s.ApprovedBy.Value) is { } a ? $"{a.FirstName} {a.LastName}" : "-";
+        }
+        var pending = steps.FirstOrDefault(s => s.Approved == null);
+        var canApprove = req.Status == AccessRequestStatus.PendingManager || req.Status == AccessRequestStatus.PendingSystemOwner || req.Status == AccessRequestStatus.PendingIT;
+
+        ViewBag.AccessRequestItem = req;
+        ViewBag.Steps = steps;
+        ViewBag.PersonName = person != null ? $"{person.FirstName} {person.LastName}" : null;
+        ViewBag.SystemName = _systemService.GetById(req.ResourceSystemId)?.Name;
+        ViewBag.ApproverNames = approverNames;
+        ViewBag.NextStepName = pending?.StepName;
+        ViewBag.CanApprove = canApprove;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Approve(Guid id, string stepName, bool approved, string? comment)
+    {
+        var req = _requestService.GetById(id);
+        if (req == null) return NotFound();
+        var approverId = _currentUser.UserId ?? Guid.Empty;
+        var approverDisplayName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
+        _requestService.ApproveStep(id, stepName, approverId, approverDisplayName, approved, comment);
+        req = _requestService.GetById(id);
+        if (approved && req?.Status == AccessRequestStatus.Approved)
+            _requestService.MarkAsApplied(id, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName);
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+}
+
+public class AccessRequestCreateInputModel
+{
+    public Guid PersonnelId { get; set; }
+    public Guid ResourceSystemId { get; set; }
+    public PermissionType RequestedPermission { get; set; }
+    public string? Reason { get; set; }
+    public DateTime? EndDate { get; set; }
+}

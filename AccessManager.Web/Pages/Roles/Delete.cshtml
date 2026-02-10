@@ -1,0 +1,31 @@
+@page
+@model AccessManager.UI.Pages.Roles.DeleteModel
+@{
+    ViewData["Title"] = "Rol sil";
+}
+
+<div class="am-page-title">Rol sil</div>
+
+@if (Model.DeleteFailed)
+{
+    <div class="alert alert-warning am-card mb-4">
+        @Model.DeleteFailedMessage
+        <div class="mt-2">
+            <a asp-page="Index" class="btn btn-am-outline btn-am-outline-solid">Listeye dön</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="am-card am-card--narrow-sm">
+        <div class="am-card-body">
+            <p class="mb-3"><strong>@(Model.Role?.Name)</strong> rolünü silmek istediğinize emin misiniz? Bu rolün tüm yetki tanımları da kaldırılacaktır. Bu role atanmış personel varsa silme işlemi yapılamaz.</p>
+            <form method="post" asp-route-id="@Model.Role?.Id">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-am-primary btn-am-danger">Evet, sil</button>
+                    <a asp-page="Index" class="btn btn-am-ghost">İptal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+}

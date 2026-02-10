@@ -1,0 +1,63 @@
+@page
+@model AccessManager.UI.Pages.AccessRequests.IndexModel
+@{
+    ViewData["Title"] = "Yetki Talepleri";
+}
+
+<div class="am-page-title">Yetki Talepleri</div>
+
+<div class="am-toolbar">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="status" class="form-select form-select-sm am-toolbar-select am-toolbar-select--wide" asp-for="FilterStatus">
+            <option value="">Tüm durumlar</option>
+            <option value="PendingManager">Yönetici onayı bekliyor</option>
+            <option value="PendingSystemOwner">Sistem sahibi onayı bekliyor</option>
+            <option value="PendingIT">IT onayı bekliyor</option>
+            <option value="Approved">Onaylandı</option>
+            <option value="Applied">Uygulandı</option>
+            <option value="Rejected">Reddedildi</option>
+        </select>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
+    </form>
+    <div class="am-toolbar-end">
+        <a asp-page="Create" class="btn btn-am-primary">Yeni Talep</a>
+    </div>
+</div>
+
+<div class="am-table-wrap">
+    <table class="am-table">
+        <thead>
+            <tr>
+                <th>Talep eden</th>
+                <th>Sistem</th>
+                <th>Yetki</th>
+                <th>Sebep</th>
+                <th>Süre</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th class="am-table-col-actions"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Requests)
+            {
+                var personName = Model.PersonNames.TryGetValue(r.PersonnelId, out var pn) ? pn : "—";
+                var sysName = Model.SystemNames.TryGetValue(r.ResourceSystemId, out var sn) ? sn : "—";
+                <tr>
+                    <td><strong>@personName</strong></td>
+                    <td>@sysName</td>
+                    <td>@r.RequestedPermission</td>
+                    <td>@(r.Reason ?? "—")</td>
+                    <td>@(r.EndDate.HasValue ? r.StartDate?.ToString("dd.MM.yy") + " – " + r.EndDate?.ToString("dd.MM.yy") : "Süresiz")</td>
+                    <td>
+                        <span class="am-badge @(r.Status == AccessRequestStatus.Applied ? "success" : r.Status == AccessRequestStatus.Rejected ? "danger" : "warning")">@r.Status</span>
+                    </td>
+                    <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>
+                        <a asp-page="Detail" asp-route-id="@r.Id" class="btn-am-ghost">Detay / Onayla</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

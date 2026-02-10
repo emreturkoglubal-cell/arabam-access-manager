@@ -1,0 +1,76 @@
+@page
+@model AccessManager.Pages.Personnel.DetailModel
+@{
+    ViewData["Title"] = "Personel Detay";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Personnel/Index">Personel</a></li>
+        <li class="breadcrumb-item active">@(Model.Personnel?.FirstName) @(Model.Personnel?.LastName)</li>
+    </ol>
+</nav>
+
+@if (Model.Personnel == null) { return; }
+
+<h1 class="mb-4">@Model.Personnel.FirstName @Model.Personnel.LastName</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Kişisel Bilgiler</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Sicil No</dt>
+                    <dd class="col-sm-8">@Model.Personnel.SicilNo</dd>
+                    <dt class="col-sm-4">E-posta</dt>
+                    <dd class="col-sm-8">@Model.Personnel.Email</dd>
+                    <dt class="col-sm-4">Departman</dt>
+                    <dd class="col-sm-8">@Model.DepartmentName</dd>
+                    <dt class="col-sm-4">Pozisyon</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.Position ?? "-")</dd>
+                    <dt class="col-sm-4">Rol</dt>
+                    <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
+                    <dt class="col-sm-4">Yönetici</dt>
+                    <dd class="col-sm-8">@(Model.ManagerName ?? "-")</dd>
+                    <dt class="col-sm-4">İşe giriş</dt>
+                    <dd class="col-sm-8">@Model.Personnel.StartDate.ToString("dd.MM.yyyy")</dd>
+                    <dt class="col-sm-4">İşten çıkış</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.EndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
+                    <dt class="col-sm-4">Durum</dt>
+                    <dd class="col-sm-8"><span class="badge bg-@(Model.Personnel.Status == AccessManager.Models.PersonnelStatus.Active ? "success" : "secondary")">@Model.Personnel.Status</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Aktif Yetkiler</div>
+            <div class="card-body">
+                @if (Model.AccessList.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.AccessList)
+                        {
+                            var sysName = Model.SystemNames.TryGetValue(a.ResourceSystemId, out var n) ? n : a.ResourceSystemId.ToString();
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>@sysName — @a.PermissionType @(a.IsException ? "(Rol dışı)" : "")</span>
+                                @if (a.ExpiresAt.HasValue)
+                                {
+                                    <span class="text-muted small">Bitiş: @a.ExpiresAt.Value.ToString("dd.MM.yyyy")</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Aktif yetki kaydı yok.</p>
+                }
+                <a asp-page="/AccessRequests/Index" asp-route-personnelId="@Model.Personnel.Id" class="btn btn-sm btn-outline-primary mt-2">Yetki talebi oluştur</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a asp-page="Index" class="btn btn-secondary">Listeye dön</a>

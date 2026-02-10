@@ -1,0 +1,11 @@
+@page
+@model AccessManager.UI.Pages.Account.AccessDeniedModel
+@{
+    ViewData["Title"] = "Erişim reddedildi";
+    Layout = "_Layout";
+}
+<div class="alert alert-warning text-center py-4">
+    <h4>Erişim reddedildi</h4>
+    <p class="mb-0">Bu sayfaya erişim yetkiniz bulunmuyor.</p>
+    <a asp-page="/Index" class="btn btn-primary mt-3">Ana sayfaya dön</a>
+</div>

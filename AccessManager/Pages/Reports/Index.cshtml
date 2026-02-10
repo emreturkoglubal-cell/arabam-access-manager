@@ -1,0 +1,82 @@
+@page
+@model AccessManager.Pages.Reports.IndexModel
+@{
+    ViewData["Title"] = "Raporlar";
+}
+
+<h1 class="mb-4">Raporlar</h1>
+
+<h5 class="mt-4">Sisteme göre aktif erişim sayıları</h5>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Sistem</th>
+                <th>Kod</th>
+                <th>Aktif erişim</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (dynamic r in Model.AccessBySystem)
+            {
+                <tr>
+                    <td>@r.SystemName</td>
+                    <td>@r.SystemCode</td>
+                    <td>@r.ActiveAccessCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h5 class="mt-4">İşten çıkanlar</h5>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Sicil No</th>
+                <th>Ad Soyad</th>
+                <th>Çıkış tarihi</th>
+                <th>Departman</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (dynamic r in Model.OffboardedReport)
+            {
+                <tr>
+                    <td>@r.SicilNo</td>
+                    <td>@r.FullName</td>
+                    <td>@(r.EndDate != null ? ((DateTime)r.EndDate).ToString("dd.MM.yyyy") : "-")</td>
+                    <td>@r.Department</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h5 class="mt-4">Rol dışı yetkiler (Exception)</h5>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Personel</th>
+                <th>Sicil No</th>
+                <th>Sistem</th>
+                <th>Yetki</th>
+                <th>Bitiş tarihi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (dynamic r in Model.ExceptionReport)
+            {
+                <tr>
+                    <td>@r.Person</td>
+                    <td>@r.SicilNo</td>
+                    <td>@r.System</td>
+                    <td>@r.Permission</td>
+                    <td>@(r.ExpiresAt != null ? ((DateTime?)r.ExpiresAt)?.ToString("dd.MM.yyyy") : "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

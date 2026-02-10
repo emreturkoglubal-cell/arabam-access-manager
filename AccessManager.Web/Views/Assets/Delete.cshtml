@@ -1,0 +1,18 @@
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Donanım sil";
+    var asset = ViewBag.Asset as Asset;
+}
+@if (asset == null) { return; }
+
+<div class="am-page-title">Donanım sil</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <p class="mb-3"><strong>@asset.Name</strong> (@(asset.SerialNumber ?? "-")) donanımını silmek istediğinize emin misiniz? Zimmette olan donanım silinemez.</p>
+        <form method="post" asp-controller="Assets" asp-action="DeleteConfirmed" asp-route-id="@asset.Id">
+            <button type="submit" class="btn btn-am-danger">Sil</button>
+            <a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+        </form>
+    </div>
+</div>

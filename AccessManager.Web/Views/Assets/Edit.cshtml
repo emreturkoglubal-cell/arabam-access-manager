@@ -1,0 +1,63 @@
+@model AccessManager.UI.ViewModels.AssetEditInputModel
+@using AccessManager.Domain.Enums
+@{
+    ViewData["Title"] = "Donanım düzenle";
+    var asset = ViewBag.Asset as AccessManager.Domain.Entities.Asset;
+}
+
+<div class="am-page-title">Donanım düzenle: @(asset?.Name ?? "")</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Assets" asp-action="Edit" asp-route-id="@asset?.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="AssetType" class="form-label">Tür</label>
+                <select asp-for="AssetType" class="form-select">
+                    @foreach (AssetType t in Enum.GetValues(typeof(AssetType)))
+                    {
+                        <option value="@t">@StatusLabels.AssetTypeLabel(t)</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Ad <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="SerialNumber" class="form-label">Seri no</label>
+                <input asp-for="SerialNumber" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="BrandModel" class="form-label">Marka / model</label>
+                <input asp-for="BrandModel" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label">Durum</label>
+                <select asp-for="Status" class="form-select">
+                    @foreach (AssetStatus s in Enum.GetValues(typeof(AssetStatus)))
+                    {
+                        <option value="@s">@StatusLabels.AssetStatusLabel(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PurchaseDate" class="form-label">Satın alma tarihi</label>
+                <input asp-for="PurchaseDate" class="form-control" type="date" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">Not</label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                <a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

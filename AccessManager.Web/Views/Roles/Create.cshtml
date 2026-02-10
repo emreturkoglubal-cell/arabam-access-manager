@@ -1,0 +1,35 @@
+@model AccessManager.UI.Controllers.RoleEditInputModel
+@{
+    ViewData["Title"] = "Yeni Rol";
+}
+
+<div class="am-page-title">Yeni Rol</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Roles" asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Rol adı <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="Örn. Backend Developer" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label">Kod</label>
+                <input asp-for="Code" class="form-control" placeholder="Örn. BE" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama</label>
+                <textarea asp-for="Description" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Oluştur</button>
+                <a asp-controller="Roles" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

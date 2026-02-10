@@ -1,0 +1,126 @@
+@page
+@model AccessManager.UI.Pages.Personnel.DetailModel
+@using AccessManager.Domain.Enums
+@using AccessManager.UI.Helpers
+@{
+    ViewData["Title"] = "Personel Detay";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Personnel/Index">Personel</a></li>
+        <li class="breadcrumb-item active">@(Model.Personnel?.FirstName) @(Model.Personnel?.LastName)</li>
+    </ol>
+</nav>
+
+@if (Model.Personnel == null) { return; }
+
+@if (TempData["RevokeSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["RevokeSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["RevokeError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["RevokeError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<h1 class="mb-4">@Model.Personnel.FirstName @Model.Personnel.LastName</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Kişisel Bilgiler</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Sicil No</dt>
+                    <dd class="col-sm-8">@Model.Personnel.SicilNo</dd>
+                    <dt class="col-sm-4">E-posta</dt>
+                    <dd class="col-sm-8">@Model.Personnel.Email</dd>
+                    <dt class="col-sm-4">Departman</dt>
+                    <dd class="col-sm-8">@Model.DepartmentName</dd>
+                    <dt class="col-sm-4">Pozisyon</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.Position ?? "-")</dd>
+                    <dt class="col-sm-4">Rol</dt>
+                    <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
+                    <dt class="col-sm-4">Yönetici</dt>
+                    <dd class="col-sm-8">@(Model.ManagerName ?? "-")</dd>
+                    <dt class="col-sm-4">İşe giriş</dt>
+                    <dd class="col-sm-8">@Model.Personnel.StartDate.ToString("dd.MM.yyyy")</dd>
+                    <dt class="col-sm-4">İşten çıkış</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.EndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
+                    <dt class="col-sm-4">Durum</dt>
+                    <dd class="col-sm-8"><span class="badge bg-@(Model.Personnel.Status == PersonnelStatus.Active ? "success" : "secondary")">@StatusLabels.PersonnelStatus(Model.Personnel.Status)</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">Aktif Yetkiler</div>
+            <div class="card-body">
+                @if (Model.AccessList.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.AccessList)
+                        {
+                            var sysName = Model.SystemNames.TryGetValue(a.ResourceSystemId, out var n) ? n : a.ResourceSystemId.ToString();
+                            var isOffboardedWithOpen = Model.Personnel?.EndDate.HasValue == true && a.IsActive;
+                            <li class="list-group-item d-flex justify-content-between align-items-center @(isOffboardedWithOpen ? "am-row-warning" : "")">
+                                <span>@sysName @(a.IsException ? "(Rol dışı)" : "")</span>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="am-badge @(a.IsActive ? "success" : "secondary")">@(a.IsActive ? "Açık" : "Kapatıldı")</span>
+                                    @if (a.ExpiresAt.HasValue)
+                                    {
+                                        <span class="text-muted small">Bitiş: @a.ExpiresAt.Value.ToString("dd.MM.yyyy")</span>
+                                    }
+                                    @if (a.IsActive)
+                                    {
+                                        <form method="post" asp-page-handler="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@a.Id" class="d-inline" data-am-confirm="Bu yetki kapatılsın mı?">
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">Yetkiyi kapat</button>
+                                        </form>
+                                    }
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Yetki kaydı yok.</p>
+                }
+                <a asp-page="/AccessRequests/Create" asp-route-personnelId="@Model.Personnel.Id" class="btn btn-sm btn-outline-primary mt-2">Yetki talebi oluştur</a>
+            </div>
+        </div>
+        @if (Model.Personnel?.EndDate.HasValue == true && Model.AccessList.Any(a => a.IsActive))
+        {
+            <div class="card mb-3 border-warning">
+                <div class="card-header text-warning">İşten çıkmış ama açık yetkisi olan</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var a in Model.AccessList.Where(a => a.IsActive))
+                        {
+                            var sysName = Model.SystemNames.TryGetValue(a.ResourceSystemId, out var n) ? n : a.ResourceSystemId.ToString();
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>@sysName</span>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="am-badge success">Açık</span>
+                                    <form method="post" asp-page-handler="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@a.Id" class="d-inline" data-am-confirm="Bu yetki kapatılsın mı?">
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0">Yetkiyi kapat</button>
+                                    </form>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<a asp-page="Index" class="btn btn-secondary">Listeye dön</a>

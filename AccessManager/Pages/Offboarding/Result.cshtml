@@ -1,0 +1,24 @@
+@page
+@model AccessManager.Pages.Offboarding.ResultModel
+@{
+    ViewData["Title"] = "İşten Çıkış Tamamlandı";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Offboarding/Index">İşten Çıkış</a></li>
+        <li class="breadcrumb-item active">Sonuç</li>
+    </ol>
+</nav>
+
+@if (Model.Personnel == null) { return; }
+
+<div class="alert alert-success">
+    <h4>İşten çıkış işlemi tamamlandı</h4>
+    <p class="mb-0"><strong>@Model.Personnel.FirstName @Model.Personnel.LastName</strong> (@Model.Personnel.SicilNo) için tüm yetkiler kapatıldı. Çıkış tarihi: @Model.Personnel.EndDate?.ToString("dd.MM.yyyy").</p>
+</div>
+
+<p class="text-muted">Denetim kaydında bu işlem loglanmıştır.</p>
+
+<a asp-page="/Personnel/Index" class="btn btn-primary">Personel listesine dön</a>
+<a asp-page="/Audit/Index" class="btn btn-outline-secondary">Denetim kaydını görüntüle</a>

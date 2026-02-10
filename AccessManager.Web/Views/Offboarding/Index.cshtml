@@ -1,0 +1,36 @@
+@model AccessManager.UI.Controllers.OffboardingInputModel
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "İşten Çıkış";
+    var activePersonnel = ViewBag.ActivePersonnel as IReadOnlyList<Personnel> ?? new List<Personnel>();
+}
+
+<div class="am-page-title">İşten Çıkış</div>
+
+<p class="text-muted">Personel için çıkış tarihi girerek tüm yetkileri kapatın.</p>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Offboarding" asp-action="Index" class="row g-3">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="col-12">
+                <label asp-for="SelectedPersonnelId" class="form-label">Personel *</label>
+                <select asp-for="SelectedPersonnelId" class="form-select" required>
+                    <option value="">Seçiniz</option>
+                    @foreach (var p in activePersonnel)
+                    {
+                        <option value="@p.Id">@p.FirstName @p.LastName (@p.SicilNo)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="EndDate" class="form-label">Çıkış tarihi</label>
+                <input asp-for="EndDate" class="form-control" type="date" />
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-am-primary btn-am-danger">İşten çıkış işlemini uygula</button>
+                <a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>

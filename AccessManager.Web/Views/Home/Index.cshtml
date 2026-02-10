@@ -1,0 +1,81 @@
+@model AccessManager.Application.Dtos.DashboardStats
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Kontrol Paneli";
+    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var filterDepartmentId = ViewBag.DepartmentId as Guid?;
+    var periodMonths = ViewBag.PeriodMonths as int? ?? 1;
+}
+
+<div class="am-page-title">Kontrol Paneli</div>
+
+<div class="am-toolbar mb-3">
+    <form method="get" asp-controller="Home" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+        <label class="form-label mb-0">Departman</label>
+        <select name="departmentId" class="form-select form-select-sm am-toolbar-select" style="max-width: 220px;">
+            <option value="">Tümü</option>
+            @foreach (var d in departments)
+            {
+                <option value="@d.Id" selected="@(filterDepartmentId == d.Id)">@d.Name</option>
+            }
+        </select>
+        <label class="form-label mb-0">Dönem</label>
+        <select name="periodMonths" class="form-select form-select-sm am-toolbar-select" style="max-width: 160px;">
+            <option value="1" selected="@(periodMonths == 1)">Son 1 ay</option>
+            <option value="2" selected="@(periodMonths == 2)">Son 2 ay</option>
+            <option value="3" selected="@(periodMonths == 3)">Son 3 ay</option>
+            <option value="6" selected="@(periodMonths == 6)">Son 6 ay</option>
+            <option value="12" selected="@(periodMonths == 12)">Son 1 yıl</option>
+            <option value="24" selected="@(periodMonths == 24)">Son 2 yıl</option>
+        </select>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid btn-sm">Uygula</button>
+    </form>
+</div>
+
+<div class="am-stat-cards mb-4">
+    <div class="am-stat-card">
+        <div class="label">Aktif Personel</div>
+        <div class="value accent">@Model.ActivePersonnelCount</div>
+        <div class="action">
+            <a asp-controller="Personnel" asp-action="Index" asp-route-departmentId="@filterDepartmentId" class="btn-am-ghost">Listele →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">@(periodMonths == 12 ? "Son 1 yıl" : periodMonths == 24 ? "Son 2 yıl" : $"Son {periodMonths} ay") İşten Ayrılan</div>
+        <div class="value">@Model.OffboardedLastMonthCount</div>
+        <div class="action">
+            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Bekleyen Talepler</div>
+        <div class="value warning">@Model.PendingRequestsCount</div>
+        <div class="action">
+            <a asp-controller="AccessRequests" asp-action="Index" class="btn-am-ghost">İncele →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Süresi Dolacak Yetkiler (30 gün)</div>
+        <div class="value info">@Model.ExpiringAccessCount</div>
+        <div class="action">
+            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Rol Dışı Yetkiler</div>
+        <div class="value">@Model.ExceptionAccessCount</div>
+        <div class="action">
+            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+</div>
+
+<div class="am-card">
+    <div class="am-card-header">Hoş geldiniz</div>
+    <div class="am-card-body">
+        <p class="mb-0 text-secondary">
+            arabam.com ile personel yaşam döngüsü, yetki talepleri ve denetim kayıtlarını tek merkezden yönetebilirsiniz.
+            Sol menüden <strong>Personel</strong>, <strong>Uygulamalar</strong>, <strong>Yetki Talepleri</strong>, <strong>İşe Giriş / İşten Çıkış</strong> ve <strong>Raporlar</strong> bölümlerine erişebilirsiniz.
+        </p>
+    </div>
+</div>

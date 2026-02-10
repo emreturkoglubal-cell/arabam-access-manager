@@ -1,0 +1,67 @@
+@model AccessManager.UI.Controllers.AccessRequestCreateInputModel
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@{
+    ViewData["Title"] = "Yeni Yetki Talebi";
+    var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
+    var preselectedPerson = ViewBag.PreselectedPerson as Personnel;
+}
+
+<div class="am-page-title">Yeni Yetki Talebi</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="AccessRequests" asp-action="Create">
+            <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                @if (preselectedPerson != null)
+                {
+                    <label class="form-label">Personel</label>
+                    <p class="form-control-plaintext mb-0 fw-semibold">@preselectedPerson.FirstName @preselectedPerson.LastName (@preselectedPerson.SicilNo)</p>
+                    <input type="hidden" asp-for="PersonnelId" />
+                }
+                else
+                {
+                    <label asp-for="PersonnelId" class="form-label">Personel *</label>
+                    <select asp-for="PersonnelId" class="form-select" required>
+                        <option value="">Seçin</option>
+                        @foreach (var p in personnelList)
+                        {
+                            <option value="@p.Id">@p.FirstName @p.LastName (@p.SicilNo)</option>
+                        }
+                    </select>
+                }
+            </div>
+            <div class="mb-3">
+                <label asp-for="ResourceSystemId" class="form-label">Sistem *</label>
+                <select asp-for="ResourceSystemId" class="form-select" required>
+                    <option value="">Seçin</option>
+                    @foreach (var s in systems)
+                    {
+                        <option value="@s.Id">@s.Name (@(s.Code ?? ""))</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="RequestedPermission" class="form-label">Yetki</label>
+                <select asp-for="RequestedPermission" class="form-select">
+                    <option value="@PermissionType.Open">Açık</option>
+                    <option value="@PermissionType.Closed">Kapalı</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label">Sebep</label>
+                <textarea asp-for="Reason" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+                <label asp-for="EndDate" class="form-label">Bitiş tarihi (opsiyonel)</label>
+                <input asp-for="EndDate" class="form-control" type="date" />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Oluştur</button>
+                <a asp-controller="AccessRequests" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>

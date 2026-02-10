@@ -1,0 +1,94 @@
+@using AccessManager.Domain.Constants
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string NavClass(string ctrl)
+    {
+        if (string.IsNullOrEmpty(ctrl)) return controller.Equals("Home", StringComparison.OrdinalIgnoreCase) ? "active" : "";
+        return controller.Equals(ctrl, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+    var isLoginPage = controller.Equals("Account", StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - arabam.com</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="~/images/favicon-32x32.png" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true && !isLoginPage)
+    {
+        <div class="app-shell">
+            <aside class="app-sidebar" id="appSidebar">
+                <a class="app-sidebar-brand" asp-controller="Home" asp-action="Index">
+                    <img src="~/images/favicon-32x32.png" alt="arabam.com" class="app-sidebar-logo" asp-append-version="true" />
+                    <span>Access Manager</span>
+                </a>
+                <nav class="app-sidebar-nav">
+                    <a asp-controller="Home" asp-action="Index" class="@NavClass("Home")"><i class="bi bi-grid-1x2"></i> Kontrol Paneli</a>
+                    @if (User.IsInRole(AppRoleNames.Admin) || User.IsInRole(AppRoleNames.Manager))
+                    {
+                        <a asp-controller="Personnel" asp-action="Index" class="@NavClass("Personnel")"><i class="bi bi-people"></i> Personel</a>
+                        <a asp-controller="Departments" asp-action="Index" class="@NavClass("Departments")"><i class="bi bi-building"></i> Departmanlar</a>
+                        <a asp-controller="Systems" asp-action="Index" class="@NavClass("Systems")"><i class="bi bi-server"></i> Uygulamalar</a>
+                        @* Faz 1: Donanım & Hizmet kısmı kapalı
+                        <a asp-controller="Assets" asp-action="Index" class="@NavClass("Assets")"><i class="bi bi-laptop"></i> Donanım & Zimmet</a>
+                        *@
+                        <a asp-controller="Roles" asp-action="Index" class="@NavClass("Roles")"><i class="bi bi-key"></i> Roller & Yetkiler</a>
+                        <a asp-controller="Onboarding" asp-action="Index" class="@NavClass("Onboarding")"><i class="bi bi-box-arrow-in-right"></i> İşe Giriş</a>
+                        <a asp-controller="Offboarding" asp-action="Index" class="@NavClass("Offboarding")"><i class="bi bi-box-arrow-left"></i> İşten Çıkış</a>
+                    }
+                    @if (User.IsInRole(AppRoleNames.Admin) || User.IsInRole(AppRoleNames.Manager) || User.IsInRole(AppRoleNames.User))
+                    {
+                        <a asp-controller="AccessRequests" asp-action="Index" class="@NavClass("AccessRequests")"><i class="bi bi-journal-plus"></i> Yetki Talepleri</a>
+                    }
+                    @if (User.IsInRole(AppRoleNames.Admin) || User.IsInRole(AppRoleNames.Manager) || User.IsInRole(AppRoleNames.Auditor))
+                    {
+                        <a asp-controller="Reports" asp-action="Index" class="@NavClass("Reports")"><i class="bi bi-graph-up"></i> Raporlar</a>
+                    }
+                    @if (User.IsInRole(AppRoleNames.Admin) || User.IsInRole(AppRoleNames.Auditor))
+                    {
+                        <a asp-controller="Audit" asp-action="Index" class="@NavClass("Audit")"><i class="bi bi-clipboard2-data"></i> Log</a>
+                    }
+                </nav>
+            </aside>
+            <div class="app-sidebar-overlay" id="sidebarOverlay"></div>
+            <div class="app-main-wrap">
+                <header class="app-topbar">
+                    <button type="button" class="btn btn-am-ghost d-lg-none" id="sidebarToggle" aria-label="Menü">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <span class="app-topbar-title">@ViewData["Title"]</span>
+                    <div class="app-topbar-user">
+                        <span class="user-name">@(User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity?.Name)</span>
+                        <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
+                            <button type="submit" class="btn-logout">Çıkış</button>
+                        </form>
+                    </div>
+                </header>
+                <main class="app-content">
+                    @RenderBody()
+                </main>
+                <footer class="app-footer">
+                    &copy; @DateTime.Now.Year arabam.com — Yetki ve Erişim Yönetim Sistemi
+                </footer>
+            </div>
+        </div>
+    }
+    else
+    {
+        @RenderBody()
+    }
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

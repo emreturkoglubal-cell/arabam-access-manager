@@ -1,0 +1,57 @@
+@model AccessManager.UI.ViewModels.SystemEditInputModel
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Sistem Düzenle";
+    var system = ViewBag.System as AccessManager.Domain.Entities.ResourceSystem;
+    var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+}
+
+<div class="am-page-title">Sistem düzenle: @(system?.Name ?? "")</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Systems" asp-action="Edit" asp-route-id="@system?.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Sistem adı <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label">Kod</label>
+                <input asp-for="Code" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="SystemType" class="form-label">Tür</label>
+                <select asp-for="SystemType" class="form-select" asp-items="Html.GetEnumSelectList<SystemType>()"></select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CriticalLevel" class="form-label">Kritik seviye</label>
+                <select asp-for="CriticalLevel" class="form-select" asp-items="Html.GetEnumSelectList<CriticalLevel>()"></select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OwnerId" class="form-label">Sistem sahibi (personel)</label>
+                <select asp-for="OwnerId" class="form-select">
+                    <option value="@Guid.Empty">— Seçin —</option>
+                    @foreach (var p in personnelList)
+                    {
+                        <option value="@p.Id">@p.FirstName @p.LastName (@(p.SicilNo))</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama</label>
+                <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                <a asp-controller="Systems" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

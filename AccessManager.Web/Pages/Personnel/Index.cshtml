@@ -1,0 +1,77 @@
+@page
+@model AccessManager.UI.Pages.Personnel.IndexModel
+@{
+    ViewData["Title"] = "Personel";
+}
+
+<div class="am-page-title">Personel</div>
+
+<div class="am-toolbar">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="departmentId" class="form-select form-select-sm am-toolbar-select" asp-for="FilterDepartmentId">
+            <option value="">Tüm departmanlar</option>
+            @foreach (var d in Model.Departments)
+            {
+                <option value="@d.Id">@d.Name</option>
+            }
+        </select>
+        <select name="activeOnly" class="form-select form-select-sm am-toolbar-select" asp-for="FilterActiveOnly">
+            <option value="True">Sadece aktif</option>
+            <option value="False">Tümü</option>
+        </select>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
+    </form>
+    <div class="am-toolbar-end">
+        <a asp-page="Create" class="btn btn-am-primary">Yeni Personel</a>
+    </div>
+</div>
+
+<div class="am-table-wrap">
+    <table class="am-table">
+        <thead>
+            <tr>
+                <th>Sicil No</th>
+                <th>Ad Soyad</th>
+                <th>E-posta</th>
+                <th>Departman</th>
+                <th>Rol</th>
+                <th>Yönetici</th>
+                <th>Giriş</th>
+                <th>Çıkış</th>
+                <th>Durum</th>
+                <th class="am-table-col-actions"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.PersonnelList)
+            {
+                var dept = Model.Departments.FirstOrDefault(d => d.Id == p.DepartmentId);
+                var role = Model.Roles.FirstOrDefault(r => r.Id == p.RoleId);
+                var managerName = p.ManagerId.HasValue && Model.ManagerNames.TryGetValue(p.ManagerId.Value, out var name) ? name : null;
+                <tr>
+                    <td>@p.SicilNo</td>
+                    <td><strong>@p.FirstName @p.LastName</strong></td>
+                    <td>@p.Email</td>
+                    <td>@(dept?.Name ?? "—")</td>
+                    <td>@(role?.Name ?? "—")</td>
+                    <td>@(managerName ?? "—")</td>
+                    <td>@p.StartDate.ToString("dd.MM.yyyy")</td>
+                    <td>@(p.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                    <td>
+                        <span class="am-badge @(p.Status == PersonnelStatus.Active ? "success" : p.Status == PersonnelStatus.Offboarded ? "secondary" : "warning")">
+                            @p.Status
+                        </span>
+                    </td>
+                    <td>
+                        <a asp-page="Detail" asp-route-id="@p.Id" class="btn-am-ghost">Detay</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (!Model.PersonnelList.Any())
+{
+    <p class="text-muted mt-3">Kayıt bulunamadı.</p>
+}

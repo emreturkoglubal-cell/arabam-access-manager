@@ -1,0 +1,33 @@
+@page
+@model AccessManager.Pages.Departments.IndexModel
+@{
+    ViewData["Title"] = "Departmanlar";
+}
+
+<h1 class="mb-4">Departmanlar</h1>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Kod</th>
+                <th>Ad</th>
+                <th>Açıklama</th>
+                <th>Personel sayısı</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Departments)
+            {
+                <tr>
+                    <td>@(d.Code ?? "-")</td>
+                    <td>@d.Name</td>
+                    <td>@(d.Description ?? "-")</td>
+                    <td>@(Model.PersonnelCountByDepartment.TryGetValue(d.Id, out var c) ? c : 0)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-muted small">Mock veri: Departman ekleme/düzenleme DB aşamasında eklenecek.</p>

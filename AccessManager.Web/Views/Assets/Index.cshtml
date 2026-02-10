@@ -1,0 +1,113 @@
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Constants
+@{
+    ViewData["Title"] = "Donanım & Zimmet";
+    var assets = ViewBag.Assets as IReadOnlyList<Asset> ?? new List<Asset>();
+    var assignmentByAsset = ViewBag.AssignmentByAsset as Dictionary<Guid, AssetAssignment> ?? new Dictionary<Guid, AssetAssignment>();
+    var personNames = ViewBag.PersonNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var filterStatus = ViewBag.FilterStatus as AssetStatus?;
+    var filterType = ViewBag.FilterType as AssetType?;
+}
+
+<div class="am-page-title">Donanım & Zimmet</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="am-toolbar">
+    <form method="get" asp-controller="Assets" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="status" class="form-select form-select-sm am-toolbar-select">
+            <option value="">Tüm durumlar</option>
+            <option value="Available" selected="@(filterStatus == AssetStatus.Available)">@StatusLabels.AssetStatusLabel(AssetStatus.Available)</option>
+            <option value="Assigned" selected="@(filterStatus == AssetStatus.Assigned)">@StatusLabels.AssetStatusLabel(AssetStatus.Assigned)</option>
+            <option value="InRepair" selected="@(filterStatus == AssetStatus.InRepair)">@StatusLabels.AssetStatusLabel(AssetStatus.InRepair)</option>
+            <option value="Retired" selected="@(filterStatus == AssetStatus.Retired)">@StatusLabels.AssetStatusLabel(AssetStatus.Retired)</option>
+        </select>
+        <select name="type" class="form-select form-select-sm am-toolbar-select">
+            <option value="">Tüm türler</option>
+            @foreach (AssetType t in Enum.GetValues(typeof(AssetType)))
+            {
+                <option value="@t" selected="@(filterType == t)">@StatusLabels.AssetTypeLabel(t)</option>
+            }
+        </select>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
+    </form>
+    @if (User.IsInRole(AppRoleNames.Admin))
+    {
+        <div class="am-toolbar-end">
+            <a asp-controller="Assets" asp-action="Create" class="btn btn-am-primary">Yeni Donanım</a>
+        </div>
+    }
+</div>
+
+<div class="am-table-wrap">
+    <table class="am-table">
+        <thead>
+            <tr>
+                <th>Tür</th>
+                <th>Ad</th>
+                <th>Seri No</th>
+                <th>Marka/Model</th>
+                <th>Durum</th>
+                <th>Zimmette (kişi)</th>
+                <th>Zimmet tarihi</th>
+                @if (User.IsInRole(AppRoleNames.Admin))
+                {
+                    <th class="am-table-col-actions--wide"></th>
+                }
+                <th class="am-table-col-actions"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in assets)
+            {
+                var assign = assignmentByAsset.TryGetValue(a.Id, out var asn) ? asn : null;
+                var personName = assign != null && personNames.TryGetValue(assign.PersonnelId, out var pn) ? pn : "—";
+                <tr>
+                    <td>@StatusLabels.AssetTypeLabel(a.AssetType)</td>
+                    <td><strong>@a.Name</strong></td>
+                    <td>@(a.SerialNumber ?? "—")</td>
+                    <td>@(a.BrandModel ?? "—")</td>
+                    <td><span class="am-badge @(a.Status == AssetStatus.Assigned ? "info" : a.Status == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(a.Status)</span></td>
+                    <td>@personName</td>
+                    <td>@(assign != null ? assign.AssignedAt.ToString("dd.MM.yyyy") : "—")</td>
+                    @if (User.IsInRole(AppRoleNames.Admin))
+                    {
+                        <td>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <a asp-controller="Assets" asp-action="Edit" asp-route-id="@a.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Düzenle</a>
+                                @if (a.Status != AssetStatus.Assigned)
+                                {
+                                    <a asp-controller="Assets" asp-action="Delete" asp-route-id="@a.Id" class="btn btn-am-outline-danger btn-sm">Sil</a>
+                                }
+                            </div>
+                        </td>
+                    }
+                    <td>
+                        <div class="d-flex flex-nowrap gap-2">
+                            @if (a.Status == AssetStatus.Available)
+                            {
+                                <a asp-controller="Assets" asp-action="Assign" asp-route-id="@a.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Zimmetle</a>
+                            }
+                            else if (assign != null)
+                            {
+                                <a asp-controller="Assets" asp-action="Return" asp-route-id="@assign.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">İade al</a>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (!assets.Any())
+{
+    <p class="text-muted mt-3">Kayıt bulunamadı.</p>
+}

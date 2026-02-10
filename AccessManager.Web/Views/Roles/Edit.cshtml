@@ -1,0 +1,38 @@
+@model AccessManager.UI.Controllers.RoleEditInputModel
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Rol Düzenle";
+    var role = ViewBag.Role as Role;
+}
+
+<div class="am-page-title">Rol düzenle: @(role?.Name ?? "")</div>
+
+<div class="am-card am-card--narrow">
+    <div class="am-card-body">
+        <form method="post" asp-controller="Roles" asp-action="Edit" asp-route-id="@role?.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Rol adı <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Code" class="form-label">Kod</label>
+                <input asp-for="Code" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama</label>
+                <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                <a asp-controller="Roles" asp-action="EditPermissions" asp-route-id="@role?.Id" class="btn btn-am-outline btn-am-outline-solid">Yetkileri düzenle</a>
+                <a asp-controller="Roles" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

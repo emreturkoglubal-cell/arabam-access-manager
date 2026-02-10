@@ -1,0 +1,55 @@
+@page
+@model AccessManager.UI.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="am-page-title">Dashboard</div>
+
+<div class="am-stat-cards mb-4">
+    <div class="am-stat-card">
+        <div class="label">Aktif Personel</div>
+        <div class="value accent">@Model.Stats.ActivePersonnelCount</div>
+        <div class="action">
+            <a asp-page="/Personnel/Index" class="btn-am-ghost">Listele →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Son Ay İşten Ayrılan</div>
+        <div class="value">@Model.Stats.OffboardedLastMonthCount</div>
+        <div class="action">
+            <a asp-page="/Reports/Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Bekleyen Talepler</div>
+        <div class="value warning">@Model.Stats.PendingRequestsCount</div>
+        <div class="action">
+            <a asp-page="/AccessRequests/Index" class="btn-am-ghost">İncele →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Süresi Dolacak Yetkiler (30 gün)</div>
+        <div class="value info">@Model.Stats.ExpiringAccessCount</div>
+        <div class="action">
+            <a asp-page="/Reports/Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+    <div class="am-stat-card">
+        <div class="label">Rol Dışı Yetkiler</div>
+        <div class="value">@Model.Stats.ExceptionAccessCount</div>
+        <div class="action">
+            <a asp-page="/Reports/Index" class="btn-am-ghost">Raporlar →</a>
+        </div>
+    </div>
+</div>
+
+<div class="am-card">
+    <div class="am-card-header">Hoş geldiniz</div>
+    <div class="am-card-body">
+        <p class="mb-0 text-secondary">
+            AccessManager ile personel yaşam döngüsü, yetki talepleri ve denetim kayıtlarını tek merkezden yönetebilirsiniz.
+            Sol menüden <strong>Personel</strong>, <strong>Uygulamalar</strong>, <strong>Yetki Talepleri</strong>, <strong>İşe Giriş / İşten Çıkış</strong> ve <strong>Raporlar</strong> bölümlerine erişebilirsiniz.
+        </p>
+    </div>
+</div>
