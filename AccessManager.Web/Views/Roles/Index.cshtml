@@ -26,7 +26,7 @@
                 @foreach (var role in roles)
                 {
                     var roleDetails = details.TryGetValue(role.Id, out var d) ? d : new List<(string SystemName, string Permission)>();
-                    var id = "role-" + role.Id.ToString("N")[..8];
+                    var id = "role-" + role.Id;
                     <div class="accordion-item border-bottom">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed bg-white py-3" type="button" data-bs-toggle="collapse" data-bs-target="#@id">

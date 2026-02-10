@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build çıktıları
+**/bin
+**/obj
+**/out
+[Dd]ebug
+[Rr]elease
+**/publish
+**/Publish
+
+# IDE / Editor
+.vs
+.vscode
+.idea
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+# NuGet (restore build sırasında yapılacak)
+**/packages
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+# Gereksiz / hassas
+**/secrets.json
+**/appsettings.*.local.json
+**/*.log
+**/node_modules
+**/.env
+**/.env.*
+
+# Dokümantasyon (image küçük kalsın)
+docs
+*.md
+!README.md
+
+# Eski / farklı proje (sadece Web deploy ediyoruz)
+AccessManager/
+
+# Database scriptleri image'a gerek yok (opsiyonel: istersen kaldır)
+# database/
