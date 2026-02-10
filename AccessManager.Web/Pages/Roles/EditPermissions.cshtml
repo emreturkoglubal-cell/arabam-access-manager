@@ -55,7 +55,7 @@
                     <ul class="list-group list-group-flush">
                         @foreach (var p in Model.Permissions)
                         {
-                            var sysName = Model.SystemNames.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString());
+                            var sysName = Model.SystemNames.TryGetValue(p.ResourceSystemId, out var sn) ? sn : p.ResourceSystemId.ToString();
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>@sysName — @StatusLabels.PermissionTypeLabel(p.PermissionType) @(p.IsDefault ? "(varsayılan)" : "")</span>
                                 <form method="post" asp-page-handler="Remove" asp-route-id="@Model.Role?.Id" asp-route-permissionId="@p.Id" class="d-inline" data-am-confirm="Bu yetki kaldırılsın mı?">

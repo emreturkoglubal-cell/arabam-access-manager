@@ -36,7 +36,7 @@ public class SystemsController : Controller
     {
         var systems = _systemService.GetAll();
         var ownerNames = new Dictionary<int, string>();
-        var accessCounts = new Dictionary<Guid, int>();
+        var accessCounts = new Dictionary<int, int>();
         foreach (var s in systems)
         {
             if (s.OwnerId.HasValue)

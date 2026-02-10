@@ -6,7 +6,7 @@
     var steps = ViewBag.Steps as IReadOnlyList<ApprovalStep> ?? new List<ApprovalStep>();
     var personName = ViewBag.PersonName as string;
     var systemName = ViewBag.SystemName as string;
-    var approverNames = ViewBag.ApproverNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var approverNames = ViewBag.ApproverNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var nextStepName = ViewBag.NextStepName as string;
     var canApprove = ViewBag.CanApprove as bool? ?? false;
 }

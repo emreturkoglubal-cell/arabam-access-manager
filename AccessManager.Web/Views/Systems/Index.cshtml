@@ -4,8 +4,8 @@
 @{
     ViewData["Title"] = "Uygulamalar";
     var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
-    var ownerNames = ViewBag.OwnerNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
-    var accessCounts = ViewBag.AccessCounts as Dictionary<Guid, int> ?? new Dictionary<Guid, int>();
+    var ownerNames = ViewBag.OwnerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var accessCounts = ViewBag.AccessCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
 <div class="am-page-title">Uygulamalar</div>

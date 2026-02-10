@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Departmanlar";
     var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
-    var countByDept = ViewBag.PersonnelCountByDepartment as Dictionary<Guid, int> ?? new Dictionary<Guid, int>();
+    var countByDept = ViewBag.PersonnelCountByDepartment as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
 <div class="am-page-title">Departmanlar</div>

@@ -7,7 +7,7 @@
     var role = ViewBag.Role as Role;
     var permissions = ViewBag.Permissions as IReadOnlyList<RolePermission> ?? new List<RolePermission>();
     var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
-    var systemNames = ViewBag.SystemNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var systemNames = ViewBag.SystemNames as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 
 <div class="am-page-title">Yetkiler: @(role?.Name ?? "")</div>
@@ -59,7 +59,7 @@
                     <ul class="list-group list-group-flush">
                         @foreach (var p in permissions)
                         {
-                            var sysName = systemNames.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString());
+                            var sysName = systemNames.TryGetValue(p.ResourceSystemId, out var sn) ? sn : p.ResourceSystemId.ToString();
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>@sysName — @StatusLabels.PermissionTypeLabel(p.PermissionType) @(p.IsDefault ? "(varsayılan)" : "")</span>
                                 <form method="post" asp-controller="Roles" asp-action="RemovePermission" asp-route-id="@role?.Id" asp-route-permissionId="@p.Id" class="d-inline" data-am-confirm="Bu yetki kaldırılsın mı?">

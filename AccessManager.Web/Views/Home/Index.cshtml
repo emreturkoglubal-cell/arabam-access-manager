@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Kontrol Paneli";
     var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
-    var filterDepartmentId = ViewBag.DepartmentId as Guid?;
+    var filterDepartmentId = ViewBag.DepartmentId as int?;
     var periodMonths = ViewBag.PeriodMonths as int? ?? 1;
 }
 

@@ -32,7 +32,7 @@
             <div class="mb-3">
                 <label asp-for="OwnerId" class="form-label">Sistem sahibi (personel)</label>
                 <select asp-for="OwnerId" class="form-select">
-                    <option value="@Guid.Empty">— Seçin —</option>
+                    <option value="0">— Seçin —</option>
                     @foreach (var p in personnelList)
                     {
                         <option value="@p.Id">@p.FirstName @p.LastName (@(p.SicilNo))</option>

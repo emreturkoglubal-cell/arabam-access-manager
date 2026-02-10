@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Roller ve Yetkiler";
     var roles = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
-    var details = ViewBag.RolePermissionDetails as Dictionary<Guid, List<(string SystemName, string Permission)>> ?? new Dictionary<Guid, List<(string SystemName, string Permission)>>();
+    var details = ViewBag.RolePermissionDetails as Dictionary<int, List<(string SystemName, string Permission)>> ?? new Dictionary<int, List<(string SystemName, string Permission)>>();
 }
 
 <div class="am-page-title">Roller ve Yetkiler</div>

@@ -3,8 +3,8 @@
 @{
     ViewData["Title"] = "Yetki Talepleri";
     var requests = ViewBag.Requests as IReadOnlyList<AccessRequest> ?? new List<AccessRequest>();
-    var personNames = ViewBag.PersonNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
-    var systemNames = ViewBag.SystemNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var personNames = ViewBag.PersonNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var systemNames = ViewBag.SystemNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var filterStatus = ViewBag.FilterStatus as string;
 }
 

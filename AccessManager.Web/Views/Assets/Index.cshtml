@@ -4,8 +4,8 @@
 @{
     ViewData["Title"] = "Donanım & Zimmet";
     var assets = ViewBag.Assets as IReadOnlyList<Asset> ?? new List<Asset>();
-    var assignmentByAsset = ViewBag.AssignmentByAsset as Dictionary<Guid, AssetAssignment> ?? new Dictionary<Guid, AssetAssignment>();
-    var personNames = ViewBag.PersonNames as Dictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var assignmentByAsset = ViewBag.AssignmentByAsset as Dictionary<int, AssetAssignment> ?? new Dictionary<int, AssetAssignment>();
+    var personNames = ViewBag.PersonNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var filterStatus = ViewBag.FilterStatus as AssetStatus?;
     var filterType = ViewBag.FilterType as AssetType?;
 }
