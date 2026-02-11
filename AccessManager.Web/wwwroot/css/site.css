@@ -328,6 +328,23 @@ body {
 .am-badge.info { background: #dbeafe; color: #1e40af; }
 .am-badge.danger { background: #fee2e2; color: #991b1b; }
 
+/* Personel detay: Aktif/Pasif yetki toggle — büyük yazı, açık yeşil / tema kırmızı soft */
+.am-access-toggle {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+}
+.am-access-toggle--active {
+  background: #d1fae5;
+  color: #047857;
+}
+.am-access-toggle--passive {
+  background: var(--am-accent-light);
+  color: var(--am-accent);
+}
+
 /* İşten çıkmış ama açık yetkisi olan satır (turuncu vurgu) */
 .am-row-warning { background-color: #fff7ed !important; border-left: 3px solid var(--am-warning); }
 
@@ -348,6 +365,87 @@ body {
 
 .am-toolbar .am-toolbar-end {
   margin-left: auto;
+}
+
+/* ----- Sayfalama: tema renkleri, ortalanmış, ferah ----- */
+.am-pagination-wrap {
+  margin-top: 1.5rem;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.am-pagination-wrap .am-pagination-info {
+  color: var(--am-text-muted);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.am-pagination-wrap .am-pagination-info strong {
+  color: var(--am-text);
+  font-weight: 600;
+}
+
+.am-pagination-wrap .pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: none;
+}
+
+.am-pagination-wrap .page-item {
+  margin: 0;
+}
+
+.am-pagination-wrap .page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--am-text);
+  background: var(--am-card-bg);
+  border: 1px solid var(--am-border);
+  border-radius: var(--am-radius-sm);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.am-pagination-wrap .page-link:hover {
+  background: var(--am-accent-light);
+  border-color: var(--am-accent);
+  color: var(--am-accent);
+}
+
+.am-pagination-wrap .page-item.active .page-link {
+  background: var(--am-accent);
+  border-color: var(--am-accent);
+  color: #fff;
+}
+
+.am-pagination-wrap .page-item.active .page-link:hover {
+  background: var(--am-accent-hover);
+  border-color: var(--am-accent-hover);
+  color: #fff;
+}
+
+.am-pagination-wrap .page-item.disabled .page-link {
+  background: var(--am-bg);
+  border-color: var(--am-border);
+  color: var(--am-text-muted);
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn:focus,

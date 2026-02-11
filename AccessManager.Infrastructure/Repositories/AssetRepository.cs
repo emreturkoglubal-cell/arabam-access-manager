@@ -41,6 +41,27 @@ public class AssetRepository : IAssetRepository
         return conn.Query<Asset>(sql, new { Type = (short)type }).ToList();
     }
 
+    public (IReadOnlyList<Asset> Items, int TotalCount) GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        var conditions = new List<string> { "1=1" };
+        if (status.HasValue) conditions.Add("status = @Status");
+        if (type.HasValue) conditions.Add("asset_type = @Type");
+        var where = string.Join(" AND ", conditions);
+        var baseSql = $"FROM assets WHERE {where}";
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var countSql = $"SELECT COUNT(*) {baseSql}";
+        var totalCount = conn.ExecuteScalar<int>(countSql, new { Status = status.HasValue ? (short?)status.Value : null, Type = type.HasValue ? (short?)type.Value : null });
+        var offset = (page - 1) * pageSize;
+        var dataSql = $@"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt
+            {baseSql} ORDER BY name LIMIT @PageSize OFFSET @Offset";
+        var items = conn.Query<Asset>(dataSql, new { Status = status.HasValue ? (short?)status.Value : null, Type = type.HasValue ? (short?)type.Value : null, PageSize = pageSize, Offset = offset }).ToList();
+        return (items, totalCount);
+    }
+
     public Asset? GetById(int id)
     {
         using var conn = new NpgsqlConnection(_connectionString);

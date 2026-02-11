@@ -1,13 +1,8 @@
-@using AccessManager.Domain.Entities
+@model AccessManager.UI.ViewModels.AssetsIndexViewModel
 @using AccessManager.Domain.Enums
 @using AccessManager.Domain.Constants
 @{
     ViewData["Title"] = "Donanım & Zimmet";
-    var assets = ViewBag.Assets as IReadOnlyList<Asset> ?? new List<Asset>();
-    var assignmentByAsset = ViewBag.AssignmentByAsset as Dictionary<int, AssetAssignment> ?? new Dictionary<int, AssetAssignment>();
-    var personNames = ViewBag.PersonNames as Dictionary<int, string> ?? new Dictionary<int, string>();
-    var filterStatus = ViewBag.FilterStatus as AssetStatus?;
-    var filterType = ViewBag.FilterType as AssetType?;
 }
 
 <div class="am-page-title">Donanım & Zimmet</div>
@@ -22,18 +17,19 @@
 
 <div class="am-toolbar">
     <form method="get" asp-controller="Assets" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
         <select name="status" class="form-select form-select-sm am-toolbar-select">
             <option value="">Tüm durumlar</option>
-            <option value="Available" selected="@(filterStatus == AssetStatus.Available)">@StatusLabels.AssetStatusLabel(AssetStatus.Available)</option>
-            <option value="Assigned" selected="@(filterStatus == AssetStatus.Assigned)">@StatusLabels.AssetStatusLabel(AssetStatus.Assigned)</option>
-            <option value="InRepair" selected="@(filterStatus == AssetStatus.InRepair)">@StatusLabels.AssetStatusLabel(AssetStatus.InRepair)</option>
-            <option value="Retired" selected="@(filterStatus == AssetStatus.Retired)">@StatusLabels.AssetStatusLabel(AssetStatus.Retired)</option>
+            <option value="Available" selected="@(Model.FilterStatus == AssetStatus.Available)">@StatusLabels.AssetStatusLabel(AssetStatus.Available)</option>
+            <option value="Assigned" selected="@(Model.FilterStatus == AssetStatus.Assigned)">@StatusLabels.AssetStatusLabel(AssetStatus.Assigned)</option>
+            <option value="InRepair" selected="@(Model.FilterStatus == AssetStatus.InRepair)">@StatusLabels.AssetStatusLabel(AssetStatus.InRepair)</option>
+            <option value="Retired" selected="@(Model.FilterStatus == AssetStatus.Retired)">@StatusLabels.AssetStatusLabel(AssetStatus.Retired)</option>
         </select>
         <select name="type" class="form-select form-select-sm am-toolbar-select">
             <option value="">Tüm türler</option>
             @foreach (AssetType t in Enum.GetValues(typeof(AssetType)))
             {
-                <option value="@t" selected="@(filterType == t)">@StatusLabels.AssetTypeLabel(t)</option>
+                <option value="@t" selected="@(Model.FilterType == t)">@StatusLabels.AssetTypeLabel(t)</option>
             }
         </select>
         <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
@@ -65,10 +61,10 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var a in assets)
+            @foreach (var a in Model.Assets)
             {
-                var assign = assignmentByAsset.TryGetValue(a.Id, out var asn) ? asn : null;
-                var personName = assign != null && personNames.TryGetValue(assign.PersonnelId, out var pn) ? pn : "—";
+                var assign = Model.AssignmentByAsset.TryGetValue(a.Id, out var asn) ? asn : null;
+                var personName = assign != null && Model.PersonNames.TryGetValue(assign.PersonnelId, out var pn) ? pn : "—";
                 <tr>
                     <td>@StatusLabels.AssetTypeLabel(a.AssetType)</td>
                     <td><strong>@a.Name</strong></td>
@@ -107,7 +103,23 @@
     </table>
 </div>
 
-@if (!assets.Any())
+@if (!Model.Assets.Any())
 {
     <p class="text-muted mt-3">Kayıt bulunamadı.</p>
+}
+else
+{
+    var assetsPaginationRv = new Microsoft.AspNetCore.Routing.RouteValueDictionary { { "pageSize", Model.PageSize } };
+    if (Model.FilterStatus.HasValue) assetsPaginationRv["status"] = Model.FilterStatus.Value.ToString();
+    if (Model.FilterType.HasValue) assetsPaginationRv["type"] = Model.FilterType.Value.ToString();
+    @await Html.PartialAsync("_Pagination", new AccessManager.UI.ViewModels.PaginationViewModel
+    {
+        Controller = "Assets",
+        Action = "Index",
+        PageNumber = Model.PageNumber,
+        TotalPages = Model.TotalPages,
+        TotalCount = Model.TotalCount,
+        PageSize = Model.PageSize,
+        RouteValues = assetsPaginationRv
+    })
 }

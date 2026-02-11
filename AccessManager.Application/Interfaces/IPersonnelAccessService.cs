@@ -11,4 +11,5 @@ public interface IPersonnelAccessService
     IReadOnlyList<PersonnelAccess> GetExceptions();
     void Grant(int personnelId, int resourceSystemId, PermissionType permissionType, bool isException, DateTime? expiresAt = null, int? requestId = null);
     void Revoke(int personnelAccessId);
+    void Reactivate(int personnelAccessId);
 }

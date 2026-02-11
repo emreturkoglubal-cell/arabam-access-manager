@@ -1,3 +1,4 @@
+using AccessManager.Application;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 using Dapper;
@@ -40,7 +41,7 @@ public class PersonnelAccessRepository : IPersonnelAccessRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        var until = DateTime.UtcNow.AddDays(days);
+        var until = SystemTime.Now.AddDays(days);
         const string sql = @"SELECT id AS Id, personnel_id AS PersonnelId, resource_system_id AS ResourceSystemId,
             permission_type AS PermissionType, is_exception AS IsException, granted_at AS GrantedAt, expires_at AS ExpiresAt,
             is_active AS IsActive, granted_by_request_id AS GrantedByRequestId

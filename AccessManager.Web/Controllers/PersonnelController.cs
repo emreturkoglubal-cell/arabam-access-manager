@@ -41,22 +41,26 @@ public class PersonnelController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(int? departmentId, bool? activeOnly)
+    public IActionResult Index(int? departmentId, bool? activeOnly, int page = 1, int pageSize = 10)
     {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? true, page, pageSize);
+
         var vm = new PersonnelIndexViewModel
         {
             FilterDepartmentId = departmentId,
             FilterActiveOnly = activeOnly ?? true,
             Departments = _departmentService.GetAll(),
-            Roles = _roleService.GetAll()
+            Roles = _roleService.GetAll(),
+            PersonnelList = paged.Items,
+            PageNumber = paged.PageNumber,
+            PageSize = paged.PageSize,
+            TotalCount = paged.TotalCount
         };
 
-        var list = vm.FilterActiveOnly == true ? _personnelService.GetActive() : _personnelService.GetAll();
-        if (vm.FilterDepartmentId.HasValue)
-            list = list.Where(p => p.DepartmentId == vm.FilterDepartmentId.Value).ToList();
-        vm.PersonnelList = list;
-
-        foreach (var mId in list.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct())
+        foreach (var mId in paged.Items.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct())
         {
             var m = _personnelService.GetById(mId);
             if (m != null) vm.ManagerNames[mId] = $"{m.FirstName} {m.LastName}";
@@ -208,6 +212,50 @@ public class PersonnelController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public IActionResult GrantAccess(int id, int systemId)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        var system = _systemService.GetById(systemId);
+        if (system == null)
+        {
+            TempData["GrantError"] = "Uygulama bulunamadı.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        var accesses = _personnelAccessService.GetByPersonnel(id);
+        var existing = accesses.FirstOrDefault(a => a.ResourceSystemId == systemId);
+        if (existing != null)
+        {
+            if (existing.IsActive)
+            {
+                TempData["GrantError"] = "Bu uygulama için zaten yetki açık.";
+                return RedirectToAction(nameof(Detail), new { id });
+            }
+            _personnelAccessService.Reactivate(existing.Id);
+            _auditService.Log(
+                AuditAction.AccessGranted,
+                _currentUser.UserId,
+                _currentUser.DisplayName ?? _currentUser.UserName ?? "?",
+                "PersonnelAccess",
+                existing.Id.ToString(),
+                $"{personnel.FirstName} {personnel.LastName} — {system.Name} (yeniden açıldı)");
+        }
+        else
+        {
+            _personnelAccessService.Grant(id, systemId, PermissionType.Open, isException: true, expiresAt: null, requestId: null);
+            _auditService.Log(
+                AuditAction.AccessGranted,
+                _currentUser.UserId,
+                _currentUser.DisplayName ?? _currentUser.UserName ?? "?",
+                "PersonnelAccess",
+                systemId.ToString(),
+                $"{personnel.FirstName} {personnel.LastName} — {system.Name}");
+        }
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult RevokeAccess(int id, int accessId)
     {
         var personnel = _personnelService.GetById(id);
@@ -228,7 +276,6 @@ public class PersonnelController : Controller
             "PersonnelAccess",
             accessId.ToString(),
             $"{personnel.FirstName} {personnel.LastName} — {systemName}");
-        TempData["RevokeSuccess"] = "Yetki kapatıldı.";
         return RedirectToAction(nameof(Detail), new { id });
     }
 }

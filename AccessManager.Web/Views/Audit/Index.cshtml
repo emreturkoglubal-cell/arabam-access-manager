@@ -1,20 +1,20 @@
+@model AccessManager.UI.ViewModels.AuditIndexViewModel
 @using AccessManager.Domain.Entities
 @using AccessManager.Domain.Enums
 @{
     ViewData["Title"] = "Log";
-    var logs = ViewBag.Logs as IReadOnlyList<AuditLog> ?? new List<AuditLog>();
-    var filterTargetType = ViewBag.FilterTargetType as string;
 }
 
 <div class="am-page-title">Log</div>
 
 <div class="am-toolbar">
     <form method="get" asp-controller="Audit" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
-        <select name="targetType" class="form-select form-select-sm am-toolbar-select am-toolbar-select--sm">
-            <option value="" selected="@(string.IsNullOrEmpty(filterTargetType))">Tümü</option>
-            <option value="Personnel" selected="@(filterTargetType == "Personnel")">Personel</option>
-            <option value="Access" selected="@(filterTargetType == "Access")">Erişim</option>
-            <option value="AccessRequest" selected="@(filterTargetType == "AccessRequest")">Yetki talebi</option>
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <select name="targetType" class="form-select form-select-sm am-toolbar-select am-toolbar-select--sm" asp-for="FilterTargetType">
+            <option value="">Tümü</option>
+            <option value="Personnel">Personel</option>
+            <option value="Access">Erişim</option>
+            <option value="AccessRequest">Yetki talebi</option>
         </select>
         <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
     </form>
@@ -34,7 +34,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var log in logs)
+                    @foreach (var log in Model.Logs)
                     {
                         <tr>
                             <td>@log.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</td>
@@ -47,9 +47,24 @@
                 </tbody>
             </table>
         </div>
-        @if (!logs.Any())
+        @if (!Model.Logs.Any())
         {
             <p class="text-muted mb-0 p-3">Kayıt bulunamadı.</p>
+        }
+        else
+        {
+            var auditPaginationRv = new Microsoft.AspNetCore.Routing.RouteValueDictionary { { "pageSize", Model.PageSize } };
+            if (!string.IsNullOrEmpty(Model.FilterTargetType)) auditPaginationRv["targetType"] = Model.FilterTargetType;
+            @await Html.PartialAsync("_Pagination", new AccessManager.UI.ViewModels.PaginationViewModel
+            {
+                Controller = "Audit",
+                Action = "Index",
+                PageNumber = Model.PageNumber,
+                TotalPages = Model.TotalPages,
+                TotalCount = Model.TotalCount,
+                PageSize = Model.PageSize,
+                RouteValues = auditPaginationRv
+            })
         }
     </div>
 </div>

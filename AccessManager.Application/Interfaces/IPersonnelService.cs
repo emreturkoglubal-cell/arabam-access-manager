@@ -1,3 +1,4 @@
+using AccessManager.Application.Dtos;
 using AccessManager.Domain.Entities;
 
 namespace AccessManager.Application.Interfaces;
@@ -6,6 +7,7 @@ public interface IPersonnelService
 {
     IReadOnlyList<Personnel> GetAll();
     IReadOnlyList<Personnel> GetActive();
+    PagedResult<Personnel> GetPaged(int? departmentId, bool activeOnly, int page, int pageSize);
     Personnel? GetById(int id);
     Personnel? GetBySicilNo(string sicilNo);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);

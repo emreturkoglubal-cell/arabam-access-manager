@@ -1,3 +1,4 @@
+using AccessManager.Application;
 using AccessManager.Application.Dtos;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Constants;
@@ -30,7 +31,7 @@ public class ReportService : IReportService
 
     public DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null)
     {
-        var now = DateTime.UtcNow;
+        var now = SystemTime.Now;
         var months = periodMonths.HasValue && periodMonths.Value > 0 ? Math.Min(periodMonths.Value, 120) : 1;
         var periodStart = now.AddMonths(-months).Date;
 

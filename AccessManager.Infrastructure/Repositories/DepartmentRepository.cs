@@ -31,4 +31,12 @@ public class DepartmentRepository : IDepartmentRepository
             FROM departments WHERE id = @Id";
         return conn.QuerySingleOrDefault<Department>(sql, new { Id = id });
     }
+
+    public int Insert(Department department)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"INSERT INTO departments (name, code, description) VALUES (@Name, @Code, @Description) RETURNING id";
+        return conn.ExecuteScalar<int>(sql, new { department.Name, department.Code, department.Description });
+    }
 }

@@ -8,6 +8,7 @@ public interface IAssetRepository
     IReadOnlyList<Asset> GetAll();
     IReadOnlyList<Asset> GetByStatus(AssetStatus status);
     IReadOnlyList<Asset> GetByType(AssetType type);
+    (IReadOnlyList<Asset> Items, int TotalCount) GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize);
     Asset? GetById(int id);
     int Insert(Asset asset);
     void Update(Asset asset);

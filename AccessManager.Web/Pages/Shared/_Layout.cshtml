@@ -38,6 +38,7 @@
                         <a asp-page="/Personnel/Index" class="@NavClass("/Personnel")"><i class="bi bi-people"></i> Personel</a>
                         <a asp-page="/Departments/Index" class="@NavClass("/Departments")"><i class="bi bi-building"></i> Departmanlar</a>
                         <a asp-page="/Systems/Index" class="@NavClass("/Systems")"><i class="bi bi-server"></i> Uygulamalar</a>
+                        <a asp-controller="Assets" asp-action="Index" class="@(path.StartsWith("/Assets", StringComparison.OrdinalIgnoreCase) ? "active" : "")"><i class="bi bi-laptop"></i> Donanım & Zimmet</a>
                         <a asp-page="/Roles/Index" class="@NavClass("/Roles")"><i class="bi bi-key"></i> Roller & Yetkiler</a>
                         <a asp-page="/Onboarding/Index" class="@NavClass("/Onboarding")"><i class="bi bi-box-arrow-in-right"></i> İşe Giriş</a>
                         <a asp-page="/Offboarding/Index" class="@NavClass("/Offboarding")"><i class="bi bi-box-arrow-left"></i> İşten Çıkış</a>

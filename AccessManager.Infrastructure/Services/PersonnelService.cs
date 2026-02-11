@@ -1,3 +1,5 @@
+using AccessManager.Application;
+using AccessManager.Application.Dtos;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -19,6 +21,18 @@ public class PersonnelService : IPersonnelService
     public IReadOnlyList<Personnel> GetAll() => _repo.GetAll();
 
     public IReadOnlyList<Personnel> GetActive() => _repo.GetActive();
+
+    public PagedResult<Personnel> GetPaged(int? departmentId, bool activeOnly, int page, int pageSize)
+    {
+        var (items, totalCount) = _repo.GetPaged(departmentId, activeOnly, page, pageSize);
+        return new PagedResult<Personnel>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = page,
+            PageSize = pageSize
+        };
+    }
 
     public Personnel? GetById(int id) => _repo.GetById(id);
 
@@ -68,7 +82,7 @@ public class PersonnelService : IPersonnelService
         {
             PersonnelId = personnelId,
             Content = content?.Trim() ?? string.Empty,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = SystemTime.Now,
             CreatedByUserId = createdByUserId,
             CreatedByUserName = createdByUserName ?? "?"
         };

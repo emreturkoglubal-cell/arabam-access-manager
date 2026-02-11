@@ -1,3 +1,4 @@
+using AccessManager.Application;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Constants;
 using AccessManager.Domain.Entities;
@@ -54,7 +55,7 @@ public class AccessRequestService : IAccessRequestService
     public AccessRequest Create(AccessRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        request.CreatedAt = DateTime.UtcNow;
+        request.CreatedAt = SystemTime.Now;
         request.Status = AccessRequestStatus.PendingManager;
         request.Id = _requestRepo.Insert(request);
         _stepRepo.Insert(new ApprovalStep
@@ -73,7 +74,7 @@ public class AccessRequestService : IAccessRequestService
         var step = _stepRepo.GetStep(requestId, stepName);
         if (step == null) return;
 
-        _stepRepo.UpdateApproval(step.Id, approverId, approverDisplayName, DateTime.UtcNow, approved, comment);
+        _stepRepo.UpdateApproval(step.Id, approverId, approverDisplayName, SystemTime.Now, approved, comment);
 
         var request = _requestRepo.GetById(requestId);
         if (request == null) return;

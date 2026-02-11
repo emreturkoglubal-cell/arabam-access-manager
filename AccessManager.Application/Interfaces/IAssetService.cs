@@ -1,3 +1,4 @@
+using AccessManager.Application.Dtos;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 
@@ -6,6 +7,7 @@ namespace AccessManager.Application.Interfaces;
 public interface IAssetService
 {
     IReadOnlyList<Asset> GetAll();
+    PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize);
     IReadOnlyList<Asset> GetByStatus(AssetStatus status);
     IReadOnlyList<Asset> GetByType(AssetType type);
     Asset? GetById(int id);

@@ -1,3 +1,4 @@
+using AccessManager.Application.Dtos;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 
@@ -9,4 +10,5 @@ public interface IAuditService
     IReadOnlyList<AuditLog> GetRecent(int count = 100);
     IReadOnlyList<AuditLog> GetByTarget(string targetType, string? targetId = null);
     IReadOnlyList<AuditLog> GetByDateRange(DateTime from, DateTime to);
+    PagedResult<AuditLog> GetPaged(string? targetType, int page, int pageSize);
 }

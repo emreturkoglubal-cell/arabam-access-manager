@@ -1,3 +1,5 @@
+using AccessManager.Application;
+using AccessManager.Application.Dtos;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -21,6 +23,18 @@ public class AssetService : IAssetService
     }
 
     public IReadOnlyList<Asset> GetAll() => _assetRepo.GetAll();
+
+    public PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize)
+    {
+        var (items, totalCount) = _assetRepo.GetPaged(status, type, page, pageSize);
+        return new PagedResult<Asset>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = page,
+            PageSize = pageSize
+        };
+    }
 
     public IReadOnlyList<Asset> GetByStatus(AssetStatus status) => _assetRepo.GetByStatus(status);
 
@@ -50,7 +64,7 @@ public class AssetService : IAssetService
         {
             AssetAssignmentId = assignmentId,
             Content = content?.Trim() ?? string.Empty,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = SystemTime.Now,
             CreatedByUserId = createdByUserId,
             CreatedByUserName = createdByUserName ?? "?"
         };
@@ -61,7 +75,7 @@ public class AssetService : IAssetService
     public Asset Create(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
-        asset.CreatedAt = DateTime.UtcNow;
+        asset.CreatedAt = SystemTime.Now;
         if (asset.Status == default) asset.Status = AssetStatus.Available;
         asset.Id = _assetRepo.Insert(asset);
         _auditService.Log(AuditAction.AssetCreated, null, "Sistem", "Asset", asset.Id.ToString(), asset.Name);
@@ -102,7 +116,7 @@ public class AssetService : IAssetService
         {
             AssetId = assetId,
             PersonnelId = personnelId,
-            AssignedAt = DateTime.UtcNow,
+            AssignedAt = SystemTime.Now,
             AssignedByUserId = assignedByUserId,
             AssignedByUserName = assignedByUserName ?? "—",
             Notes = notes
@@ -122,7 +136,7 @@ public class AssetService : IAssetService
         if (assignment.ReturnedAt.HasValue)
             throw new InvalidOperationException("Bu zimmet zaten iade edilmiş.");
 
-        var now = DateTime.UtcNow;
+        var now = SystemTime.Now;
         _assignmentRepo.SetReturned(assignmentId, now, returnCondition, notes);
 
         var asset = _assetRepo.GetById(assignment.AssetId);

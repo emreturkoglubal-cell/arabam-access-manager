@@ -1,0 +1,55 @@
+@model AccessManager.UI.ViewModels.PaginationViewModel
+@{
+    if (Model.TotalPages <= 1) { return; }
+    var rv = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+    if (Model.RouteValues != null)
+    {
+        foreach (var kv in Model.RouteValues.Where(x => x.Value != null))
+            rv[kv.Key] = kv.Value;
+    }
+    int from = Math.Max(1, Model.PageNumber - 2);
+    int to = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+}
+<nav class="am-pagination-wrap" aria-label="Sayfalama">
+    <p class="am-pagination-info text-muted small mb-1">
+        Toplam <strong>@Model.TotalCount</strong> kayıt, sayfa <strong>@Model.PageNumber / @Model.TotalPages</strong>
+    </p>
+    <ul class="pagination pagination-sm mb-0">
+        @{
+            rv["page"] = Model.PageNumber - 1;
+            var prevDisabled = Model.PageNumber <= 1;
+        }
+        <li class="page-item @(prevDisabled ? "disabled" : "")">
+            @if (prevDisabled)
+            {
+                <span class="page-link">Önceki</span>
+            }
+            else
+            {
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, rv)">Önceki</a>
+            }
+        </li>
+        @for (var i = from; i <= to; i++)
+        {
+            rv["page"] = i;
+            var active = i == Model.PageNumber;
+            <li class="page-item @(active ? "active" : "")">
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, rv)">@i</a>
+            </li>
+        }
+        @{
+            rv["page"] = Model.PageNumber + 1;
+            var nextDisabled = Model.PageNumber >= Model.TotalPages;
+        }
+        <li class="page-item @(nextDisabled ? "disabled" : "")">
+            @if (nextDisabled)
+            {
+                <span class="page-link">Sonraki</span>
+            }
+            else
+            {
+                <a class="page-link" href="@Url.Action(Model.Action, Model.Controller, rv)">Sonraki</a>
+            }
+        </li>
+    </ul>
+</nav>

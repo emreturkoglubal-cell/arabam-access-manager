@@ -1,3 +1,5 @@
+using AccessManager.Application;
+using AccessManager.Application.Dtos;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -24,7 +26,7 @@ public class AuditService : IAuditService
             TargetType = targetType,
             TargetId = targetId,
             Details = details,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = SystemTime.Now,
             IpAddress = ipAddress
         });
     }
@@ -34,4 +36,16 @@ public class AuditService : IAuditService
     public IReadOnlyList<AuditLog> GetByTarget(string targetType, string? targetId = null) => _repo.GetByTarget(targetType, targetId);
 
     public IReadOnlyList<AuditLog> GetByDateRange(DateTime from, DateTime to) => _repo.GetByDateRange(from, to);
+
+    public PagedResult<AuditLog> GetPaged(string? targetType, int page, int pageSize)
+    {
+        var (items, totalCount) = _repo.GetPaged(targetType, page, pageSize);
+        return new PagedResult<AuditLog>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = page,
+            PageSize = pageSize
+        };
+    }
 }

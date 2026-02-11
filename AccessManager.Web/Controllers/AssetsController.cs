@@ -24,11 +24,13 @@ public class AssetsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(AssetStatus? status, AssetType? type)
+    public IActionResult Index(AssetStatus? status, AssetType? type, int page = 1, int pageSize = 10)
     {
-        var assets = _assetService.GetAll();
-        if (status.HasValue) assets = assets.Where(a => a.Status == status.Value).ToList();
-        if (type.HasValue) assets = assets.Where(a => a.AssetType == type.Value).ToList();
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        var paged = _assetService.GetPaged(status, type, page, pageSize);
+        var assets = paged.Items.ToList();
 
         var assignmentByAsset = new Dictionary<int, AssetAssignment>();
         var personNames = new Dictionary<int, string>();
@@ -43,12 +45,18 @@ public class AssetsController : Controller
             }
         }
 
-        ViewBag.Assets = assets;
-        ViewBag.AssignmentByAsset = assignmentByAsset;
-        ViewBag.PersonNames = personNames;
-        ViewBag.FilterStatus = status;
-        ViewBag.FilterType = type;
-        return View();
+        var model = new AssetsIndexViewModel
+        {
+            Assets = assets,
+            AssignmentByAsset = assignmentByAsset,
+            PersonNames = personNames,
+            FilterStatus = status,
+            FilterType = type,
+            PageNumber = paged.PageNumber,
+            PageSize = paged.PageSize,
+            TotalCount = paged.TotalCount
+        };
+        return View(model);
     }
 
     [HttpGet]

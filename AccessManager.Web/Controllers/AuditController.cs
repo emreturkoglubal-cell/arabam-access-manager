@@ -1,5 +1,6 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.UI.Constants;
+using AccessManager.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,13 +17,20 @@ public class AuditController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(string? targetType)
+    public IActionResult Index(string? targetType, int page = 1, int pageSize = 10)
     {
-        var logs = !string.IsNullOrEmpty(targetType)
-            ? _auditService.GetByTarget(targetType)
-            : _auditService.GetRecent(200);
-        ViewBag.Logs = logs;
-        ViewBag.FilterTargetType = targetType;
-        return View();
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        var paged = _auditService.GetPaged(targetType, page, pageSize);
+        var model = new AuditIndexViewModel
+        {
+            Logs = paged.Items,
+            FilterTargetType = targetType,
+            PageNumber = paged.PageNumber,
+            PageSize = paged.PageSize,
+            TotalCount = paged.TotalCount
+        };
+        return View(model);
     }
 }

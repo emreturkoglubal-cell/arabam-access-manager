@@ -1,3 +1,4 @@
+using AccessManager.Application;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -30,7 +31,7 @@ public class PersonnelAccessService : IPersonnelAccessService
             ResourceSystemId = resourceSystemId,
             PermissionType = permissionType,
             IsException = isException,
-            GrantedAt = DateTime.UtcNow,
+            GrantedAt = SystemTime.Now,
             ExpiresAt = expiresAt,
             IsActive = true,
             GrantedByRequestId = requestId
@@ -41,5 +42,10 @@ public class PersonnelAccessService : IPersonnelAccessService
     public void Revoke(int personnelAccessId)
     {
         _repo.SetActive(personnelAccessId, false);
+    }
+
+    public void Reactivate(int personnelAccessId)
+    {
+        _repo.SetActive(personnelAccessId, true);
     }
 }

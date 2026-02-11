@@ -36,6 +36,28 @@ public class PersonnelRepository : IPersonnelRepository
         return conn.Query<Personnel>(sql).ToList();
     }
 
+    public (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, bool activeOnly, int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        var conditions = new List<string> { "1=1" };
+        if (activeOnly) conditions.Add("status = 0");
+        if (departmentId.HasValue) conditions.Add("department_id = @DepartmentId");
+        var where = string.Join(" AND ", conditions);
+        var baseSql = $"FROM personnel WHERE {where}";
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var countSql = $"SELECT COUNT(*) {baseSql}";
+        var totalCount = conn.ExecuteScalar<int>(countSql, new { DepartmentId = departmentId });
+        var offset = (page - 1) * pageSize;
+        var dataSql = $@"SELECT id AS Id, sicil_no AS SicilNo, first_name AS FirstName, last_name AS LastName, email AS Email,
+            department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            {baseSql} ORDER BY sicil_no LIMIT @PageSize OFFSET @Offset";
+        var items = conn.Query<Personnel>(dataSql, new { DepartmentId = departmentId, PageSize = pageSize, Offset = offset }).ToList();
+        return (items, totalCount);
+    }
+
     public Personnel? GetById(int id)
     {
         using var conn = new NpgsqlConnection(_connectionString);
