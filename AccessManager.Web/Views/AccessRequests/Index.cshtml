@@ -27,7 +27,7 @@
 </div>
 
 <div class="am-table-wrap">
-    <table class="am-table">
+    <table class="am-table am-table-rows-clickable">
         <thead>
             <tr>
                 <th>Talep eden</th>
@@ -37,7 +37,6 @@
                 <th>Süre</th>
                 <th>Durum</th>
                 <th>Tarih</th>
-                <th class="am-table-col-actions"></th>
             </tr>
         </thead>
         <tbody>
@@ -45,7 +44,8 @@
             {
                 var personName = personNames.TryGetValue(r.PersonnelId, out var pn) ? pn : "—";
                 var sysName = systemNames.TryGetValue(r.ResourceSystemId, out var sn) ? sn : "—";
-                <tr>
+                var detailUrl = Url.Action("Detail", "AccessRequests", new { id = r.Id }) ?? "#";
+                <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
                     <td><strong>@personName</strong></td>
                     <td>@sysName</td>
                     <td>@r.RequestedPermission</td>
@@ -55,9 +55,6 @@
                         <span class="am-badge @(r.Status == AccessRequestStatus.Applied ? "success" : r.Status == AccessRequestStatus.Rejected ? "danger" : "warning")">@StatusLabels.AccessRequestStatus(r.Status)</span>
                     </td>
                     <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
-                    <td>
-                        <a asp-controller="AccessRequests" asp-action="Detail" asp-route-id="@r.Id" class="btn-am-ghost">Detay / Onayla</a>
-                    </td>
                 </tr>
             }
         </tbody>

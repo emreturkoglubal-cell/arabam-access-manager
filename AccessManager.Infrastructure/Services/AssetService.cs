@@ -52,6 +52,8 @@ public class AssetService : IAssetService
 
     public AssetAssignment? GetActiveAssignmentForAsset(int assetId) => _assignmentRepo.GetActiveByAssetId(assetId);
 
+    public IReadOnlyList<AssetAssignment> GetActiveAssignmentsForAssets(IReadOnlyList<int> assetIds) => _assignmentRepo.GetActiveByAssetIds(assetIds ?? Array.Empty<int>());
+
     public AssetAssignment? GetAssignmentById(int assignmentId) => _assignmentRepo.GetById(assignmentId);
 
     public IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(int assignmentId) => _assignmentRepo.GetNotesByAssignmentId(assignmentId);

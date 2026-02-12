@@ -14,6 +14,7 @@ public interface IAssetService
     IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(int personnelId);
     IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(int assetId);
     AssetAssignment? GetActiveAssignmentForAsset(int assetId);
+    IReadOnlyList<AssetAssignment> GetActiveAssignmentsForAssets(IReadOnlyList<int> assetIds);
     AssetAssignment? GetAssignmentById(int assignmentId);
     IReadOnlyList<AssetAssignmentNote> GetNotesForAssignment(int assignmentId);
     void AddNoteToAssignment(int assignmentId, string content, int? createdByUserId, string? createdByUserName);

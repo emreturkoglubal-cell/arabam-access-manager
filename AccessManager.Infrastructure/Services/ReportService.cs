@@ -115,4 +115,74 @@ public class ReportService : IReportService
             };
         }).ToList();
     }
+
+    public ReportsIndexData GetReportsIndexData(DateTime? from, DateTime? to)
+    {
+        // Tek turda tüm ham veriyi çek (tekrarlı sorguları kaldırır)
+        var allPersonnel = _personnelRepo.GetAll();
+        var departments = _departmentRepo.GetAll().ToDictionary(d => d.Id);
+        var systems = _systemRepo.GetAll();
+        var activeAccesses = _accessRepo.GetActive();
+        var allRequests = _requestRepo.GetAll();
+        var expiringAccesses = _accessRepo.GetExpiringWithinDays(30);
+        var exceptionAccesses = _accessRepo.GetExceptions();
+
+        var activePersonnel = allPersonnel.Where(p => p.Status == PersonnelStatus.Active).ToList();
+        var now = SystemTime.Now;
+        var periodStart = now.AddMonths(-1).Date;
+        var offboardedInPeriod = allPersonnel.Count(p => p.EndDate.HasValue && p.EndDate >= periodStart);
+        var pendingRequests = allRequests.Where(r =>
+            r.Status == AccessRequestStatus.PendingManager || r.Status == AccessRequestStatus.PendingSystemOwner || r.Status == AccessRequestStatus.PendingIT);
+
+        var stats = new DashboardStats
+        {
+            ActivePersonnelCount = activePersonnel.Count,
+            OffboardedLastMonthCount = offboardedInPeriod,
+            PendingRequestsCount = pendingRequests.Count(),
+            ExpiringAccessCount = expiringAccesses.Count,
+            ExceptionAccessCount = exceptionAccesses.Count
+        };
+
+        var accessBySystem = systems.Select(s => new AccessBySystemReportRow
+        {
+            SystemName = s.Name ?? string.Empty,
+            SystemCode = s.Code ?? string.Empty,
+            ActiveAccessCount = activeAccesses.Count(a => a.ResourceSystemId == s.Id)
+        }).ToList();
+
+        var offboardedList = allPersonnel.Where(p => p.EndDate.HasValue).AsEnumerable();
+        if (from.HasValue) offboardedList = offboardedList.Where(p => p.EndDate >= from);
+        if (to.HasValue) offboardedList = offboardedList.Where(p => p.EndDate <= to);
+        var offboardedReport = offboardedList.Select(p => new OffboardedReportRow
+        {
+            PersonnelId = p.Id,
+            FullName = $"{p.FirstName} {p.LastName}".Trim(),
+            EndDate = p.EndDate,
+            Department = departments.GetValueOrDefault(p.DepartmentId)?.Name
+        }).ToList();
+
+        var personnelDict = allPersonnel.ToDictionary(p => p.Id);
+        var systemsDict = systems.ToDictionary(s => s.Id);
+        var exceptionReport = exceptionAccesses.Select(a =>
+        {
+            var p = personnelDict.GetValueOrDefault(a.PersonnelId);
+            var s = systemsDict.GetValueOrDefault(a.ResourceSystemId);
+            return new ExceptionReportRow
+            {
+                PersonnelId = a.PersonnelId,
+                Person = p != null ? $"{p.FirstName} {p.LastName}".Trim() : "?",
+                System = s?.Name ?? string.Empty,
+                Permission = PermissionTypeLabels.Get(a.PermissionType),
+                ExpiresAt = a.ExpiresAt
+            };
+        }).ToList();
+
+        return new ReportsIndexData
+        {
+            Stats = stats,
+            AccessBySystem = accessBySystem,
+            OffboardedReport = offboardedReport,
+            ExceptionReport = exceptionReport
+        };
+    }
 }

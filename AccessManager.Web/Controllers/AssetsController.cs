@@ -32,18 +32,13 @@ public class AssetsController : Controller
         var paged = _assetService.GetPaged(status, type, page, pageSize);
         var assets = paged.Items.ToList();
 
-        var assignmentByAsset = new Dictionary<int, AssetAssignment>();
-        var personNames = new Dictionary<int, string>();
-        foreach (var a in assets.Where(x => x.Status == AssetStatus.Assigned))
-        {
-            var assign = _assetService.GetActiveAssignmentForAsset(a.Id);
-            if (assign != null)
-            {
-                assignmentByAsset[a.Id] = assign;
-                var p = _personnelService.GetById(assign.PersonnelId);
-                personNames[assign.PersonnelId] = p != null ? $"{p.FirstName} {p.LastName}" : "—";
-            }
-        }
+        var assignedAssetIds = assets.Where(x => x.Status == AssetStatus.Assigned).Select(a => a.Id).ToList();
+        var activeAssignments = assignedAssetIds.Count > 0 ? _assetService.GetActiveAssignmentsForAssets(assignedAssetIds) : new List<AssetAssignment>();
+        var assignmentByAsset = activeAssignments.ToDictionary(a => a.AssetId, a => a);
+
+        var personnelIds = activeAssignments.Select(a => a.PersonnelId).Distinct().ToList();
+        var personnelList = personnelIds.Count > 0 ? _personnelService.GetByIds(personnelIds) : new List<Personnel>();
+        var personNames = personnelList.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
 
         var model = new AssetsIndexViewModel
         {

@@ -31,41 +31,31 @@
 </div>
 
 <div class="am-stat-cards mb-4">
-    <div class="am-stat-card">
+    <a href="@Url.Action("Index", "Personnel", new { departmentId = filterDepartmentId })" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
         <div class="label">Aktif Personel</div>
         <div class="value accent">@Model.ActivePersonnelCount</div>
-        <div class="action">
-            <a asp-controller="Personnel" asp-action="Index" asp-route-departmentId="@filterDepartmentId" class="btn-am-ghost">Listele →</a>
-        </div>
-    </div>
-    <div class="am-stat-card">
+        <div class="action"><span class="btn-am-ghost">Listele →</span></div>
+    </a>
+    <a href="@Url.Action("Index", "Reports")" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
         <div class="label">@(periodMonths == 12 ? "Son 1 yıl" : periodMonths == 24 ? "Son 2 yıl" : $"Son {periodMonths} ay") İşten Ayrılan</div>
         <div class="value">@Model.OffboardedLastMonthCount</div>
-        <div class="action">
-            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
-        </div>
-    </div>
-    <div class="am-stat-card">
+        <div class="action"><span class="btn-am-ghost">Raporlar →</span></div>
+    </a>
+    <a href="@Url.Action("Index", "AccessRequests")" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
         <div class="label">Bekleyen Talepler</div>
         <div class="value warning">@Model.PendingRequestsCount</div>
-        <div class="action">
-            <a asp-controller="AccessRequests" asp-action="Index" class="btn-am-ghost">İncele →</a>
-        </div>
-    </div>
-    <div class="am-stat-card">
+        <div class="action"><span class="btn-am-ghost">İncele →</span></div>
+    </a>
+    <a href="@Url.Action("Index", "Reports")" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
         <div class="label">Süresi Dolacak Yetkiler (30 gün)</div>
         <div class="value info">@Model.ExpiringAccessCount</div>
-        <div class="action">
-            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
-        </div>
-    </div>
-    <div class="am-stat-card">
+        <div class="action"><span class="btn-am-ghost">Raporlar →</span></div>
+    </a>
+    <a href="@Url.Action("Index", "Reports")" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
         <div class="label">Rol Dışı Yetkiler</div>
         <div class="value">@Model.ExceptionAccessCount</div>
-        <div class="action">
-            <a asp-controller="Reports" asp-action="Index" class="btn-am-ghost">Raporlar →</a>
-        </div>
-    </div>
+        <div class="action"><span class="btn-am-ghost">Raporlar →</span></div>
+    </a>
 </div>
 
 <div class="am-card">

@@ -22,9 +22,7 @@ public class DepartmentsController : Controller
     public IActionResult Index()
     {
         var departments = _departmentService.GetAll();
-        var countByDept = new Dictionary<int, int>();
-        foreach (var d in departments)
-            countByDept[d.Id] = _personnelService.GetByDepartmentId(d.Id).Count;
+        var countByDept = _personnelService.GetPersonnelCountByDepartment();
 
         ViewBag.Departments = departments;
         ViewBag.PersonnelCountByDepartment = countByDept;

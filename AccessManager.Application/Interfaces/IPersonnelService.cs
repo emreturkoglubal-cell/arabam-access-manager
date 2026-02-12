@@ -12,6 +12,7 @@ public interface IPersonnelService
     IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
+    IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment();
     (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId);
     Personnel Add(Personnel personnel);
     void Update(Personnel personnel);

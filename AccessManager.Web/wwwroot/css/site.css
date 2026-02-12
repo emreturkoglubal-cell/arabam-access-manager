@@ -78,6 +78,10 @@ body {
   background: var(--am-accent-light);
 }
 
+.am-stat-card-clickable {
+  cursor: pointer;
+}
+
 .am-stat-card .label {
   font-size: 0.75rem;
   font-weight: 500;
@@ -480,4 +484,16 @@ body {
   border-color: var(--am-border) !important;
   background: var(--am-card-bg) !important;
   color: var(--am-text-muted) !important;
+}
+
+/* Breadcrumb: tüm linkler siyah / koyu metin rengi */
+.breadcrumb a {
+  color: var(--am-text) !important;
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  color: var(--am-accent) !important;
+}
+.breadcrumb-item.active {
+  color: var(--am-text-muted);
 }

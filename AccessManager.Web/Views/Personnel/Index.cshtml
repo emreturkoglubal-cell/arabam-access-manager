@@ -45,8 +45,8 @@
         <tbody>
             @foreach (var p in Model.PersonnelList)
             {
-                var dept = Model.Departments.FirstOrDefault(d => d.Id == p.DepartmentId);
-                var role = Model.Roles.FirstOrDefault(r => r.Id == p.RoleId);
+                var deptName = Model.DepartmentNames.TryGetValue(p.DepartmentId, out var dn) ? dn : "—";
+                var roleName = Model.RoleNames.TryGetValue(p.RoleId ?? 0, out var rn) ? rn : "—";
                 var managerName = p.ManagerId.HasValue && Model.ManagerNames.TryGetValue(p.ManagerId.Value, out var name) ? name : null;
                 var detailUrl = Url.Action("Detail", "Personnel", new { id = p.Id }) ?? "#";
                 <tr class="am-table-row-clickable @(p.Status == PersonnelStatus.Offboarded ? "am-row-offboarded" : "")" data-href="@detailUrl" role="button" tabindex="0">
@@ -63,8 +63,8 @@
                     <td>@p.Id</td>
                     <td><strong>@p.FirstName @p.LastName</strong></td>
                     <td>@p.Email</td>
-                    <td>@(dept?.Name ?? "—")</td>
-                    <td>@(role?.Name ?? "—")</td>
+                    <td>@deptName</td>
+                    <td>@roleName</td>
                     <td>@(managerName ?? "—")</td>
                     <td>@p.StartDate.ToString("dd.MM.yyyy")</td>
                     <td>@(p.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>

@@ -18,6 +18,8 @@ public class SystemService : ISystemService
 
     public ResourceSystem? GetById(int id) => _repo.GetById(id);
 
+    public IReadOnlyList<ResourceSystem> GetByIds(IReadOnlyList<int> ids) => _repo.GetByIds(ids ?? Array.Empty<int>());
+
     public IReadOnlyList<ResourceSystem> GetByType(SystemType type) => _repo.GetByType(type);
 
     public IReadOnlyList<ResourceSystem> GetByCriticalLevel(CriticalLevel level) => _repo.GetByCriticalLevel(level);

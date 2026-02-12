@@ -106,6 +106,17 @@ public class ReviseRequestRepository : IReviseRequestRepository
         return conn.Query<ReviseRequestImage>(sql, new { ReviseRequestId = reviseRequestId }).ToList();
     }
 
+    public IReadOnlyList<ReviseRequestImage> GetImagesByReviseRequestIds(IReadOnlyList<int> reviseRequestIds)
+    {
+        if (reviseRequestIds == null || reviseRequestIds.Count == 0) return new List<ReviseRequestImage>();
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"SELECT id AS Id, revise_request_id AS ReviseRequestId, file_name AS FileName, file_path AS FilePath,
+            file_size AS FileSize, mime_type AS MimeType, display_order AS DisplayOrder, created_at AS CreatedAt
+            FROM revise_request_images WHERE revise_request_id = ANY(@Ids) ORDER BY revise_request_id, display_order, id";
+        return conn.Query<ReviseRequestImage>(sql, new { Ids = reviseRequestIds.Distinct().ToList() }).ToList();
+    }
+
     public void InsertImage(ReviseRequestImage image)
     {
         using var conn = new NpgsqlConnection(_connectionString);

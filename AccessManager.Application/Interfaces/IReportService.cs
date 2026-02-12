@@ -10,4 +10,9 @@ public interface IReportService
     IReadOnlyList<AccessBySystemReportRow> GetAccessReportBySystem();
     IReadOnlyList<OffboardedReportRow> GetOffboardedReport(DateTime? from, DateTime? to);
     IReadOnlyList<ExceptionReportRow> GetExceptionReport();
+
+    /// <summary>
+    /// Raporlar sayfası için tüm veriyi tek turda çeker (performans için).
+    /// </summary>
+    ReportsIndexData GetReportsIndexData(DateTime? from, DateTime? to);
 }

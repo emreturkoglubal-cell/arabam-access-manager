@@ -42,6 +42,8 @@ public class PersonnelService : IPersonnelService
 
     public IReadOnlyList<Personnel> GetByDepartmentId(int departmentId) => _repo.GetByDepartmentId(departmentId);
 
+    public IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment() => _repo.GetPersonnelCountByDepartment();
+
     public (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId)
     {
         var p = _repo.GetById(personnelId);

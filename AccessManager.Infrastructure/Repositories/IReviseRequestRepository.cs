@@ -12,6 +12,7 @@ public interface IReviseRequestRepository
     void Update(ReviseRequest request);
     void UpdateStatus(int id, ReviseRequestStatus status);
     IReadOnlyList<ReviseRequestImage> GetImages(int reviseRequestId);
+    IReadOnlyList<ReviseRequestImage> GetImagesByReviseRequestIds(IReadOnlyList<int> reviseRequestIds);
     ReviseRequestImage? GetImageById(int imageId);
     void InsertImage(ReviseRequestImage image);
     void DeleteImage(int imageId);

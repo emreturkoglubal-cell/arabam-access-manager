@@ -72,6 +72,8 @@ public class ReviseRequestService : IReviseRequestService
 
     public IReadOnlyList<ReviseRequestImage> GetImages(int reviseRequestId) => _repo.GetImages(reviseRequestId);
 
+    public IReadOnlyList<ReviseRequestImage> GetImagesByReviseRequestIds(IReadOnlyList<int> reviseRequestIds) => _repo.GetImagesByReviseRequestIds(reviseRequestIds ?? Array.Empty<int>());
+
     public void DeleteImage(int imageId, string webRootPath)
     {
         var image = _repo.GetImageById(imageId);

@@ -41,7 +41,7 @@
 </div>
 
 <div class="am-table-wrap">
-    <table class="am-table">
+    <table class="am-table am-table-rows-clickable">
         <thead>
             <tr>
                 <th>Tür</th>
@@ -63,7 +63,8 @@
             {
                 var assign = Model.AssignmentByAsset.TryGetValue(a.Id, out var asn) ? asn : null;
                 var personName = assign != null && Model.PersonNames.TryGetValue(assign.PersonnelId, out var pn) ? pn : "—";
-                <tr>
+                var editUrl = Url.Action("Edit", "Assets", new { id = a.Id }) ?? "#";
+                <tr class="am-table-row-clickable" data-href="@editUrl" role="button" tabindex="0">
                     <td>@StatusLabels.AssetTypeLabel(a.AssetType)</td>
                     <td><strong>@a.Name</strong></td>
                     <td>@(a.SerialNumber ?? "—")</td>
@@ -73,7 +74,7 @@
                     <td>@(assign != null ? assign.AssignedAt.ToString("dd.MM.yyyy") : "—")</td>
                     @if (User.IsInRole(AppRoleNames.Admin))
                     {
-                        <td>
+                        <td class="am-table-col-actions" onclick="event.stopPropagation();">
                             <div class="d-flex flex-nowrap gap-2">
                                 <a asp-controller="Assets" asp-action="Edit" asp-route-id="@a.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Düzenle</a>
                                 @if (a.Status != AssetStatus.Assigned)
@@ -83,7 +84,7 @@
                             </div>
                         </td>
                     }
-                    <td>
+                    <td class="am-table-col-actions" onclick="event.stopPropagation();">
                         <div class="d-flex flex-nowrap gap-2">
                             @if (a.Status == AssetStatus.Available)
                             {

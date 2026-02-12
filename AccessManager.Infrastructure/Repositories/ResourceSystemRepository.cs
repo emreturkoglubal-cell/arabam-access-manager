@@ -32,6 +32,16 @@ public class ResourceSystemRepository : IResourceSystemRepository
         return conn.QuerySingleOrDefault<ResourceSystem>(sql, new { Id = id });
     }
 
+    public IReadOnlyList<ResourceSystem> GetByIds(IReadOnlyList<int> ids)
+    {
+        if (ids == null || ids.Count == 0) return new List<ResourceSystem>();
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"SELECT id AS Id, name AS Name, code AS Code, system_type AS SystemType, critical_level AS CriticalLevel,
+            owner_id AS OwnerId, description AS Description FROM resource_systems WHERE id = ANY(@Ids)";
+        return conn.Query<ResourceSystem>(sql, new { Ids = ids.Distinct().ToList() }).ToList();
+    }
+
     public IReadOnlyList<ResourceSystem> GetByType(SystemType type)
     {
         using var conn = new NpgsqlConnection(_connectionString);

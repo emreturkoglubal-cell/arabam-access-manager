@@ -19,15 +19,12 @@ public class ReportsController : Controller
     [HttpGet]
     public IActionResult Index(DateTime? from, DateTime? to)
     {
-        var stats = _reportService.GetDashboardStats();
-        var accessBySystem = _reportService.GetAccessReportBySystem() ?? new List<AccessBySystemReportRow>();
-        var offboardedReport = _reportService.GetOffboardedReport(from, to) ?? new List<OffboardedReportRow>();
-        var exceptionReport = _reportService.GetExceptionReport() ?? new List<ExceptionReportRow>();
+        var data = _reportService.GetReportsIndexData(from, to);
 
-        ViewBag.Stats = stats;
-        ViewBag.AccessBySystem = accessBySystem;
-        ViewBag.OffboardedReport = offboardedReport;
-        ViewBag.ExceptionReport = exceptionReport;
+        ViewBag.Stats = data.Stats;
+        ViewBag.AccessBySystem = data.AccessBySystem;
+        ViewBag.OffboardedReport = data.OffboardedReport;
+        ViewBag.ExceptionReport = data.ExceptionReport;
         ViewBag.From = from;
         ViewBag.To = to;
         return View();

@@ -1,5 +1,4 @@
 using AccessManager.Domain.Entities;
-using AccessManager.Domain.Enums;
 using Dapper;
 using Npgsql;
 
@@ -119,6 +118,15 @@ public class PersonnelRepository : IPersonnelRepository
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE department_id = @DepartmentId ORDER BY id";
         return conn.Query<Personnel>(sql, new { DepartmentId = departmentId }).ToList();
+    }
+
+    public IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment()
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = "SELECT department_id AS DepartmentId, COUNT(*) AS Cnt FROM personnel GROUP BY department_id";
+        var rows = conn.Query<(int DepartmentId, int Cnt)>(sql);
+        return rows.ToDictionary(r => r.DepartmentId, r => r.Cnt);
     }
 
     public int Insert(Personnel personnel)

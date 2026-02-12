@@ -11,6 +11,7 @@ public interface IPersonnelRepository
     IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
+    IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment();
     int Insert(Personnel personnel);
     void Update(Personnel personnel);
     void SetOffboarded(int personnelId, DateTime endDate);

@@ -7,6 +7,7 @@ public interface ISystemService
 {
     IReadOnlyList<ResourceSystem> GetAll();
     ResourceSystem? GetById(int id);
+    IReadOnlyList<ResourceSystem> GetByIds(IReadOnlyList<int> ids);
     IReadOnlyList<ResourceSystem> GetByType(SystemType type);
     IReadOnlyList<ResourceSystem> GetByCriticalLevel(CriticalLevel level);
 

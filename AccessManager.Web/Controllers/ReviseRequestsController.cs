@@ -1,4 +1,5 @@
 using AccessManager.Application.Interfaces;
+using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 using AccessManager.UI.Constants;
 using AccessManager.UI.ViewModels;
@@ -35,10 +36,13 @@ public class ReviseRequestsController : Controller
             ? allRequests.Where(r => r.Status == status.Value).ToList()
             : allRequests.ToList();
 
-        // Her request için image'leri yükle
-        foreach (var request in requests)
+        if (requests.Count > 0)
         {
-            request.Images = _reviseRequestService.GetImages(request.Id).ToList();
+            var requestIds = requests.Select(r => r.Id).ToList();
+            var allImages = _reviseRequestService.GetImagesByReviseRequestIds(requestIds);
+            var imagesByRequest = allImages.GroupBy(i => i.ReviseRequestId).ToDictionary(g => g.Key, g => g.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Id).ToList());
+            foreach (var request in requests)
+                request.Images = imagesByRequest.TryGetValue(request.Id, out var imgs) ? imgs : new List<ReviseRequestImage>();
         }
 
         var model = new ReviseRequestIndexViewModel

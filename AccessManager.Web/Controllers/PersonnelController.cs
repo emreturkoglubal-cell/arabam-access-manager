@@ -48,23 +48,29 @@ public class PersonnelController : Controller
 
         var paged = _personnelService.GetPaged(departmentId, activeOnly ?? false, search, page, pageSize);
 
+        var departments = _departmentService.GetAll();
+        var roles = _roleService.GetAll();
         var vm = new PersonnelIndexViewModel
         {
             SearchTerm = search,
             FilterDepartmentId = departmentId,
             FilterActiveOnly = activeOnly ?? false,
-            Departments = _departmentService.GetAll(),
-            Roles = _roleService.GetAll(),
+            Departments = departments,
+            Roles = roles,
+            DepartmentNames = departments.ToDictionary(d => d.Id, d => d.Name ?? "—"),
+            RoleNames = roles.ToDictionary(r => r.Id, r => r.Name ?? "—"),
             PersonnelList = paged.Items,
             PageNumber = paged.PageNumber,
             PageSize = paged.PageSize,
             TotalCount = paged.TotalCount
         };
 
-        foreach (var mId in paged.Items.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct())
+        var managerIds = paged.Items.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct().ToList();
+        if (managerIds.Count > 0)
         {
-            var m = _personnelService.GetById(mId);
-            if (m != null) vm.ManagerNames[mId] = $"{m.FirstName} {m.LastName}";
+            var managers = _personnelService.GetByIds(managerIds);
+            foreach (var m in managers)
+                vm.ManagerNames[m.Id] = $"{m.FirstName} {m.LastName}";
         }
 
         return View(vm);

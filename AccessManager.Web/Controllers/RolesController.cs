@@ -28,12 +28,14 @@ public class RolesController : Controller
     {
         var roles = _roleService.GetAll();
         var systems = _systemService.GetAll().ToDictionary(s => s.Id, s => s.Name ?? s.Code ?? s.Id.ToString());
-        var details = new Dictionary<int, List<(string SystemName, string Permission)>>();
+        var allPerms = _roleService.GetAllRolePermissions();
+        var details = allPerms
+            .GroupBy(p => p.RoleId)
+            .ToDictionary(g => g.Key, g => g.Select(p => (systems.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString()), Helpers.StatusLabels.PermissionTypeLabel(p.PermissionType))).ToList());
         foreach (var role in roles)
-        {
-            var perms = _roleService.GetPermissionsByRole(role.Id);
-            details[role.Id] = perms.Select(p => (systems.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString()), Helpers.StatusLabels.PermissionTypeLabel(p.PermissionType))).ToList();
-        }
+            if (!details.ContainsKey(role.Id))
+                details[role.Id] = new List<(string, string)>();
+
         ViewBag.Roles = roles;
         ViewBag.RolePermissionDetails = details;
         return View();

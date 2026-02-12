@@ -43,6 +43,17 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         return conn.QuerySingleOrDefault<AssetAssignment>(sql, new { AssetId = assetId });
     }
 
+    public IReadOnlyList<AssetAssignment> GetActiveByAssetIds(IReadOnlyList<int> assetIds)
+    {
+        if (assetIds == null || assetIds.Count == 0) return new List<AssetAssignment>();
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            FROM asset_assignments WHERE asset_id = ANY(@AssetIds) AND returned_at IS NULL";
+        return conn.Query<AssetAssignment>(sql, new { AssetIds = assetIds.Distinct().ToList() }).ToList();
+    }
+
     public AssetAssignment? GetById(int id)
     {
         using var conn = new NpgsqlConnection(_connectionString);

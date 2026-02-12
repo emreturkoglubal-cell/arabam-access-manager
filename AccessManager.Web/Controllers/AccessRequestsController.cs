@@ -35,18 +35,12 @@ public class AccessRequestsController : Controller
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<AccessRequestStatus>(status, out var s))
             list = list.Where(r => r.Status == s).ToList();
 
-        var personNames = new Dictionary<int, string>();
-        var systemNames = new Dictionary<int, string>();
-        foreach (var pid in list.Select(r => r.PersonnelId).Distinct())
-        {
-            var p = _personnelService.GetById(pid);
-            personNames[pid] = p != null ? $"{p.FirstName} {p.LastName}" : pid.ToString();
-        }
-        foreach (var sid in list.Select(r => r.ResourceSystemId).Distinct())
-        {
-            var sys = _systemService.GetById(sid);
-            systemNames[sid] = sys?.Name ?? sid.ToString();
-        }
+        var personnelIds = list.Select(r => r.PersonnelId).Distinct().ToList();
+        var systemIds = list.Select(r => r.ResourceSystemId).Distinct().ToList();
+        var personnelList = personnelIds.Count > 0 ? _personnelService.GetByIds(personnelIds) : new List<Personnel>();
+        var systemsList = systemIds.Count > 0 ? _systemService.GetByIds(systemIds) : new List<ResourceSystem>();
+        var personNames = personnelList.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
+        var systemNames = systemsList.ToDictionary(s => s.Id, s => s.Name ?? s.Code ?? s.Id.ToString());
 
         ViewBag.Requests = list;
         ViewBag.PersonNames = personNames;
