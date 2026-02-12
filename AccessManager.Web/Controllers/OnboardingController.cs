@@ -44,17 +44,9 @@ public class OnboardingController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Index(PersonnelCreateInputModel input)
     {
-        if (string.IsNullOrWhiteSpace(input.SicilNo) || string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName) || string.IsNullOrWhiteSpace(input.Email))
+        if (string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName) || string.IsNullOrWhiteSpace(input.Email))
         {
-            ModelState.AddModelError(string.Empty, "Sicil No, Ad, Soyad ve E-posta zorunludur.");
-            ViewBag.Departments = _departmentService.GetAll();
-            ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _personnelService.GetActive();
-            return View(input);
-        }
-        if (_personnelService.GetBySicilNo(input.SicilNo) != null)
-        {
-            ModelState.AddModelError(string.Empty, "Bu sicil numarası zaten kayıtlı.");
+            ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
             ViewBag.Managers = _personnelService.GetActive();
@@ -63,7 +55,6 @@ public class OnboardingController : Controller
 
         var p = new Personnel
         {
-            SicilNo = input.SicilNo.Trim(),
             FirstName = input.FirstName.Trim(),
             LastName = input.LastName.Trim(),
             Email = input.Email.Trim(),

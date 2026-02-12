@@ -48,8 +48,8 @@
             <div class="am-card-header">Kişisel Bilgiler</div>
             <div class="am-card-body">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4">Sicil No</dt>
-                    <dd class="col-sm-8">@Model.Personnel.SicilNo</dd>
+                    <dt class="col-sm-4">ID</dt>
+                    <dd class="col-sm-8">@Model.Personnel.Id</dd>
                     <dt class="col-sm-4">E-posta</dt>
                     <dd class="col-sm-8">@Model.Personnel.Email</dd>
                     <dt class="col-sm-4">Departman</dt>
@@ -129,7 +129,7 @@
                 else
                 {
                     <p class="text-muted mb-0">Zimmette donanım yok.</p>
-                    <a asp-controller="Assets" asp-action="Index" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Donanım & Zimmet</a>
+                    <a asp-controller="Personnel" asp-action="AssignAsset" asp-route-id="@Model.Personnel.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Donanım ekle</a>
                 }
             </div>
         </div>

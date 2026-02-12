@@ -7,8 +7,9 @@
 <div class="am-page-title">Personel</div>
 
 <div class="am-toolbar">
-    <form method="get" asp-controller="Personnel" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+    <form method="get" asp-controller="Personnel" asp-action="Index" class="am-toolbar-form d-flex flex-nowrap gap-2 align-items-center">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <input type="search" name="search" class="form-control form-control-sm" placeholder="ID veya ad soyad ara..." value="@Model.SearchTerm" style="width: 200px; min-width: 160px;" />
         <select name="departmentId" class="form-select form-select-sm am-toolbar-select" asp-for="FilterDepartmentId">
             <option value="">Tüm departmanlar</option>
             @foreach (var d in Model.Departments)
@@ -32,7 +33,7 @@
         <thead>
             <tr>
                 <th class="am-table-col-avatar"></th>
-                <th>Sicil No</th>
+                <th>ID</th>
                 <th>Ad Soyad</th>
                 <th>E-posta</th>
                 <th>Departman</th>
@@ -62,7 +63,7 @@
                             <span class="am-avatar am-avatar-sm am-avatar-default" aria-hidden="true"><i class="bi bi-person-circle"></i></span>
                         }
                     </td>
-                    <td>@p.SicilNo</td>
+                    <td>@p.Id</td>
                     <td><strong>@p.FirstName @p.LastName</strong></td>
                     <td>@p.Email</td>
                     <td>@(dept?.Name ?? "—")</td>
@@ -98,6 +99,7 @@ else
         PageSize = Model.PageSize,
         RouteValues = new Microsoft.AspNetCore.Routing.RouteValueDictionary
         {
+            { "search", Model.SearchTerm },
             { "departmentId", Model.FilterDepartmentId },
             { "activeOnly", Model.FilterActiveOnly },
             { "pageSize", Model.PageSize }

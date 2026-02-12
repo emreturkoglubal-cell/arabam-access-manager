@@ -38,7 +38,7 @@ public class ReportService : IReportService
         if (to.HasValue) list = list.Where(p => p.EndDate <= to);
         return list.Select(p => (object)new
         {
-            SicilNo = p.SicilNo,
+            PersonnelId = p.Id,
             FullName = p.FirstName + " " + p.LastName,
             EndDate = p.EndDate,
             Department = _store.Departments.FirstOrDefault(d => d.Id == p.DepartmentId)?.Name
@@ -53,7 +53,7 @@ public class ReportService : IReportService
             .Join(_store.ResourceSystems, x => x.a.ResourceSystemId, s => s.Id, (x, s) => (object)new
             {
                 Person = x.p.FirstName + " " + x.p.LastName,
-                SicilNo = x.p.SicilNo,
+                PersonnelId = x.p.Id,
                 System = s.Name,
                 Permission = x.a.PermissionType.ToString(),
                 ExpiresAt = x.a.ExpiresAt

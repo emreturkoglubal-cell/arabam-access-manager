@@ -14,9 +14,6 @@ public class PersonnelService : IPersonnelService
 
     public Personnel? GetById(Guid id) => _store.Personnel.FirstOrDefault(p => p.Id == id);
 
-    public Personnel? GetBySicilNo(string sicilNo) =>
-        _store.Personnel.FirstOrDefault(p => string.Equals(p.SicilNo, sicilNo, StringComparison.OrdinalIgnoreCase));
-
     public IReadOnlyList<Personnel> GetByManagerId(Guid managerId) =>
         _store.Personnel.Where(p => p.ManagerId == managerId).ToList();
 

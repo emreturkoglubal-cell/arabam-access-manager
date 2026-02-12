@@ -34,7 +34,7 @@
     <table class="table table-hover">
         <thead class="table-light">
             <tr>
-                <th>Sicil No</th>
+                <th>ID</th>
                 <th>Ad Soyad</th>
                 <th>E-posta</th>
                 <th>Departman</th>
@@ -53,7 +53,7 @@
                 var role = Model.Roles.FirstOrDefault(r => r.Id == p.RoleId);
                 var managerName = p.ManagerId.HasValue && Model.ManagerNames.TryGetValue(p.ManagerId.Value, out var name) ? name : null;
                 <tr>
-                    <td>@p.SicilNo</td>
+                    <td>@p.Id</td>
                     <td>@p.FirstName @p.LastName</td>
                     <td>@p.Email</td>
                     <td>@(dept?.Name ?? "-")</td>

@@ -41,15 +41,16 @@ public class PersonnelController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index(int? departmentId, bool? activeOnly, int page = 1, int pageSize = 10)
+    public IActionResult Index(int? departmentId, bool? activeOnly, string? search, int page = 1, int pageSize = 10)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? true, page, pageSize);
+        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? true, search, page, pageSize);
 
         var vm = new PersonnelIndexViewModel
         {
+            SearchTerm = search,
             FilterDepartmentId = departmentId,
             FilterActiveOnly = activeOnly ?? true,
             Departments = _departmentService.GetAll(),
@@ -82,17 +83,9 @@ public class PersonnelController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(PersonnelCreateInputModel input)
     {
-        if (string.IsNullOrWhiteSpace(input.SicilNo) || string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName) || string.IsNullOrWhiteSpace(input.Email))
+        if (string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName) || string.IsNullOrWhiteSpace(input.Email))
         {
-            ModelState.AddModelError(string.Empty, "Sicil No, Ad, Soyad ve E-posta zorunludur.");
-            ViewBag.Departments = _departmentService.GetAll();
-            ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _personnelService.GetActive();
-            return View(input);
-        }
-        if (_personnelService.GetBySicilNo(input.SicilNo) != null)
-        {
-            ModelState.AddModelError(string.Empty, "Bu sicil numarası zaten kayıtlı.");
+            ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
             ViewBag.Managers = _personnelService.GetActive();
@@ -101,7 +94,6 @@ public class PersonnelController : Controller
 
         var p = new Personnel
         {
-            SicilNo = input.SicilNo.Trim(),
             FirstName = input.FirstName.Trim(),
             LastName = input.LastName.Trim(),
             Email = input.Email.Trim(),
@@ -205,7 +197,7 @@ public class PersonnelController : Controller
             _currentUser.DisplayName ?? _currentUser.UserName ?? "?",
             "Personnel",
             id.ToString(),
-            $"Not eklendi: {personnel.FirstName} {personnel.LastName} ({personnel.SicilNo})");
+            $"Not eklendi: {personnel.FirstName} {personnel.LastName} (#{personnel.Id})");
         TempData["NoteSuccess"] = "Not eklendi.";
         return RedirectToAction(nameof(Detail), new { id });
     }
@@ -277,5 +269,41 @@ public class PersonnelController : Controller
             accessId.ToString(),
             $"{personnel.FirstName} {personnel.LastName} — {systemName}");
         return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    /// <summary>Müsait donanımlardan seçip bu personel için zimmetler.</summary>
+    [HttpGet]
+    public IActionResult AssignAsset(int id)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        var available = _assetService.GetByStatus(AssetStatus.Available).ToList();
+        ViewBag.Personnel = personnel;
+        ViewBag.AvailableAssets = available;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AssignAsset(int id, int assetId, string? notes)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        try
+        {
+            _assetService.Assign(assetId, id, notes, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?");
+            TempData["AssignSuccess"] = "Donanım zimmetlendi.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["AssignError"] = ex.Message;
+            return RedirectToAction(nameof(AssignAsset), new { id });
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["AssignError"] = ex.Message;
+            return RedirectToAction(nameof(AssignAsset), new { id });
+        }
     }
 }

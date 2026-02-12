@@ -29,12 +29,12 @@ INSERT INTO roles (id, name, code, description) VALUES
 -- -----------------------------------------------------------------------------
 -- 3. personnel (1=manager, 2=dev1, 3=dev2, 4=hr1, 5=ex_employee)
 -- -----------------------------------------------------------------------------
-INSERT INTO personnel (id, sicil_no, first_name, last_name, email, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment) VALUES
-    (1, '1001', 'Enes Emre', 'Arıkan', 'ahmet.yilmaz@arabam.com', 1, 'Bilgi İşlem Müdürü', NULL, '2020-01-01', NULL, 0, 4, NULL, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', NULL, NULL),
-    (2, '1002', 'Mehmet', 'Kaya', 'mehmet.kaya@arabam.com', 3, 'Backend Geliştirici', 1, '2022-03-15', NULL, 0, 1, NULL, NULL, 8.0, 'Teknik bilgisi güçlü, projelere zamanında teslim. Takım içi iletişimi iyi.'),
-    (3, '1003', 'Ayşe', 'Demir', 'ayse.demir@arabam.com', 3, 'Frontend Geliştirici', 1, '2023-06-01', NULL, 0, 2, NULL, NULL, 7.5, 'Takım çalışması çok iyi. UI/UX konusunda gelişmeye açık.'),
-    (4, '1004', 'Fatma', 'Şahin', 'fatma.sahin@arabam.com', 2, 'İK Uzmanı', 1, '2021-09-01', NULL, 0, 3, NULL, NULL, 9.0, 'Düzenli ve sorumlu. İşe alım süreçlerinde başarılı.'),
-    (5, '1000', 'Eski', 'Personel', 'eski@arabam.com', 3, 'Eski Geliştirici', 1, '2020-01-01', '2024-11-30', 2, 1, NULL, NULL, NULL, NULL);
+INSERT INTO personnel (id, first_name, last_name, email, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment) VALUES
+    (1, 'Enes Emre', 'Arıkan', 'ahmet.yilmaz@arabam.com', 1, 'Bilgi İşlem Müdürü', NULL, '2020-01-01', NULL, 0, 4, NULL, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', NULL, NULL),
+    (2, 'Mehmet', 'Kaya', 'mehmet.kaya@arabam.com', 3, 'Backend Geliştirici', 1, '2022-03-15', NULL, 0, 1, NULL, NULL, 8.0, 'Teknik bilgisi güçlü, projelere zamanında teslim. Takım içi iletişimi iyi.'),
+    (3, 'Ayşe', 'Demir', 'ayse.demir@arabam.com', 3, 'Frontend Geliştirici', 1, '2023-06-01', NULL, 0, 2, NULL, NULL, 7.5, 'Takım çalışması çok iyi. UI/UX konusunda gelişmeye açık.'),
+    (4, 'Fatma', 'Şahin', 'fatma.sahin@arabam.com', 2, 'İK Uzmanı', 1, '2021-09-01', NULL, 0, 3, NULL, NULL, 9.0, 'Düzenli ve sorumlu. İşe alım süreçlerinde başarılı.'),
+    (5, 'Eski', 'Personel', 'eski@arabam.com', 3, 'Eski Geliştirici', 1, '2020-01-01', '2024-11-30', 2, 1, NULL, NULL, NULL, NULL);
 
 -- -----------------------------------------------------------------------------
 -- 4. resource_systems (1-7, owner_id = 1)

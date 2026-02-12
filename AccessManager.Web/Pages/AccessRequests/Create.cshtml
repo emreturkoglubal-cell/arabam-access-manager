@@ -19,7 +19,7 @@
         @if (Model.PreselectedPerson != null)
         {
             <label class="form-label">Personel</label>
-            <p class="fw-semibold mb-0">@Model.PreselectedPerson.FirstName @Model.PreselectedPerson.LastName (@Model.PreselectedPerson.SicilNo)</p>
+            <p class="fw-semibold mb-0">@Model.PreselectedPerson.FirstName @Model.PreselectedPerson.LastName (#@Model.PreselectedPerson.Id)</p>
             <input type="hidden" asp-for="Input.PersonnelId" />
         }
         else
@@ -29,7 +29,7 @@
                 <option value="">Seçiniz</option>
                 @foreach (var p in Model.PersonnelList)
                 {
-                    <option value="@p.Id">@p.FirstName @p.LastName (@p.SicilNo)</option>
+                    <option value="@p.Id">@p.FirstName @p.LastName (#@p.Id)</option>
                 }
             </select>
         }

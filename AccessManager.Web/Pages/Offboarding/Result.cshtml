@@ -15,7 +15,7 @@
 
 <div class="alert alert-success">
     <h4>İşten çıkış işlemi tamamlandı</h4>
-    <p class="mb-0"><strong>@Model.Personnel.FirstName @Model.Personnel.LastName</strong> (@Model.Personnel.SicilNo) için tüm yetkiler kapatıldı. Çıkış tarihi: @Model.Personnel.EndDate?.ToString("dd.MM.yyyy").</p>
+    <p class="mb-0"><strong>@Model.Personnel.FirstName @Model.Personnel.LastName</strong> (#@Model.Personnel.Id) için tüm yetkiler kapatıldı. Çıkış tarihi: @Model.Personnel.EndDate?.ToString("dd.MM.yyyy").</p>
 </div>
 
 <p class="text-muted">Denetim kaydında bu işlem loglanmıştır.</p>

@@ -41,7 +41,7 @@
     <table class="am-table">
         <thead>
             <tr>
-                <th>Sicil No</th>
+                <th>ID</th>
                 <th>Ad Soyad</th>
                 <th>Çıkış tarihi</th>
                 <th>Departman</th>
@@ -53,7 +53,7 @@
                 @foreach (var r in Model.OffboardedReport)
                 {
                     <tr>
-                        <td>@(r.SicilNo ?? "—")</td>
+                        <td>@(r.PersonnelId)</td>
                         <td><a asp-page="/Personnel/Detail" asp-route-id="@r.PersonnelId">@(r.FullName ?? "—")</a></td>
                         <td>@(r.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
                         <td>@(r.Department ?? "—")</td>
@@ -74,7 +74,7 @@
         <thead>
             <tr>
                 <th>Personel</th>
-                <th>Sicil No</th>
+                <th>ID</th>
                 <th>Sistem</th>
                 <th>Yetki</th>
                 <th>Bitiş tarihi</th>
@@ -87,7 +87,7 @@
                 {
                     <tr>
                         <td><a asp-page="/Personnel/Detail" asp-route-id="@r.PersonnelId">@(r.Person ?? "—")</a></td>
-                        <td>@(r.SicilNo ?? "—")</td>
+                        <td>@(r.PersonnelId)</td>
                         <td>@(r.System ?? "—")</td>
                         <td>@(r.Permission ?? "—")</td>
                         <td>@(r.ExpiresAt?.ToString("dd.MM.yyyy") ?? "—")</td>

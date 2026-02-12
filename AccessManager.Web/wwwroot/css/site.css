@@ -362,6 +362,17 @@ body {
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+.am-toolbar-form {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.am-toolbar-form .form-control-sm,
+.am-toolbar-form .form-select-sm {
+  flex-shrink: 0;
+}
+.am-toolbar-form .btn {
+  flex-shrink: 0;
+}
 
 .am-toolbar .am-toolbar-end {
   margin-left: auto;

@@ -87,7 +87,6 @@ public class ReportService : IReportService
         return list.Select(p => new OffboardedReportRow
         {
             PersonnelId = p.Id,
-            SicilNo = p.SicilNo ?? string.Empty,
             FullName = $"{p.FirstName} {p.LastName}".Trim(),
             EndDate = p.EndDate,
             Department = departments.GetValueOrDefault(p.DepartmentId)?.Name
@@ -110,7 +109,6 @@ public class ReportService : IReportService
             {
                 PersonnelId = a.PersonnelId,
                 Person = p != null ? $"{p.FirstName} {p.LastName}".Trim() : "?",
-                SicilNo = p?.SicilNo ?? string.Empty,
                 System = s?.Name ?? string.Empty,
                 Permission = PermissionTypeLabels.Get(a.PermissionType),
                 ExpiresAt = a.ExpiresAt

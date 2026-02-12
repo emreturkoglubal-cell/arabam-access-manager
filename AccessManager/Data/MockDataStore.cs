@@ -71,7 +71,6 @@ public class MockDataStore
         var manager = new Personnel
         {
             Id = Guid.NewGuid(),
-            SicilNo = "1001",
             FirstName = "Enes Emre",
             LastName = "Arıkan",
             Email = "ahmet.yilmaz@arabam.com",
@@ -88,7 +87,6 @@ public class MockDataStore
         var dev1 = new Personnel
         {
             Id = Guid.NewGuid(),
-            SicilNo = "1002",
             FirstName = "Mehmet",
             LastName = "Kaya",
             Email = "mehmet.kaya@arabam.com",
@@ -105,7 +103,6 @@ public class MockDataStore
         var dev2 = new Personnel
         {
             Id = Guid.NewGuid(),
-            SicilNo = "1003",
             FirstName = "Ayşe",
             LastName = "Demir",
             Email = "ayse.demir@arabam.com",
@@ -122,7 +119,6 @@ public class MockDataStore
         var hr1 = new Personnel
         {
             Id = Guid.NewGuid(),
-            SicilNo = "1004",
             FirstName = "Fatma",
             LastName = "Şahin",
             Email = "fatma.sahin@arabam.com",
@@ -139,7 +135,6 @@ public class MockDataStore
         var exEmployee = new Personnel
         {
             Id = Guid.NewGuid(),
-            SicilNo = "1000",
             FirstName = "Eski",
             LastName = "Personel",
             Email = "eski@arabam.com",

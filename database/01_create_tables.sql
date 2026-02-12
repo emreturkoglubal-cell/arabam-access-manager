@@ -41,7 +41,6 @@ COMMENT ON TABLE roles IS 'İş rolleri (varsayılan yetkiler atanır)';
 -- -----------------------------------------------------------------------------
 CREATE TABLE personnel (
     id              SERIAL PRIMARY KEY,
-    sicil_no        VARCHAR(50) NOT NULL,
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
     email           VARCHAR(255) NOT NULL,
@@ -58,8 +57,7 @@ CREATE TABLE personnel (
     manager_comment TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_personnel_status CHECK (status IN (0, 1, 2)),
-    CONSTRAINT uq_personnel_sicil_no UNIQUE (sicil_no)
+    CONSTRAINT chk_personnel_status CHECK (status IN (0, 1, 2))
 );
 
 CREATE INDEX ix_personnel_department_id ON personnel (department_id);

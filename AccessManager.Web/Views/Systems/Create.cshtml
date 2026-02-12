@@ -35,7 +35,7 @@
                     <option value="0">— Seçin —</option>
                     @foreach (var p in personnelList)
                     {
-                        <option value="@p.Id">@p.FirstName @p.LastName (@(p.SicilNo))</option>
+                        <option value="@p.Id">@p.FirstName @p.LastName (#@p.Id)</option>
                     }
                 </select>
             </div>

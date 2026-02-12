@@ -1,0 +1,79 @@
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Constants
+@{
+    ViewData["Title"] = "Donanım zimmetle";
+    var personnel = ViewBag.Personnel as Personnel;
+    var available = ViewBag.AvailableAssets as IReadOnlyList<Asset> ?? new List<Asset>();
+}
+@if (personnel == null) { return; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Personnel" asp-action="Index">Personel</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Personnel" asp-action="Detail" asp-route-id="@personnel.Id">@personnel.FirstName @personnel.LastName</a></li>
+        <li class="breadcrumb-item active">Donanım zimmetle</li>
+    </ol>
+</nav>
+
+<div class="am-page-title">Donanım zimmetle: @personnel.FirstName @personnel.LastName</div>
+
+@if (TempData["AssignError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["AssignError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!available.Any())
+{
+    <div class="am-card">
+        <div class="am-card-body">
+            <p class="text-muted mb-0">Müsait donanım yok. Önce sisteme müsait donanım ekleyin.</p>
+            <a asp-controller="Personnel" asp-action="Detail" asp-route-id="@personnel.Id" class="btn btn-am-ghost mt-2">Personel detayına dön</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="am-card">
+        <div class="am-card-body p-0">
+            <div class="am-table-wrap">
+                <table class="am-table">
+                    <thead>
+                        <tr>
+                            <th>Tür</th>
+                            <th>Ad</th>
+                            <th>Seri No</th>
+                            <th>Marka/Model</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in available)
+                        {
+                            <tr>
+                                <td>@StatusLabels.AssetTypeLabel(a.AssetType)</td>
+                                <td><strong>@a.Name</strong></td>
+                                <td>@(a.SerialNumber ?? "—")</td>
+                                <td>@(a.BrandModel ?? "—")</td>
+                                <td>
+                                    <form method="post" asp-controller="Personnel" asp-action="AssignAsset" asp-route-id="@personnel.Id" class="d-inline" style="max-width: 320px;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="assetId" value="@a.Id" />
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="notes" class="form-control" placeholder="Açıklama (isteğe bağlı)" maxlength="500" />
+                                            <button type="submit" class="btn btn-am-primary">Zimmetle</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <a asp-controller="Personnel" asp-action="Detail" asp-route-id="@personnel.Id" class="btn btn-am-ghost mt-2">Personel detayına dön</a>
+}

@@ -39,42 +39,8 @@
                     <input asp-for="RememberMe" class="form-check-input" />
                     <label asp-for="RememberMe" class="form-check-label">Beni hatırla</label>
                 </div>
-                <div class="mb-3 form-check">
-                    <input asp-for="UseFaceVerification" class="form-check-input" id="useFaceVerification" />
-                    <label asp-for="UseFaceVerification" class="form-check-label" for="useFaceVerification">Yüz ile doğrula</label>
-                </div>
-                <button type="submit" class="btn btn-am-primary" id="btnLogin">Giriş yap</button>
+                <button type="submit" class="btn btn-am-primary w-100">Giriş yap</button>
             </form>
-            <p class="demo-hint mb-0">
-                Demo: <strong>admin</strong> / Password1 · <strong>manager</strong> / Password1 (yüz doğrulama demo) · <strong>user</strong> / Password1 · <strong>auditor</strong> / Password1 · <strong>viewer</strong> / Password1
-            </p>
-        </div>
-    </div>
-
-    <!-- Yüz doğrulama modal -->
-    <div class="modal fade" id="faceVerifyModal" tabindex="-1" aria-labelledby="faceVerifyModalLabel" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="faceVerifyModalLabel"><i class="bi bi-camera-fill"></i> Yüz doğrulama</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat" id="faceVerifyClose"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <p id="faceVerifyStatus" class="text-muted">Hazırlanıyor...</p>
-                    <div id="faceVerifyRefArea" class="mb-3 d-none">
-                        <img id="faceRefImage" alt="Referans" class="rounded am-face-ref-img" />
-                        <p class="small text-muted mt-1">Sistemde kayıtlı fotoğrafınız</p>
-                    </div>
-                    <div id="faceVerifyVideoWrap" class="position-relative d-inline-block">
-                        <video id="faceVerifyVideo" autoplay playsinline muted class="rounded am-face-video"></video>
-                        <canvas id="faceVerifyCanvas" class="position-absolute top-0 start-0 d-none"></canvas>
-                    </div>
-                    <p class="small text-muted mt-2">Kameranıza izin verin ve yüzünüzü çerçeveye getirin.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-am-ghost" data-bs-dismiss="modal" id="faceVerifyCancel">İptal</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -82,7 +48,5 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="~/js/face-verify-login.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -37,7 +37,6 @@ public class IndexModel : PageModel
 
     public class InputModel
     {
-        public string SicilNo { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
@@ -57,22 +56,15 @@ public class IndexModel : PageModel
 
     public IActionResult OnPost()
     {
-        if (string.IsNullOrWhiteSpace(Input.SicilNo) || string.IsNullOrWhiteSpace(Input.FirstName) || string.IsNullOrWhiteSpace(Input.LastName) || string.IsNullOrWhiteSpace(Input.Email))
+        if (string.IsNullOrWhiteSpace(Input.FirstName) || string.IsNullOrWhiteSpace(Input.LastName) || string.IsNullOrWhiteSpace(Input.Email))
         {
-            ModelState.AddModelError(string.Empty, "Sicil No, Ad, Soyad ve E-posta zorunludur.");
-            OnGet();
-            return Page();
-        }
-        if (_personnelService.GetBySicilNo(Input.SicilNo) != null)
-        {
-            ModelState.AddModelError(string.Empty, "Bu sicil numarası zaten kayıtlı.");
+            ModelState.AddModelError(string.Empty, "Ad, Soyad ve E-posta zorunludur.");
             OnGet();
             return Page();
         }
 
         var p = new PersonnelEntity
         {
-            SicilNo = Input.SicilNo.Trim(),
             FirstName = Input.FirstName.Trim(),
             LastName = Input.LastName.Trim(),
             Email = Input.Email.Trim(),

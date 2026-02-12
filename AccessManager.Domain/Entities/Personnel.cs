@@ -5,7 +5,6 @@ namespace AccessManager.Domain.Entities;
 public class Personnel
 {
     public int Id { get; set; }
-    public string SicilNo { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

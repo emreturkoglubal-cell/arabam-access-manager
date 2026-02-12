@@ -6,9 +6,8 @@ public interface IPersonnelRepository
 {
     IReadOnlyList<Personnel> GetAll();
     IReadOnlyList<Personnel> GetActive();
-    (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, bool activeOnly, int page, int pageSize);
+    (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, bool activeOnly, string? search, int page, int pageSize);
     Personnel? GetById(int id);
-    Personnel? GetBySicilNo(string sicilNo);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
     int Insert(Personnel personnel);

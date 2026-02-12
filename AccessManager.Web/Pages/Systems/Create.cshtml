@@ -34,7 +34,7 @@
                     <option value="0">— Seçin —</option>
                     @foreach (var p in Model.PersonnelList)
                     {
-                        <option value="@p.Id">@p.FirstName @p.LastName (@(p.SicilNo))</option>
+                        <option value="@p.Id">@p.FirstName @p.LastName (#@p.Id)</option>
                     }
                 </select>
             </div>
