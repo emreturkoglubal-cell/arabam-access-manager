@@ -6,6 +6,9 @@
     <RootNamespace>AccessManager.Application</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AccessManager.Domain\AccessManager.Domain.csproj" />
   </ItemGroup>
 </Project>

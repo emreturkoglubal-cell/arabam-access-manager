@@ -7,8 +7,6 @@
 }
 @if (asset == null) { return; }
 
-<div class="am-page-title">Zimmetle: @asset.Name</div>
-
 <div class="am-card am-card--narrow">
     <div class="am-card-body">
         <p class="text-muted small mb-3">@StatusLabels.AssetTypeLabel(asset.AssetType) — @(asset.SerialNumber ?? "-")</p>

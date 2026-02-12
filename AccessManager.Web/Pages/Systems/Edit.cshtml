@@ -5,8 +5,6 @@
     ViewData["Title"] = "Sistem Düzenle";
 }
 
-<div class="am-page-title">Sistem düzenle: @(Model.System?.Name ?? "")</div>
-
 <div class="am-card am-card--narrow">
     <div class="am-card-body">
         <form method="post" asp-route-id="@Model.System?.Id">

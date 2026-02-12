@@ -1,0 +1,163 @@
+@model AccessManager.UI.ViewModels.ReviseRequestIndexViewModel
+@using AccessManager.Domain.Enums
+@using AccessManager.UI.Helpers
+@{
+    ViewData["Title"] = "Geliştiriciden Talepler";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="am-toolbar">
+    <form method="get" asp-controller="ReviseRequests" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="status" class="form-select form-select-sm am-toolbar-select">
+            <option value="">Tümü</option>
+            <option value="Pending" selected="@(Model.FilterStatus == ReviseRequestStatus.Pending)">@StatusLabels.ReviseRequestStatusLabel(ReviseRequestStatus.Pending)</option>
+            <option value="Resolved" selected="@(Model.FilterStatus == ReviseRequestStatus.Resolved)">@StatusLabels.ReviseRequestStatusLabel(ReviseRequestStatus.Resolved)</option>
+        </select>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
+    </form>
+    <div class="am-toolbar-end">
+        <button type="button" class="btn btn-am-primary" data-bs-toggle="modal" data-bs-target="#createRequestModal">
+            Yeni Talep
+        </button>
+    </div>
+</div>
+
+<div class="am-table-wrap">
+    <table class="am-table am-table-rows-clickable">
+        <thead>
+            <tr>
+                <th>Başlık</th>
+                <th>Açıklama</th>
+                <th>Fotoğraflar</th>
+                <th>Oluşturan</th>
+                <th>Oluşturma Tarihi</th>
+                <th>Durum</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Requests.Any())
+            {
+                @foreach (var request in Model.Requests)
+                {
+                    var detailUrl = Url.Action("Detail", "ReviseRequests", new { id = request.Id }) ?? "#";
+                    <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
+                        <td><strong>@request.Title</strong></td>
+                        <td>
+                            <div style="max-width: 400px; white-space: pre-wrap; word-wrap: break-word;">@request.Description</div>
+                        </td>
+                        <td>
+                            @if (request.Images.Any())
+                            {
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var image in request.Images.OrderBy(i => i.DisplayOrder))
+                                    {
+                                        <a href="@image.FilePath" target="_blank" class="d-inline-block">
+                                            <img src="@image.FilePath" alt="@image.FileName" style="max-width: 80px; max-height: 80px; object-fit: cover; border-radius: 4px; cursor: pointer;" />
+                                        </a>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>@(request.CreatedByUserName ?? "Sistem")</td>
+                        <td>@request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <span class="badge @(request.Status == ReviseRequestStatus.Resolved ? "bg-success" : "bg-warning")">
+                                @StatusLabels.ReviseRequestStatusLabel(request.Status)
+                            </span>
+                        </td>
+                        <td class="am-table-col-actions">
+                            @if (request.Status == ReviseRequestStatus.Pending)
+                            {
+                                <form method="post" asp-controller="ReviseRequests" asp-action="UpdateStatus" style="display: inline;" onclick="event.stopPropagation();">
+                                    <input type="hidden" name="id" value="@request.Id" />
+                                    <input type="hidden" name="status" value="@ReviseRequestStatus.Resolved" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Bu talebi çözüldü olarak işaretlemek istediğinize emin misiniz?');">
+                                        Çözüldü İşaretle
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-controller="ReviseRequests" asp-action="UpdateStatus" style="display: inline;" onclick="event.stopPropagation();">
+                                    <input type="hidden" name="id" value="@request.Id" />
+                                    <input type="hidden" name="status" value="@ReviseRequestStatus.Pending" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Bu talebi tekrar çözülmedi olarak işaretlemek istediğinize emin misiniz?');">
+                                        Çözülmedi İşaretle
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        Henüz talep bulunmamaktadır.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Yeni Talep Modal -->
+<div class="modal fade" id="createRequestModal" tabindex="-1" aria-labelledby="createRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createRequestModalLabel">Yeni Talep Oluştur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-controller="ReviseRequests" asp-action="Create" enctype="multipart/form-data">
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="Title" class="form-label">Başlık <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Title" name="Title" required maxlength="500" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="Description" class="form-label">Açıklama <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="Description" name="Description" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Images" class="form-label">Fotoğraflar</label>
+                        <input type="file" class="form-control" id="Images" name="Images" multiple accept="image/*" />
+                        <small class="form-text text-muted">Birden fazla fotoğraf seçebilirsiniz.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-am-primary">Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

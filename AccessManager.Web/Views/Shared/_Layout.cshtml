@@ -54,6 +54,10 @@
                     {
                         <a asp-controller="Audit" asp-action="Index" class="@NavClass("Audit")"><i class="bi bi-clipboard2-data"></i> Log</a>
                     }
+                    @if (User.IsInRole(AppRoleNames.Admin) || User.IsInRole(AppRoleNames.Manager))
+                    {
+                        <a asp-controller="ReviseRequests" asp-action="Index" class="@NavClass("ReviseRequests")"><i class="bi bi-bug"></i> Geliştiriciden Talepler</a>
+                    }
                 </nav>
             </aside>
             <div class="app-sidebar-overlay" id="sidebarOverlay"></div>

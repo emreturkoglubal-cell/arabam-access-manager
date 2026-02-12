@@ -67,6 +67,11 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new AssetAssignmentRepository(cs);
         });
+        services.AddScoped<IReviseRequestRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ReviseRequestRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -79,6 +84,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IAccessRequestService, AccessRequestService>();
         services.AddScoped<IAssetService, AssetService>();
+        services.AddScoped<IReviseRequestService, ReviseRequestService>();
         services.AddHttpClient();
 
         return services;

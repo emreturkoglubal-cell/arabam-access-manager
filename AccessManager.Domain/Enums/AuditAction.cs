@@ -28,5 +28,8 @@ public enum AuditAction
     AssetDeleted,
     AssetAssigned,
     AssetReturned,
-    AssetAssignmentNoteAdded
+    AssetAssignmentNoteAdded,
+    ReviseRequestCreated,
+    ReviseRequestStatusUpdated,
+    Other
 }

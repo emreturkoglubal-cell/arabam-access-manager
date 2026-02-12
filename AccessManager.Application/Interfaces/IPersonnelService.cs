@@ -9,6 +9,7 @@ public interface IPersonnelService
     IReadOnlyList<Personnel> GetActive();
     PagedResult<Personnel> GetPaged(int? departmentId, bool activeOnly, string? search, int page, int pageSize);
     Personnel? GetById(int id);
+    IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
     (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId);

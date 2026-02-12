@@ -67,6 +67,9 @@ public static class StatusLabels
             AuditAction.AssetAssigned => "Donanım zimmetlendi",
             AuditAction.AssetReturned => "Donanım iade edildi",
             AuditAction.AssetAssignmentNoteAdded => "Zimmet notu eklendi",
+            AuditAction.ReviseRequestCreated => "Geliştirici talebi oluşturuldu",
+            AuditAction.ReviseRequestStatusUpdated => "Geliştirici talebi durumu güncellendi",
+            AuditAction.Other => "Diğer",
             _ => action.ToString()
         };
     }
@@ -127,6 +130,16 @@ public static class StatusLabels
             AssetStatus.Assigned => "Zimmette",
             AssetStatus.InRepair => "Bakımda",
             AssetStatus.Retired => "Hurdaya çıkarıldı",
+            _ => status.ToString()
+        };
+    }
+
+    public static string ReviseRequestStatusLabel(ReviseRequestStatus status)
+    {
+        return status switch
+        {
+            ReviseRequestStatus.Pending => "Çözülmedi",
+            ReviseRequestStatus.Resolved => "Çözüldü",
             _ => status.ToString()
         };
     }

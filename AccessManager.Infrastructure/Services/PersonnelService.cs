@@ -36,6 +36,8 @@ public class PersonnelService : IPersonnelService
 
     public Personnel? GetById(int id) => _repo.GetById(id);
 
+    public IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids) => _repo.GetByIds(ids ?? Array.Empty<int>());
+
     public IReadOnlyList<Personnel> GetByManagerId(int managerId) => _repo.GetByManagerId(managerId);
 
     public IReadOnlyList<Personnel> GetByDepartmentId(int departmentId) => _repo.GetByDepartmentId(departmentId);

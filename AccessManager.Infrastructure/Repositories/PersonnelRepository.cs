@@ -21,7 +21,7 @@ public class PersonnelRepository : IPersonnelRepository
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
-            FROM personnel ORDER BY id";
+            FROM personnel ORDER BY status, id";
         return conn.Query<Personnel>(sql).ToList();
     }
 
@@ -70,7 +70,7 @@ public class PersonnelRepository : IPersonnelRepository
         var dataSql = $@"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
-            {baseSql} ORDER BY id LIMIT @PageSize OFFSET @Offset";
+            {baseSql} ORDER BY status, id LIMIT @PageSize OFFSET @Offset";
         var items = conn.Query<Personnel>(dataSql, pars).ToList();
         return (items, totalCount);
     }
@@ -84,6 +84,19 @@ public class PersonnelRepository : IPersonnelRepository
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE id = @Id";
         return conn.QuerySingleOrDefault<Personnel>(sql, new { Id = id });
+    }
+
+    public IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+            return new List<Personnel>();
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+            department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            FROM personnel WHERE id = ANY(@Ids)";
+        return conn.Query<Personnel>(sql, new { Ids = ids.Distinct().ToList() }).ToList();
     }
 
     public IReadOnlyList<Personnel> GetByManagerId(int managerId)

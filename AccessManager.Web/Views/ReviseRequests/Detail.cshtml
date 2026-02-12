@@ -1,0 +1,108 @@
+@model AccessManager.UI.ViewModels.ReviseRequestDetailViewModel
+@using AccessManager.Domain.Enums
+@using AccessManager.UI.Helpers
+@{
+    ViewData["Title"] = "Talep Detay";
+}
+
+@if (Model.Request == null)
+{
+    <div class="alert alert-danger">Talep bulunamadı.</div>
+    return;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="ReviseRequests" asp-action="Index" style="color: inherit; text-decoration: none;">Geliştiriciden Talepler</a></li>
+        <li class="breadcrumb-item active">@Model.Request.Title</li>
+    </ol>
+</nav>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="am-card mb-3">
+    <div class="am-card-header d-flex justify-content-between align-items-center">
+        <span>Talep Detayları</span>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Request.Id" class="btn btn-sm btn-am-outline">Düzenle</a>
+            @if (Model.Request.Status == ReviseRequestStatus.Pending)
+            {
+                <form method="post" asp-action="UpdateStatus" style="display: inline;">
+                    <input type="hidden" name="id" value="@Model.Request.Id" />
+                    <input type="hidden" name="status" value="@ReviseRequestStatus.Resolved" />
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Bu talebi çözüldü olarak işaretlemek istediğinize emin misiniz?');">
+                        Çözüldü İşaretle
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-action="UpdateStatus" style="display: inline;">
+                    <input type="hidden" name="id" value="@Model.Request.Id" />
+                    <input type="hidden" name="status" value="@ReviseRequestStatus.Pending" />
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Bu talebi tekrar çözülmedi olarak işaretlemek istediğinize emin misiniz?');">
+                        Çözülmedi İşaretle
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+    <div class="am-card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Başlık</dt>
+            <dd class="col-sm-9"><strong>@Model.Request.Title</strong></dd>
+
+            <dt class="col-sm-3">Açıklama</dt>
+            <dd class="col-sm-9">
+                <div style="white-space: pre-wrap; word-wrap: break-word;">@Model.Request.Description</div>
+            </dd>
+
+            <dt class="col-sm-3">Durum</dt>
+            <dd class="col-sm-9">
+                <span class="badge @(Model.Request.Status == ReviseRequestStatus.Resolved ? "bg-success" : "bg-warning")">
+                    @StatusLabels.ReviseRequestStatusLabel(Model.Request.Status)
+                </span>
+            </dd>
+
+            <dt class="col-sm-3">Oluşturan</dt>
+            <dd class="col-sm-9">@(Model.Request.CreatedByUserName ?? "Sistem")</dd>
+
+            <dt class="col-sm-3">Oluşturma Tarihi</dt>
+            <dd class="col-sm-9">@Model.Request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</dd>
+
+            @if (Model.Request.ResolvedAt.HasValue)
+            {
+                <dt class="col-sm-3">Çözülme Tarihi</dt>
+                <dd class="col-sm-9">@Model.Request.ResolvedAt.Value.ToString("dd.MM.yyyy HH:mm")</dd>
+            }
+        </dl>
+    </div>
+</div>
+
+@if (Model.Request.Images.Any())
+{
+    <div class="am-card">
+        <div class="am-card-header">Fotoğraflar</div>
+        <div class="am-card-body">
+            <div class="row g-3">
+                @foreach (var image in Model.Request.Images.OrderBy(i => i.DisplayOrder))
+                {
+                    <div class="col-md-3 col-sm-4 col-6">
+                        <a href="@image.FilePath" target="_blank" class="d-block">
+                            <img src="@image.FilePath" alt="@image.FileName" class="img-fluid rounded" style="max-height: 200px; object-fit: cover; width: 100%;" />
+                        </a>
+                        <small class="text-muted d-block mt-1">@image.FileName</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}

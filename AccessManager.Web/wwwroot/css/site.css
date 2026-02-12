@@ -74,7 +74,8 @@ body {
 }
 
 .am-stat-card:hover {
-  border-color: #fecaca;
+  border-color: var(--am-accent-light);
+  background: var(--am-accent-light);
 }
 
 .am-stat-card .label {
@@ -149,8 +150,8 @@ body {
 }
 
 .btn-am-ghost:hover {
-  background: #f3f4f6;
-  color: var(--am-text);
+  background: var(--am-accent-light);
+  color: var(--am-accent);
 }
 
 /* Sil / tehlikeli aksiyon: çerçeveli buton görünümü */
@@ -167,7 +168,7 @@ body {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .btn-am-outline-danger:hover {
-  background: #fef2f2;
+  background: var(--am-accent-light);
   color: #b91c1c;
   border-color: #b91c1c;
 }
@@ -230,7 +231,11 @@ body {
 }
 
 .am-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--am-accent-light);
+}
+
+.am-table tbody tr.am-row-offboarded:hover {
+  background-color: var(--am-accent-light) !important;
 }
 
 .am-table tbody tr:last-child td {
@@ -277,7 +282,7 @@ body {
   transition: background 0.15s;
 }
 .am-table-rows-clickable .am-table-row-clickable:hover {
-  background: #f3f4f6 !important;
+  background: var(--am-accent-light) !important;
 }
 .am-table-rows-clickable .am-table-row-clickable td a.btn-am-ghost {
   pointer-events: auto;
@@ -347,6 +352,11 @@ body {
 
 /* İşten çıkmış ama açık yetkisi olan satır (turuncu vurgu) */
 .am-row-warning { background-color: #fff7ed !important; border-left: 3px solid var(--am-warning); }
+
+/* İşten ayrılmış personel satırı (açık kırmızı vurgu) */
+.am-row-offboarded {
+  background-color: var(--am-accent-light) !important;
+}
 
 .am-page-title {
   font-size: 1.25rem;

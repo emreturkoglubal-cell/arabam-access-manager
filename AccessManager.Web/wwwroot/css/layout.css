@@ -167,7 +167,7 @@
 }
 
 .app-topbar-user .btn-logout:hover {
-  background: #fef2f2;
+  background: var(--am-sidebar-hover);
   color: var(--am-brand);
 }
 

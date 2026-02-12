@@ -4,8 +4,6 @@
     ViewData["Title"] = "Personel";
 }
 
-<div class="am-page-title">Personel</div>
-
 <div class="am-toolbar">
     <form method="get" asp-controller="Personnel" asp-action="Index" class="am-toolbar-form d-flex flex-nowrap gap-2 align-items-center">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
@@ -18,8 +16,8 @@
             }
         </select>
         <select name="activeOnly" class="form-select form-select-sm am-toolbar-select" asp-for="FilterActiveOnly">
-            <option value="True">Sadece aktif</option>
             <option value="False">Tümü</option>
+            <option value="True">Sadece aktif</option>
         </select>
         <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
     </form>
@@ -42,7 +40,6 @@
                 <th>Giriş</th>
                 <th>Çıkış</th>
                 <th>Durum</th>
-                <th class="am-table-col-actions"></th>
             </tr>
         </thead>
         <tbody>
@@ -52,7 +49,7 @@
                 var role = Model.Roles.FirstOrDefault(r => r.Id == p.RoleId);
                 var managerName = p.ManagerId.HasValue && Model.ManagerNames.TryGetValue(p.ManagerId.Value, out var name) ? name : null;
                 var detailUrl = Url.Action("Detail", "Personnel", new { id = p.Id }) ?? "#";
-                <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
+                <tr class="am-table-row-clickable @(p.Status == PersonnelStatus.Offboarded ? "am-row-offboarded" : "")" data-href="@detailUrl" role="button" tabindex="0">
                     <td class="am-table-cell-avatar">
                         @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
                         {
@@ -73,9 +70,6 @@
                     <td>@(p.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>
                         <span class="am-badge @(p.Status == PersonnelStatus.Active ? "success" : p.Status == PersonnelStatus.Offboarded ? "secondary" : "warning")">@StatusLabels.PersonnelStatus(p.Status)</span>
-                    </td>
-                    <td class="am-table-col-actions">
-                        <a asp-controller="Personnel" asp-action="Detail" asp-route-id="@p.Id" class="btn-am-ghost btn-am-ghost-sm">Detay</a>
                     </td>
                 </tr>
             }

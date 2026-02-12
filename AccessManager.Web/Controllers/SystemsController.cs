@@ -35,17 +35,24 @@ public class SystemsController : Controller
     public IActionResult Index()
     {
         var systems = _systemService.GetAll();
+
+        // Tek sorguda tüm aktif erişimleri al, sayıları bellekte hesapla (N+1 önlemi)
+        var activeAccesses = _accessService.GetActive();
+        var accessCounts = systems.ToDictionary(s => s.Id, s => activeAccesses.Count(a => a.ResourceSystemId == s.Id));
+
+        // Sahip isimleri: sadece gerekli personel ID'leri için tek sorgu (N+1 önlemi)
+        var ownerIds = systems.Where(s => s.OwnerId.HasValue).Select(s => s.OwnerId!.Value).Distinct().ToList();
+        var owners = ownerIds.Count > 0 ? _personnelService.GetByIds(ownerIds) : new List<Personnel>();
+        var ownerNameByPersonnelId = owners.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
         var ownerNames = new Dictionary<int, string>();
-        var accessCounts = new Dictionary<int, int>();
         foreach (var s in systems)
         {
-            if (s.OwnerId.HasValue)
-            {
-                var o = _personnelService.GetById(s.OwnerId.Value);
-                ownerNames[s.Id] = o != null ? $"{o.FirstName} {o.LastName}" : "-";
-            }
-            accessCounts[s.Id] = _accessService.GetActive().Count(a => a.ResourceSystemId == s.Id);
+            if (s.OwnerId.HasValue && ownerNameByPersonnelId.TryGetValue(s.OwnerId.Value, out var name))
+                ownerNames[s.Id] = name;
+            else if (s.OwnerId.HasValue)
+                ownerNames[s.Id] = "-";
         }
+
         ViewBag.Systems = systems;
         ViewBag.OwnerNames = ownerNames;
         ViewBag.AccessCounts = accessCounts;

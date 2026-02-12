@@ -10,7 +10,7 @@ public class PersonnelIndexViewModel
     public Dictionary<int, string> ManagerNames { get; set; } = new();
     public string? SearchTerm { get; set; }
     public int? FilterDepartmentId { get; set; }
-    public bool? FilterActiveOnly { get; set; } = true;
+    public bool? FilterActiveOnly { get; set; } = false;
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public int TotalCount { get; set; }

@@ -312,3 +312,45 @@ CREATE INDEX ix_personnel_notes_personnel_id ON personnel_notes (personnel_id);
 CREATE INDEX ix_personnel_notes_created_at ON personnel_notes (created_at);
 
 COMMENT ON TABLE personnel_notes IS 'Personel notları (birden fazla, kim yazdığı takip edilir)';
+
+-- -----------------------------------------------------------------------------
+-- 15. revise_requests
+-- -----------------------------------------------------------------------------
+CREATE TABLE revise_requests (
+    id                  SERIAL PRIMARY KEY,
+    title               VARCHAR(500) NOT NULL,
+    description         TEXT NOT NULL,
+    status              SMALLINT NOT NULL DEFAULT 0,
+    created_by_user_id INT REFERENCES app_users (id),
+    created_by_user_name VARCHAR(200),
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at         TIMESTAMPTZ,
+    CONSTRAINT chk_revise_requests_status CHECK (status IN (0, 1))
+);
+
+CREATE INDEX ix_revise_requests_status ON revise_requests (status);
+CREATE INDEX ix_revise_requests_created_at ON revise_requests (created_at DESC);
+CREATE INDEX ix_revise_requests_created_by_user_id ON revise_requests (created_by_user_id) WHERE created_by_user_id IS NOT NULL;
+
+COMMENT ON TABLE revise_requests IS 'Geliştiriciden talepler (bug bildirimi, özellik istekleri)';
+COMMENT ON COLUMN revise_requests.status IS '0=Çözülmedi, 1=Çözüldü';
+
+-- -----------------------------------------------------------------------------
+-- 16. revise_request_images
+-- -----------------------------------------------------------------------------
+CREATE TABLE revise_request_images (
+    id                  SERIAL PRIMARY KEY,
+    revise_request_id   INT NOT NULL REFERENCES revise_requests (id) ON DELETE CASCADE,
+    file_name           VARCHAR(500) NOT NULL,
+    file_path           VARCHAR(1000) NOT NULL,
+    file_size           BIGINT NOT NULL,
+    mime_type           VARCHAR(100),
+    display_order       INT NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_revise_request_images_revise_request_id ON revise_request_images (revise_request_id);
+CREATE INDEX ix_revise_request_images_display_order ON revise_request_images (revise_request_id, display_order);
+
+COMMENT ON TABLE revise_request_images IS 'Geliştiriciden talep fotoğrafları (birden fazla)';

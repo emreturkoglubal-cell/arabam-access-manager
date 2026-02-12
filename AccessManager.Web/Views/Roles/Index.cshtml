@@ -6,8 +6,6 @@
     var details = ViewBag.RolePermissionDetails as Dictionary<int, List<(string SystemName, string Permission)>> ?? new Dictionary<int, List<(string SystemName, string Permission)>>();
 }
 
-<div class="am-page-title">Roller ve Yetkiler</div>
-
 @if (User.IsInRole(AppRoleNames.Admin))
 {
     <div class="am-toolbar mb-4">

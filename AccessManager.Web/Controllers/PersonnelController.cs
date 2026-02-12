@@ -46,13 +46,13 @@ public class PersonnelController : Controller
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? true, search, page, pageSize);
+        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? false, search, page, pageSize);
 
         var vm = new PersonnelIndexViewModel
         {
             SearchTerm = search,
             FilterDepartmentId = departmentId,
-            FilterActiveOnly = activeOnly ?? true,
+            FilterActiveOnly = activeOnly ?? false,
             Departments = _departmentService.GetAll(),
             Roles = _roleService.GetAll(),
             PersonnelList = paged.Items,

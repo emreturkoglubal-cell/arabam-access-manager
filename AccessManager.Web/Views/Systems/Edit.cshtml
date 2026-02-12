@@ -7,8 +7,6 @@
     var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
 }
 
-<div class="am-page-title">Sistem düzenle: @(system?.Name ?? "")</div>
-
 <div class="am-card am-card--narrow">
     <div class="am-card-body">
         <form method="post" asp-controller="Systems" asp-action="Edit" asp-route-id="@system?.Id">
