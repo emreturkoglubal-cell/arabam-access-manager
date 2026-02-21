@@ -2,6 +2,9 @@ using AccessManager.UI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Lokal overrides (commit edilmez). Canlıda: appsettings.Production.json + Cloud Run env değişkenleri kullanılır.
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddControllersWithViews(options =>
 {
     var policy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()

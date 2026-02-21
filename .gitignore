@@ -27,9 +27,9 @@ bld/
 # Yedek (rebase için, commit etme)
 appsettings_clean_backup/
 
-# User secrets (asla commit etme)
+# Lokal ayarlar (asla commit etme)
 secrets.json
-appsettings.*.local.json
+appsettings.local.json
 *.user
 
 # NuGet
