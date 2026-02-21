@@ -68,13 +68,13 @@ public sealed class GitService : IGitService
             var pushResult = await RunGitWithEnvAsync(repo, "push \"" + authUrl + "\" main",
                 new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
             if (!pushResult.Success)
-                return GitResult.Fail("git push hatası: " + pushResult.Output);
+                return GitResult.Fail("Commit atıldı; push başarısız. Elle push için: git push origin main. Hata: " + (pushResult.Output ?? "?"));
         }
         else
         {
             var pushResult = await RunGitAsync(repo, "push origin main", cancellationToken);
             if (!pushResult.Success)
-                return GitResult.Fail("git push hatası: " + pushResult.Output);
+                return GitResult.Fail("Commit atıldı; push başarısız. Elle push için: git push origin main. Hata: " + (pushResult.Output ?? "?"));
         }
 
         return GitResult.Ok();
