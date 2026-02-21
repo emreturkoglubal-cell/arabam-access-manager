@@ -51,14 +51,17 @@ public sealed class GitService : IGitService
         if (!addResult.Success)
             return GitResult.Fail("git add hatası: " + addResult.Output);
 
-        // git commit
+        // git commit (zaten commit varsa "nothing to commit" döner; o zaman sadece push yaparız)
         var safeMessage = commitMessage.Replace("\"", "\\\"");
         var commitArgs = $"-c user.name=\"{userName}\" -c user.email=\"{userEmail}\" commit -m \"{safeMessage}\"";
         var commitResult = await RunGitAsync(repo, commitArgs, cancellationToken);
-        if (!commitResult.Success)
+        var nothingToCommit = commitResult.Output != null &&
+            (commitResult.Output.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase) ||
+             commitResult.Output.Contains("working tree clean", StringComparison.OrdinalIgnoreCase));
+        if (!commitResult.Success && !nothingToCommit)
             return GitResult.Fail("git commit hatası: " + commitResult.Output);
 
-        // git push origin main (with optional token)
+        // git push origin main (lokalde pushlanmamış commit varsa pushla)
         if (!string.IsNullOrEmpty(token))
         {
             var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
