@@ -112,7 +112,10 @@ public sealed class AgentTools : IAgentTools
     {
         var result = await _codeMod.ApplyDiffAsync(relativePath, unifiedDiff, cancellationToken);
         if (!result.Success)
+        {
+            _logger.LogError("AgentTools.ApplyDiffAsync: Diff uygulanamadı. Path: {Path}, Hata: {Message}", relativePath, result.Message);
             return "HATA: " + result.Message;
+        }
 
         // Diff başarılı: model git_commit_and_push çağırmıyor diye otomatik commit+push yapıyoruz (Pages→Views düzeltmesi varsa onu kullan)
         var pathForGit = (result.ResolvedPath ?? relativePath).Replace("\\", "/");
@@ -122,6 +125,8 @@ public sealed class AgentTools : IAgentTools
             cancellationToken);
         if (commitResult.Success)
             return "OK: Diff uygulandı. Commit ve push yapıldı: " + commitResult.Message;
+
+        _logger.LogError("AgentTools.ApplyDiffAsync: Diff uygulandı ama commit/push başarısız. Path: {Path}, Git hatası: {Message}", relativePath, commitResult.Message);
         return "OK: Diff uygulandı. Ancak commit/push başarısız: " + commitResult.Message;
     }
 

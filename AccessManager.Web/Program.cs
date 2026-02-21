@@ -61,8 +61,25 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Git/CodeContext path doğrulama: canlıda read_file ve push için repo yolunun doğru olduğunu kontrol et
+// Cloud Run: /app salt okunur; apply_diff ve push için repo yazılabilir bir yerde olmalı. Git:RepoPath=/tmp/repo ise /app/repo'yu oraya kopyala.
 var repoPath = app.Configuration["Git:RepoPath"]?.Trim();
+var repoFullPath = string.IsNullOrEmpty(repoPath) ? null : Path.GetFullPath(repoPath);
+var isTmpRepo = !string.IsNullOrEmpty(repoFullPath) && repoFullPath.Replace('\\', '/').TrimEnd('/').EndsWith("tmp/repo", StringComparison.OrdinalIgnoreCase);
+if (isTmpRepo && !Directory.Exists(repoFullPath) && Directory.Exists("/app/repo"))
+{
+    try
+    {
+        Directory.CreateDirectory(repoFullPath!);
+        CopyDirectory("/app/repo", repoFullPath!);
+        app.Logger.LogError("Cloud Run: /app/repo yazılabilir olması için /tmp/repo'ya kopyalandı. apply_diff ve push artık çalışabilir.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Cloud Run: /app/repo -> /tmp/repo kopyalanamadı. apply_diff/push başarısız olabilir (dosya sistemi salt okunur).");
+    }
+}
+
+// Git/CodeContext path doğrulama: canlıda read_file ve push için repo yolunun doğru olduğunu kontrol et
 var codeContextBase = app.Configuration["CodeContext:BasePath"]?.Trim();
 if (!string.IsNullOrEmpty(repoPath))
 {
@@ -71,17 +88,31 @@ if (!string.IsNullOrEmpty(repoPath))
     var hasGit = exists && Directory.Exists(Path.Combine(fullPath, ".git"));
     var sampleFile = Path.Combine(fullPath, "AccessManager.Domain", "AccessManager.Domain.csproj");
     var hasSource = exists && File.Exists(sampleFile);
-    app.Logger.LogInformation(
+    app.Logger.LogError(
         "Git:RepoPath = {RepoPath} (resolved: {FullPath}), Exists = {Exists}, HasGit = {HasGit}, HasSource = {HasSource}. read_file için HasSource true olmalı.",
         repoPath, fullPath, exists, hasGit, hasSource);
     if (exists && !hasSource)
-        app.Logger.LogWarning("Git:RepoPath altında kaynak kod yok (AccessManager.Domain bulunamadı). Canlıda read_file çalışmaz; Git:RepoPath ve Dockerfile /app/repo kopyası kontrol edin.");
+        app.Logger.LogError("Git:RepoPath altında kaynak kod yok (AccessManager.Domain bulunamadı). Canlıda read_file çalışmaz; Git:RepoPath ve Dockerfile /app/repo kopyası kontrol edin.");
 }
 else
 {
-    app.Logger.LogInformation("Git:RepoPath boş. AI sadece soru-cevap yapabilir; read_file ve commit/push çalışmaz.");
+    app.Logger.LogError("Git:RepoPath boş. AI sadece soru-cevap yapabilir; read_file ve commit/push çalışmaz.");
 }
 if (!string.IsNullOrEmpty(codeContextBase))
-    app.Logger.LogInformation("CodeContext:BasePath = {BasePath}. Proje yapısı listesi bu dizinden alınır; read_file ile aynı repo olmalı.", codeContextBase);
+    app.Logger.LogError("CodeContext:BasePath = {BasePath}. Proje yapısı listesi bu dizinden alınır; read_file ile aynı repo olmalı.", codeContextBase);
 
 app.Run();
+
+static void CopyDirectory(string sourceDir, string targetDir)
+{
+    foreach (var dir in Directory.GetDirectories(sourceDir))
+    {
+        var dest = Path.Combine(targetDir, Path.GetFileName(dir));
+        Directory.CreateDirectory(dest);
+        CopyDirectory(dir, dest);
+    }
+    foreach (var file in Directory.GetFiles(sourceDir))
+    {
+        File.Copy(file, Path.Combine(targetDir, Path.GetFileName(file)), overwrite: true);
+    }
+}

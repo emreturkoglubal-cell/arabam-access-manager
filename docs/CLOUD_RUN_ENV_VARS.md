@@ -1,15 +1,33 @@
 # Cloud Run — Gerekli Ortam Değişkenleri
 
-Canlıda AI'ın **dosya okuyabilmesi** (read_file) ve **commit/push** yapabilmesi için aşağıdaki değişkenlerin Cloud Run **Variables & Secrets** ekranında tanımlı olması gerekir.
+Canlıda AI'ın **dosya okuyabilmesi** (read_file), **apply_diff** ve **commit/push** yapabilmesi için aşağıdaki değişkenlerin Cloud Run **Variables & Secrets** ekranında tanımlı olması gerekir.
 
-## Zorunlu (path — read_file için)
+## Ortam: Mutlaka Production kullan
+
+Canlıda **appsettings.Production.json** kullanılsın diye Cloud Run’da şu değişkeni **mutlaka** ekle:
+
+| Name | Value | Açıklama |
+|------|--------|----------|
+| **`ASPNETCORE_ENVIRONMENT`** | **`Production`** | .NET Core buna göre `appsettings.Production.json` yükler. Bu yoksa veya `Development` ise canlıda yanlış ayarlar (lokal path vb.) kullanılabilir. |
+
+Bu değişkeni **en üstte** veya ilk sıralarda tanımlaman iyi olur; diğer ayarlar buna göre yüklenir.
+
+**appsettings.json / appsettings.Development.json ile birebir eşitleme yapma.** Development’ta lokal path (örn. `c:\Projects\...`) kalmalı; Production’da canlı path’ler (`/tmp/repo`) kalmalı. Sadece canlıda **ASPNETCORE_ENVIRONMENT=Production** vererek doğru dosyanın (appsettings.Production.json) kullanılmasını sağla.
+
+## Önemli: Cloud Run’da /app salt okunur
+
+Cloud Run’da container’ın `/app` dizini **salt okunur**. Bu yüzden `apply_diff` (dosya yazma) ve `git commit/push` **başarısız** olur. Çözüm: Repo’yu **yazılabilir** bir dizinde kullanmak.
+
+**Git:RepoPath** ve **CodeContext:BasePath** değerini **`/tmp/repo`** yap. Uygulama açılışta `/app/repo` içeriğini `/tmp/repo`’ya kopyalar; tüm okuma/yazma ve push orada çalışır.
+
+## Zorunlu (path — read_file + apply_diff + push için)
 
 | Name (Cloud Run'da tam böyle yaz) | Value | Açıklama |
 |-----------------------------------|--------|----------|
-| `Git__RepoPath` | `/app/repo` | Repo kökü. Dockerfile'da kaynak `/app/repo`'ya kopyalanıyor. **İki alt çizgi** (`__`) kullan; .NET'te `:` buna karşılık gelir. |
-| `CodeContext__BasePath` | `/app/repo` | Proje yapısı listesinin alınacağı dizin. `read_file` ile aynı repo olmalı. |
+| `Git__RepoPath` | **`/tmp/repo`** | Repo kökü. Açılışta `/app/repo` buraya kopyalanır; yazılabilir olduğu için apply_diff ve push çalışır. |
+| `CodeContext__BasePath` | **`/tmp/repo`** | Proje yapısı listesi bu dizinden alınır. `read_file` ile aynı repo olmalı. |
 
-Bu ikisi **yoksa** canlıda `read_file` hep "Git:RepoPath yapılandırılmamış" veya "Dosya bulunamadı" döner.
+Sadece `/app/repo` kullanırsan read_file çalışır ama **apply_diff ve push çalışmaz** (dosya yazma hatası veya commit hatası alırsın).
 
 ## Diğer (zaten kullandığın)
 
@@ -19,11 +37,15 @@ Bu ikisi **yoksa** canlıda `read_file` hep "Git:RepoPath yapılandırılmamış
 
 ## Özet
 
-Cloud Run → **Variables & Secrets** → **Add variable** ile ekle:
+Cloud Run → **Variables & Secrets** → ekle/güncelle (sıra önemli değil):
 
-1. **Name:** `Git__RepoPath` — **Value:** `/app/repo`
-2. **Name:** `CodeContext__BasePath` — **Value:** `/app/repo`
+| Name | Value |
+|------|--------|
+| **`ASPNETCORE_ENVIRONMENT`** | **`Production`** |
+| `Git__RepoPath` | `/tmp/repo` |
+| `CodeContext__BasePath` | `/tmp/repo` |
+| `ConnectionStrings__DefaultConnection` | (veritabanı connection string) |
+| `OpenAI__ApiKey` | (OpenAI anahtarın) |
+| `Git__Token` | (GitHub PAT) |
 
-Deploy sonrası uygulama log’unda şunu görmelisin:  
-`HasSource = true`.  
-`HasSource = false` ise container’da `/app/repo` altında kaynak yok demektir (Dockerfile/build kontrol et).
+Deploy sonrası log’da: `Cloud Run: /app/repo yazılabilir olması için /tmp/repo'ya kopyalandı` ve `HasSource = true` görmelisin. Ortamın Production olduğunu doğrulamak için log’da `Application started` veya benzeri satırda environment bilgisi de çıkabilir (isteğe bağlı: startup’ta `EnvironmentName` loglayabilirsin).
