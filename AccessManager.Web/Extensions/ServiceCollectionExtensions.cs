@@ -1,6 +1,7 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Infrastructure.Repositories;
 using AccessManager.Infrastructure.Services;
+using AccessManager.UI.Logging;
 using AccessManager.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -77,6 +78,11 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new AiConversationRepository(cs);
         });
+        services.AddScoped<IExtendedLogRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ExtendedLogRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -97,6 +103,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAiChatService, AiChatService>();
         services.AddScoped<IAiConversationService, AiConversationService>();
         services.AddHttpClient();
+        services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromSeconds(90));
+
+        services.AddSingleton<ExtendedLogLoggerProvider>();
 
         return services;
     }

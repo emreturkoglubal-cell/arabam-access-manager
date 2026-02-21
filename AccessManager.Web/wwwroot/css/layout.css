@@ -179,6 +179,13 @@
   box-sizing: border-box;
 }
 
+/* AI sohbet sayfası: içerik alanı doldurulsun, mesaj kutusu sayfanın altında sabit */
+.app-content:has(.ai-chat-page-wrap) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .app-footer {
   padding: 0.75rem 1.25rem;
   font-size: 0.8125rem;

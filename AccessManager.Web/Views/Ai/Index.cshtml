@@ -2,7 +2,7 @@
     ViewData["Title"] = "arabam AI — Proje Sohbeti";
     var initialConversationId = ViewData["ConversationId"] as int?;
 }
-
+<div class="ai-chat-page-wrap">
 <div class="am-card d-flex flex-column ai-chat-card">
     <div class="am-card-body d-flex flex-grow-1 p-0 ai-chat-body">
         <aside id="conversationSidebar" class="am-ai-sidebar border-end bg-light d-flex flex-column ai-chat-sidebar">
@@ -33,9 +33,11 @@
         </div>
     </div>
 </div>
+</div>
 
 <style>
-    .ai-chat-card { height: 70vh; min-height: 320px; max-height: calc(100vh - 8rem); }
+    .ai-chat-page-wrap { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+    .ai-chat-card { flex: 1 1 0; min-height: 320px; }
     .ai-chat-body { min-height: 0; height: 100%; }
     .ai-chat-sidebar { width: 260px; min-width: 260px; min-height: 0; }
     .ai-chat-list-wrap { min-height: 0; }
@@ -250,7 +252,20 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            return r.text().then(function (text) {
+                var data = null;
+                if (text && text.trim().length > 0) {
+                    try { data = JSON.parse(text); } catch (e) { /* response JSON değil */ }
+                }
+                if (!r.ok) {
+                    var errMsg = (data && data.reply) ? data.reply : ('HTTP ' + r.status + (text ? ': ' + text.substring(0, 200) : ''));
+                    throw new Error(errMsg);
+                }
+                if (!data) throw new Error('Sunucu boş veya geçersiz yanıt döndü. Zaman aşımı veya ağ hatası olabilir.');
+                return data;
+            });
+        })
         .then(function (data) {
             removeTypingIndicator();
             if (data.conversationId && !currentConversationId) {
@@ -264,7 +279,7 @@
         })
         .catch(function (err) {
             removeTypingIndicator();
-            addMessage('assistant', 'İstek hatası: ' + err.message);
+            addMessage('assistant', 'İstek hatası: ' + (err.message || String(err)));
         })
         .finally(function () {
             sendBtn.disabled = false;

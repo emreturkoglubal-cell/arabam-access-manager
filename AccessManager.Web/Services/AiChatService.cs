@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AccessManager.UI.Services.Agent;
+using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services;
 
@@ -13,24 +14,30 @@ public class AiChatService : IAiChatService
     private readonly ICodeContextService _codeContext;
     private readonly IAgentTools _agentTools;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<AiChatService> _logger;
 
     public AiChatService(
         IConfiguration config,
         ICodeContextService codeContext,
         IAgentTools agentTools,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        ILogger<AiChatService> logger)
     {
         _config = config;
         _codeContext = codeContext;
         _agentTools = agentTools;
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, CancellationToken cancellationToken = default)
     {
         var apiKey = _config["OpenAI:ApiKey"]?.Trim();
         if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogError("OpenAI API anahtarı tanımlı değil. OpenAI:ApiKey veya ortam değişkeni ayarlanmalı.");
             return "OpenAI API anahtarı tanımlı değil. Lütfen yapılandırmada OpenAI:ApiKey veya ortam değişkeni ile verin.";
+        }
 
         var structure = await _codeContext.GetProjectStructureAsync(cancellationToken);
         var systemContent = @"Sen Access Manager projesi için repository-aware bir asistanısın. Hem soru cevaplayabilir hem de koda değişiklik yapıp main branch'e push edebilirsin. 
@@ -80,7 +87,7 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
             };
 
             var json = payload.ToJsonString();
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("OpenAI");
             var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -89,7 +96,9 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                return $"API hatası ({(int)response.StatusCode}): " + (body.Length > 300 ? body[..300] + "..." : body);
+                var snippet = body.Length > 300 ? body[..300] + "..." : body;
+                _logger.LogError("OpenAI API hatası. StatusCode: {StatusCode}, Body: {Body}", response.StatusCode, snippet);
+                return $"API hatası ({(int)response.StatusCode}): " + snippet;
             }
 
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

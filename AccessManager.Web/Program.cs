@@ -1,4 +1,5 @@
 using AccessManager.UI.Extensions;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAccessManagerServices();
 
 var app = builder.Build();
+
+// Extended log: Error/Critical loglar extended_logs tablosuna (IP, URL, user agent vb.) yazılır
+if (app.Services.GetService<ILoggerFactory>() is Microsoft.Extensions.Logging.LoggerFactory loggerFactory)
+{
+    loggerFactory.AddProvider(app.Services.GetRequiredService<AccessManager.UI.Logging.ExtendedLogLoggerProvider>());
+}
 
 if (!app.Environment.IsDevelopment())
 {

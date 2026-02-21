@@ -6,10 +6,12 @@ namespace AccessManager.UI.Controllers;
 public class AiController : Controller
 {
     private readonly IAiConversationService _aiConversation;
+    private readonly ILogger<AiController> _logger;
 
-    public AiController(IAiConversationService aiConversation)
+    public AiController(IAiConversationService aiConversation, ILogger<AiController> logger)
     {
         _aiConversation = aiConversation;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -51,8 +53,16 @@ public class AiController : Controller
         if (request == null || string.IsNullOrWhiteSpace(request.Message))
             return Json(new { reply = "Lütfen bir mesaj yazın." });
 
-        var (conversationId, title, reply) = await _aiConversation.SendMessageAsync(request.ConversationId, request.Message.Trim(), cancellationToken);
-        return Json(new { conversationId, title, reply });
+        try
+        {
+            var (conversationId, title, reply) = await _aiConversation.SendMessageAsync(request.ConversationId, request.Message.Trim(), cancellationToken);
+            return Json(new { conversationId, title, reply });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI Chat hatası. ConversationId: {ConversationId}", request.ConversationId);
+            return Json(new { reply = "Sunucu hatası: " + ex.Message });
+        }
     }
 
     public class ChatRequest
