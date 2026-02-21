@@ -33,7 +33,7 @@ public class AiChatService : IAiChatService
             return "OpenAI API anahtarı tanımlı değil. Lütfen yapılandırmada OpenAI:ApiKey veya ortam değişkeni ile verin.";
 
         var structure = await _codeContext.GetProjectStructureAsync(cancellationToken);
-        var systemContent = @"Sen Access Manager projesi için repository-aware bir asistanısın. Hem soru cevaplayabilir hem de koda değişiklik yapıp main branch'e push edebilirsin.
+        var systemContent = @"Sen Access Manager projesi için repository-aware bir asistanısın. Hem soru cevaplayabilir hem de koda değişiklik yapıp main branch'e push edebilirsin. 
 
 Araçlar:
 - read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre (örn. AccessManager.Web/Views/Personnel/Index.cshtml).
