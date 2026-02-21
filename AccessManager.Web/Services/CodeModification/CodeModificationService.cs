@@ -31,10 +31,22 @@ public sealed class CodeModificationService : ICodeModificationService
             return new ApplyDiffResult { Success = false, Message = "Geçersiz dosya yolu." };
 
         var repo = RepoPath;
-        var fullPath = Path.GetFullPath(Path.Combine(repo, relativePath.Replace('\\', '/')));
+        var pathNorm = relativePath.Replace('\\', '/').TrimStart('/');
+        var fullPath = Path.GetFullPath(Path.Combine(repo, pathNorm));
         if (!fullPath.StartsWith(repo, StringComparison.OrdinalIgnoreCase))
             return new ApplyDiffResult { Success = false, Message = "Dosya repo dışında." };
 
+        // Model bazen Pages gönderiyor; bu projede view'lar Views altında (Views/Systems/Index.cshtml)
+        if (!File.Exists(fullPath) && pathNorm.Contains("Pages", StringComparison.OrdinalIgnoreCase))
+        {
+            var viewsPath = pathNorm.Replace("/Pages/", "/Views/").Replace("\\Pages\\", "\\Views\\");
+            var fullPathViews = Path.GetFullPath(Path.Combine(repo, viewsPath));
+            if (fullPathViews.StartsWith(repo, StringComparison.OrdinalIgnoreCase) && File.Exists(fullPathViews))
+            {
+                fullPath = fullPathViews;
+                pathNorm = viewsPath;
+            }
+        }
         if (!File.Exists(fullPath))
             return new ApplyDiffResult { Success = false, Message = "Dosya bulunamadı: " + fullPath };
 
@@ -66,8 +78,13 @@ public sealed class CodeModificationService : ICodeModificationService
             return new ApplyDiffResult { Success = false, Message = "Dosya yazılamadı: " + ex.Message };
         }
 
-        var pathNorm = relativePath.Replace("\\", "/");
-        return new ApplyDiffResult { Success = true, Message = $"Dosya güncellendi: {pathNorm} (tam yol: {fullPath})" };
+        var pathForResult = pathNorm.Replace("\\", "/");
+        return new ApplyDiffResult
+        {
+            Success = true,
+            Message = $"Dosya güncellendi: {pathForResult} (tam yol: {fullPath})",
+            ResolvedPath = pathNorm.Replace("\\", "/")
+        };
     }
 
     /// <summary>
@@ -131,13 +148,13 @@ public sealed class CodeModificationService : ICodeModificationService
                     {
                         if (fileIndex >= fileLines.Count)
                             return (false, null, $"Satır {fileIndex + 1}: bağlam eşleşmedi (dosya kısa).");
-                        if (fileLines[fileIndex] != rest)
+                        if (!LineMatches(fileLines[fileIndex], rest))
                         {
-                            // Patch satır numarası yanlış olabilir (model bazen -1,7 gönderiyor); dosyada bu bağlamı ara
+                            // Patch satır numarası yanlış veya boşluk farklı; dosyada bu bağlamı ara (trim ile)
                             var found = -1;
                             for (var k = fileIndex; k < fileLines.Count; k++)
                             {
-                                if (fileLines[k] == rest) { found = k; break; }
+                                if (LineMatches(fileLines[k], rest)) { found = k; break; }
                             }
                             if (found < 0)
                                 return (false, null, $"Bağlam bulunamadı. Beklenen satır: '{rest}'. Patch satır numarası yanlış olabilir.");
@@ -152,12 +169,12 @@ public sealed class CodeModificationService : ICodeModificationService
                     {
                         if (fileIndex >= fileLines.Count)
                             return (false, null, $"Satır {fileIndex + 1}: silinecek satır yok.");
-                        if (fileLines[fileIndex] != rest)
+                        if (!LineMatches(fileLines[fileIndex], rest))
                         {
                             var found = -1;
                             for (var k = fileIndex; k < fileLines.Count; k++)
                             {
-                                if (fileLines[k] == rest) { found = k; break; }
+                                if (LineMatches(fileLines[k], rest)) { found = k; break; }
                             }
                             if (found < 0)
                                 return (false, null, $"Silinecek satır bulunamadı: '{rest}'.");
@@ -186,6 +203,13 @@ public sealed class CodeModificationService : ICodeModificationService
         if (fileContent.EndsWith("\n") && !newContent.EndsWith("\n"))
             newContent += "\n";
         return (true, newContent, null);
+    }
+
+    /// <summary>Satır eşleşmesi: tam veya trim edilmiş (patch bazen boşluksuz gönderiyor, dosyada girintili olabiliyor).</summary>
+    private static bool LineMatches(string fileLine, string patchLine)
+    {
+        if (fileLine == patchLine) return true;
+        return fileLine.Trim() == patchLine.Trim();
     }
 
     private static bool TryParseHunkHeader(string line, out int oldStart, out int oldCount)

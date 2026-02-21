@@ -101,8 +101,8 @@ public sealed class AgentTools : IAgentTools
         if (!result.Success)
             return "HATA: " + result.Message;
 
-        // Diff başarılı: model git_commit_and_push çağırmıyor diye otomatik commit+push yapıyoruz
-        var pathForGit = relativePath.Replace("\\", "/");
+        // Diff başarılı: model git_commit_and_push çağırmıyor diye otomatik commit+push yapıyoruz (Pages→Views düzeltmesi varsa onu kullan)
+        var pathForGit = (result.ResolvedPath ?? relativePath).Replace("\\", "/");
         var commitResult = await _gitService.CommitAndPushAsync(
             new[] { pathForGit },
             "Kod güncellemesi (arabam AI)",

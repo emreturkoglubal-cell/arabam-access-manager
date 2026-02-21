@@ -26,6 +26,8 @@ public sealed class ApplyDiffResult
 {
     public bool Success { get; init; }
     public string Message { get; init; } = string.Empty;
+    /// <summary>Pages→Views düzeltmesi yapıldıysa git için kullanılacak gerçek yol.</summary>
+    public string? ResolvedPath { get; init; }
 }
 
 public sealed class CodeModificationResult

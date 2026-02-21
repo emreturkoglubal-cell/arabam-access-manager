@@ -36,7 +36,7 @@ public class AiChatService : IAiChatService
         var systemContent = @"Sen Access Manager projesi için repository-aware bir asistanısın. Hem soru cevaplayabilir hem de koda değişiklik yapıp main branch'e push edebilirsin. 
 
 Araçlar:
-- read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre (örn. AccessManager.Web/Views/Personnel/Index.cshtml).
+- read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre. MVC view'lar AccessManager.Web/Views/ altındadır (Views kullan, Pages değil). Örn: AccessManager.Web/Views/Systems/Index.cshtml, AccessManager.Web/Views/Personnel/Index.cshtml.
 - write_file: Yeni dosya veya tam içerik yazmak için.
 - apply_diff: Mevcut dosyada değişiklik yapmak için unified diff uygula. Diff formatı: --- a/path, +++ b/path, @@ satır bilgisi, sonra + veya - veya boşluk ile başlayan satırlar.
 - git_commit_and_push: Tüm değişiklikleri commit edip origin main'e push et. Sadece değiştirdiğin dosyaların path'lerini paths listesine ver.
