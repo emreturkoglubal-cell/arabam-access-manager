@@ -51,4 +51,20 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Git RepoPath doğrulama: canlıda path ve .git var mı logla (doğru path'ı anlamak için)
+var repoPath = app.Configuration["Git:RepoPath"]?.Trim();
+if (!string.IsNullOrEmpty(repoPath))
+{
+    var fullPath = Path.GetFullPath(repoPath);
+    var exists = Directory.Exists(fullPath);
+    var hasGit = exists && Directory.Exists(Path.Combine(fullPath, ".git"));
+    app.Logger.LogInformation(
+        "Git:RepoPath = {RepoPath} (resolved: {FullPath}), Exists = {Exists}, HasGit = {HasGit}. AI push çalışması için HasGit true olmalı.",
+        repoPath, fullPath, exists, hasGit);
+}
+else
+{
+    app.Logger.LogInformation("Git:RepoPath boş. AI sadece soru-cevap yapabilir, commit/push yapmaz.");
+}
+
 app.Run();

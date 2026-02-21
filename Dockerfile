@@ -17,7 +17,15 @@ RUN dotnet publish "AccessManager.Web/AccessManager.UI.csproj" -c Release -o /ap
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Canlıda AI'ın kod okuyup push atabilmesi için git kurulumu
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Uygulama çıktısı (mevcut)
 COPY --from=build /app/publish .
+
+# Repo (kaynak + .git) — Git:RepoPath = /app/repo
+COPY --from=build /src /app/repo
 
 # Cloud Run beklediği port
 ENV ASPNETCORE_URLS=http://*:8080

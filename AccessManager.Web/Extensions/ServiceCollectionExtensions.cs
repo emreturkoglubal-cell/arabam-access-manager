@@ -85,6 +85,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccessRequestService, AccessRequestService>();
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IReviseRequestService, ReviseRequestService>();
+        services.AddScoped<ICodeContextService, CodeContextService>();
+        services.AddScoped<AccessManager.UI.Services.Git.IGitService, AccessManager.UI.Services.Git.GitService>();
+        services.AddScoped<AccessManager.UI.Services.CodeModification.ICodeModificationService, AccessManager.UI.Services.CodeModification.CodeModificationService>();
+        services.AddScoped<AccessManager.UI.Services.Agent.IAgentTools, AccessManager.UI.Services.Agent.AgentTools>();
+        services.AddScoped<IAiChatService, AiChatService>();
         services.AddHttpClient();
 
         return services;

@@ -24,6 +24,9 @@ bld/
 .idea/
 *.sln.iml
 
+# Yedek (rebase için, commit etme)
+appsettings_clean_backup/
+
 # User secrets (asla commit etme)
 secrets.json
 appsettings.*.local.json

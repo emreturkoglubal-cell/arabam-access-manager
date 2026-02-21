@@ -1,5 +1,4 @@
-# Git
-.git
+# Git ( .git image'a dahil ediliyor ki canlıda AI push atabilsin )
 .gitignore
 .gitattributes
 

@@ -1,0 +1,86 @@
+@{
+    ViewData["Title"] = "AI — Proje Sohbeti";
+}
+
+<div class="am-card h-100 d-flex flex-column" style="min-height: 70vh;">
+    <div class="am-card-body d-flex flex-column flex-grow-1 p-0">
+        <div id="chatMessages" class="flex-grow-1 overflow-auto p-3" style="min-height: 320px;">
+            <div class="text-muted small text-center py-4">
+                Proje kaynak kodu hakkında soru sorun. Örn: &quot;PersonnelController’da onay akışı nasıl?&quot;
+            </div>
+        </div>
+        <div class="border-top p-3 bg-light">
+            <div class="d-flex gap-2">
+                <input type="text" id="chatInput" class="form-control" placeholder="Mesajınızı yazın..." autocomplete="off" />
+                <button type="button" id="chatSend" class="btn btn-am-primary">Gönder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var messagesEl = document.getElementById('chatMessages');
+    var inputEl = document.getElementById('chatInput');
+    var sendBtn = document.getElementById('chatSend');
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, text) {
+        var wrap = document.createElement('div');
+        wrap.className = 'mb-3 ' + (role === 'user' ? 'text-end' : '');
+        var bubble = document.createElement('div');
+        bubble.className = role === 'user'
+            ? 'd-inline-block text-start p-2 rounded bg-am-primary text-white'
+            : 'd-inline-block text-start p-2 rounded bg-white border';
+        bubble.style.maxWidth = '85%';
+        bubble.textContent = text;
+        wrap.appendChild(bubble);
+        messagesEl.appendChild(wrap);
+        scrollToBottom();
+    }
+
+    function setPlaceholder(visible) {
+        var ph = messagesEl.querySelector('.text-muted.small.text-center');
+        if (ph) ph.style.display = visible ? '' : 'none';
+    }
+
+    sendBtn.addEventListener('click', function () {
+        var msg = (inputEl.value || '').trim();
+        if (!msg) return;
+        setPlaceholder(false);
+        addMessage('user', msg);
+        inputEl.value = '';
+        sendBtn.disabled = true;
+
+        fetch('/Ai/Chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            addMessage('assistant', data.reply || '(cevap yok)');
+        })
+        .catch(function (err) {
+            addMessage('assistant', 'İstek hatası: ' + err.message);
+        })
+        .finally(function () {
+            sendBtn.disabled = false;
+            inputEl.focus();
+        });
+    });
+
+    inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendBtn.click();
+        }
+    });
+    inputEl.focus();
+})();
+</script>
+}
