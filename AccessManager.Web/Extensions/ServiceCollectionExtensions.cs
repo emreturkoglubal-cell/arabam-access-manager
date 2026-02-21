@@ -4,6 +4,7 @@ using AccessManager.Infrastructure.Services;
 using AccessManager.UI.Logging;
 using AccessManager.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AccessManager.UI.Extensions;
 
@@ -11,6 +12,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAccessManagerServices(this IServiceCollection services)
     {
+        services.AddMemoryCache();
+
         // Connection string ile repository'leri kaydet (Dapper)
         services.AddScoped<IDepartmentRepository>(sp =>
         {

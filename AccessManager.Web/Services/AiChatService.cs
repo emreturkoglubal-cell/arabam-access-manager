@@ -223,6 +223,7 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
                         return "HATA: 'diff' parametresi gerekli (unified diff: --- a/dosya, +++ b/dosya, @@ satırlar).";
                     var path = pathEl.GetString() ?? "";
                     var diff = diffEl.GetString() ?? "";
+                    _logger.LogError("AiChatService.apply_diff: path: {Path}, diff (ilk 1000 karakter): {DiffPreview}", path, diff.Length > 1000 ? diff[..1000] + "..." : diff);
                     return await _agentTools.ApplyDiffAsync(path, diff, cancellationToken);
                 }
                 case "git_commit_and_push":

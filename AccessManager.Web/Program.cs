@@ -61,20 +61,27 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Git RepoPath doğrulama: canlıda path ve .git var mı logla (doğru path'ı anlamak için)
+// Git/CodeContext path doğrulama: canlıda read_file ve push için repo yolunun doğru olduğunu kontrol et
 var repoPath = app.Configuration["Git:RepoPath"]?.Trim();
+var codeContextBase = app.Configuration["CodeContext:BasePath"]?.Trim();
 if (!string.IsNullOrEmpty(repoPath))
 {
     var fullPath = Path.GetFullPath(repoPath);
     var exists = Directory.Exists(fullPath);
     var hasGit = exists && Directory.Exists(Path.Combine(fullPath, ".git"));
+    var sampleFile = Path.Combine(fullPath, "AccessManager.Domain", "AccessManager.Domain.csproj");
+    var hasSource = exists && File.Exists(sampleFile);
     app.Logger.LogInformation(
-        "Git:RepoPath = {RepoPath} (resolved: {FullPath}), Exists = {Exists}, HasGit = {HasGit}. AI push çalışması için HasGit true olmalı.",
-        repoPath, fullPath, exists, hasGit);
+        "Git:RepoPath = {RepoPath} (resolved: {FullPath}), Exists = {Exists}, HasGit = {HasGit}, HasSource = {HasSource}. read_file için HasSource true olmalı.",
+        repoPath, fullPath, exists, hasGit, hasSource);
+    if (exists && !hasSource)
+        app.Logger.LogWarning("Git:RepoPath altında kaynak kod yok (AccessManager.Domain bulunamadı). Canlıda read_file çalışmaz; Git:RepoPath ve Dockerfile /app/repo kopyası kontrol edin.");
 }
 else
 {
-    app.Logger.LogInformation("Git:RepoPath boş. AI sadece soru-cevap yapabilir, commit/push yapmaz.");
+    app.Logger.LogInformation("Git:RepoPath boş. AI sadece soru-cevap yapabilir; read_file ve commit/push çalışmaz.");
 }
+if (!string.IsNullOrEmpty(codeContextBase))
+    app.Logger.LogInformation("CodeContext:BasePath = {BasePath}. Proje yapısı listesi bu dizinden alınır; read_file ile aynı repo olmalı.", codeContextBase);
 
 app.Run();

@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services;
@@ -6,17 +7,22 @@ namespace AccessManager.UI.Services;
 public class CodeContextService : ICodeContextService
 {
     private const int MaxStructureFiles = 2500;
+    private const string StructureCacheKey = "CodeContext:ProjectStructure";
+    private static readonly TimeSpan StructureCacheDuration = TimeSpan.FromMinutes(5);
+
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _config;
     private readonly ILogger<CodeContextService> _logger;
+    private readonly IMemoryCache _cache;
     private static readonly string[] AllowedExtensions = { ".cs", ".cshtml", ".json" };
     private static readonly string[] SkipDirs = { "obj", "bin", "node_modules", ".git", "lib", "wwwroot/lib" };
 
-    public CodeContextService(IWebHostEnvironment env, IConfiguration config, ILogger<CodeContextService> logger)
+    public CodeContextService(IWebHostEnvironment env, IConfiguration config, ILogger<CodeContextService> logger, IMemoryCache cache)
     {
         _env = env;
         _config = config;
         _logger = logger;
+        _cache = cache;
     }
 
     public Task<string> GetCodeContextAsync(CancellationToken cancellationToken = default)
@@ -68,6 +74,9 @@ public class CodeContextService : ICodeContextService
 
     public Task<string> GetProjectStructureAsync(CancellationToken cancellationToken = default)
     {
+        if (_cache.TryGetValue(StructureCacheKey, out string? cached) && cached != null)
+            return Task.FromResult(cached);
+
         try
         {
             var basePath = _config["CodeContext:BasePath"]?.Trim();
@@ -96,7 +105,9 @@ public class CodeContextService : ICodeContextService
                 sb.AppendLine(Path.GetRelativePath(basePath, file));
             }
 
-            return Task.FromResult(sb.ToString());
+            var result = sb.ToString();
+            _cache.Set(StructureCacheKey, result, StructureCacheDuration);
+            return Task.FromResult(result);
         }
         catch (OutOfMemoryException ex)
         {

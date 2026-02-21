@@ -1,5 +1,6 @@
 using AccessManager.UI.Services.CodeModification;
 using AccessManager.UI.Services.Git;
+using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services.Agent;
 
@@ -8,15 +9,18 @@ public sealed class AgentTools : IAgentTools
     private readonly IConfiguration _config;
     private readonly ICodeModificationService _codeMod;
     private readonly IGitService _gitService;
+    private readonly ILogger<AgentTools> _logger;
 
     public AgentTools(
         IConfiguration config,
         ICodeModificationService codeMod,
-        IGitService gitService)
+        IGitService gitService,
+        ILogger<AgentTools> logger)
     {
         _config = config;
         _codeMod = codeMod;
         _gitService = gitService;
+        _logger = logger;
     }
 
     private string RepoPath
@@ -58,16 +62,25 @@ public sealed class AgentTools : IAgentTools
 
     public string ReadFile(string relativePath)
     {
+        var repoPath = RepoPath;
         if (!TryResolvePath(relativePath, out var fullPath, out var error))
+        {
+            _logger.LogError("AgentTools.ReadFile: Path çözülemedi. Git RepoPath: {RepoPath}, RelativePath: {RelativePath}, Error: {Error}", repoPath ?? "(boş)", relativePath, error);
             return "HATA: " + error;
+        }
+        _logger.LogError("AgentTools.ReadFile: Git RepoPath: {RepoPath}, RelativePath: {RelativePath}, ResolvedFullPath: {ResolvedFullPath}", repoPath ?? "(boş)", relativePath, fullPath);
         try
         {
             if (!File.Exists(fullPath))
-                return "HATA: Dosya bulunamadı: " + relativePath;
+            {
+                _logger.LogWarning("AgentTools.ReadFile: Dosya yok. RelativePath: {RelativePath}, ResolvedPath: {ResolvedPath}", relativePath, fullPath);
+                return "HATA: Dosya bulunamadı: " + relativePath + ". (Canlı ortamda Git:RepoPath altında kaynak kod olmayabilir; container'da sadece derlenmiş uygulama var.)";
+            }
             return File.ReadAllText(fullPath);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "AgentTools.ReadFile: Okuma hatası. RelativePath: {RelativePath}, ResolvedPath: {ResolvedPath}", relativePath, fullPath);
             return "HATA: " + ex.Message;
         }
     }
