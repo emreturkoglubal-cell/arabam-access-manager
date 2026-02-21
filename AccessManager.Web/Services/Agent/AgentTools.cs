@@ -72,7 +72,7 @@ public sealed class AgentTools : IAgentTools
         }
     }
 
-    public string WriteFile(string relativePath, string content)
+    public async Task<string> WriteFileAsync(string relativePath, string content, CancellationToken cancellationToken = default)
     {
         if (!TryResolvePath(relativePath, out var fullPath, out var error))
             return "HATA: " + error;
@@ -81,8 +81,13 @@ public sealed class AgentTools : IAgentTools
             var dir = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
-            File.WriteAllText(fullPath, content ?? string.Empty);
-            return "OK: Dosya yazıldı.";
+            await File.WriteAllTextAsync(fullPath, content ?? string.Empty, cancellationToken);
+            // apply_diff gibi: model git_commit_and_push çağırmıyor, o yüzden otomatik commit+push
+            var pathForGit = relativePath.Replace("\\", "/");
+            var commitResult = await _gitService.CommitAndPushAsync(new[] { pathForGit }, "Kod güncellemesi (arabam AI)", cancellationToken);
+            if (commitResult.Success)
+                return "OK: Dosya yazıldı. Commit ve push yapıldı: " + commitResult.Message;
+            return "OK: Dosya yazıldı. Ancak commit/push başarısız: " + commitResult.Message;
         }
         catch (Exception ex)
         {
@@ -93,7 +98,18 @@ public sealed class AgentTools : IAgentTools
     public async Task<string> ApplyDiffAsync(string relativePath, string unifiedDiff, CancellationToken cancellationToken = default)
     {
         var result = await _codeMod.ApplyDiffAsync(relativePath, unifiedDiff, cancellationToken);
-        return result.Success ? "OK: " + result.Message : "HATA: " + result.Message;
+        if (!result.Success)
+            return "HATA: " + result.Message;
+
+        // Diff başarılı: model git_commit_and_push çağırmıyor diye otomatik commit+push yapıyoruz
+        var pathForGit = relativePath.Replace("\\", "/");
+        var commitResult = await _gitService.CommitAndPushAsync(
+            new[] { pathForGit },
+            "Kod güncellemesi (arabam AI)",
+            cancellationToken);
+        if (commitResult.Success)
+            return "OK: Diff uygulandı. Commit ve push yapıldı: " + commitResult.Message;
+        return "OK: Diff uygulandı. Ancak commit/push başarısız: " + commitResult.Message;
     }
 
     public async Task<string> GitCommitAndPushAsync(string commitMessage, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken = default)

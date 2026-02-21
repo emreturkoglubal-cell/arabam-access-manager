@@ -6,7 +6,7 @@ namespace AccessManager.UI.Services.Agent;
 public interface IAgentTools
 {
     string ReadFile(string relativePath);
-    string WriteFile(string relativePath, string content);
+    Task<string> WriteFileAsync(string relativePath, string content, CancellationToken cancellationToken = default);
     Task<string> ApplyDiffAsync(string relativePath, string unifiedDiff, CancellationToken cancellationToken = default);
     Task<string> GitCommitAndPushAsync(string commitMessage, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken = default);
 }

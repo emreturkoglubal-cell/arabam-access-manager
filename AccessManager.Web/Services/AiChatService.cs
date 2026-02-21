@@ -8,7 +8,7 @@ namespace AccessManager.UI.Services;
 
 public class AiChatService : IAiChatService
 {
-    private const int MaxToolRoundTrips = 15;
+    private const int MaxToolRoundTrips = 10;
     private readonly IConfiguration _config;
     private readonly ICodeContextService _codeContext;
     private readonly IAgentTools _agentTools;
@@ -67,10 +67,12 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
         while (round < MaxToolRoundTrips)
         {
             round++;
+            // Her istekte messages'ın kopyasını kullan; aynı node iki payload'a atanınca "node already has a parent" hatası oluyor.
+            var messagesCopy = JsonSerializer.Deserialize<JsonArray>(messages.ToJsonString())!;
             var payload = new JsonObject
             {
                 ["model"] = model,
-                ["messages"] = messages,
+                ["messages"] = messagesCopy,
                 ["temperature"] = temperature,
                 ["max_tokens"] = 4096,
                 ["tools"] = OpenAiToolDefinitions.GetToolsJson(),
@@ -147,33 +149,51 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
 
     private async Task<string> ExecuteToolAsync(string name, string argumentsJson, CancellationToken cancellationToken)
     {
+        JsonElement root;
         try
         {
             using var doc = JsonDocument.Parse(argumentsJson);
-            var root = doc.RootElement;
+            root = doc.RootElement.Clone();
+        }
+        catch (JsonException ex)
+        {
+            return "HATA: Geçersiz JSON argümanlar. Örnek: {\"path\": \"dosya/yolu\"} veya {\"path\": \"...\", \"diff\": \"...\"}. Detay: " + ex.Message;
+        }
 
+        try
+        {
             switch (name)
             {
                 case "read_file":
                 {
-                    var path = root.GetProperty("path").GetString() ?? "";
+                    if (!root.TryGetProperty("path", out var pathEl))
+                        return "HATA: 'path' parametresi gerekli. Örnek: {\"path\": \"AccessManager.Web/Views/Systems/Index.cshtml\"}";
+                    var path = pathEl.GetString() ?? "";
                     return _agentTools.ReadFile(path);
                 }
                 case "write_file":
                 {
-                    var path = root.GetProperty("path").GetString() ?? "";
-                    var content = root.GetProperty("content").GetString() ?? "";
-                    return _agentTools.WriteFile(path, content);
+                    if (!root.TryGetProperty("path", out var pathEl))
+                        return "HATA: 'path' parametresi gerekli.";
+                    if (!root.TryGetProperty("content", out var contentEl))
+                        return "HATA: 'content' parametresi gerekli.";
+                    return await _agentTools.WriteFileAsync(pathEl.GetString() ?? "", contentEl.GetString() ?? "", cancellationToken);
                 }
                 case "apply_diff":
                 {
-                    var path = root.GetProperty("path").GetString() ?? "";
-                    var diff = root.GetProperty("diff").GetString() ?? "";
+                    if (!root.TryGetProperty("path", out var pathEl))
+                        return "HATA: 'path' parametresi gerekli (değiştirilecek dosya, repo köküne göre).";
+                    if (!root.TryGetProperty("diff", out var diffEl))
+                        return "HATA: 'diff' parametresi gerekli (unified diff: --- a/dosya, +++ b/dosya, @@ satırlar).";
+                    var path = pathEl.GetString() ?? "";
+                    var diff = diffEl.GetString() ?? "";
                     return await _agentTools.ApplyDiffAsync(path, diff, cancellationToken);
                 }
                 case "git_commit_and_push":
                 {
-                    var commitMessage = root.GetProperty("commit_message").GetString() ?? "";
+                    if (!root.TryGetProperty("commit_message", out var msgEl))
+                        return "HATA: 'commit_message' parametresi gerekli.";
+                    var commitMessage = msgEl.GetString() ?? "";
                     var paths = new List<string>();
                     if (root.TryGetProperty("paths", out var arr))
                     {
@@ -188,7 +208,7 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
         }
         catch (Exception ex)
         {
-            return "HATA: " + ex.Message;
+            return "HATA: " + ex.GetType().Name + " - " + ex.Message;
         }
     }
 }

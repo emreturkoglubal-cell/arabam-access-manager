@@ -36,14 +36,15 @@ public sealed class CodeModificationService : ICodeModificationService
             return new ApplyDiffResult { Success = false, Message = "Dosya repo dışında." };
 
         // Unified diff genelde --- a/path ve +++ b/path ile başlar; git apply bunu kabul eder
-        var patchContent = unifiedDiff.Trim();
+        // Satır sonlarını \n yap (Windows'ta git apply bazen \r\n ile takılabiliyor)
+        var patchContent = unifiedDiff.Replace("\r\n", "\n").Replace("\r", "\n").Trim();
         if (string.IsNullOrEmpty(patchContent))
             return new ApplyDiffResult { Success = false, Message = "Boş diff." };
 
         var tempFile = Path.GetTempFileName();
         try
         {
-            await File.WriteAllTextAsync(tempFile, patchContent, Encoding.UTF8, cancellationToken);
+            await File.WriteAllTextAsync(tempFile, patchContent, new UTF8Encoding(false), cancellationToken);
             var (success, output) = await RunGitApplyAsync(repo, tempFile, cancellationToken);
             return new ApplyDiffResult
             {
