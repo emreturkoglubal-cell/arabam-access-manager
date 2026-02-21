@@ -142,6 +142,27 @@ body {
   color: var(--am-accent-hover);
 }
 
+.btn-am-outline.btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+}
+
+/* arabam AI sayfası: sohbet listesi tema rengi (aktif/hover) */
+.am-ai-sidebar .list-group-item-action:hover {
+  background: var(--am-accent-light);
+  color: var(--am-accent);
+}
+.am-ai-sidebar .list-group-item.active {
+  background: var(--am-accent-light);
+  color: var(--am-accent);
+  border-left: 3px solid var(--am-accent);
+  border-color: var(--am-border);
+}
+.am-ai-sidebar .list-group-item.active:hover {
+  background: var(--am-accent-light);
+  color: var(--am-accent);
+}
+
 .btn-am-ghost {
   background: transparent;
   color: var(--am-text-muted);

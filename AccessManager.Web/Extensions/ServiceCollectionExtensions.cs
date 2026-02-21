@@ -72,6 +72,11 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new ReviseRequestRepository(cs);
         });
+        services.AddScoped<IAiConversationRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AiConversationRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -90,6 +95,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AccessManager.UI.Services.CodeModification.ICodeModificationService, AccessManager.UI.Services.CodeModification.CodeModificationService>();
         services.AddScoped<AccessManager.UI.Services.Agent.IAgentTools, AccessManager.UI.Services.Agent.AgentTools>();
         services.AddScoped<IAiChatService, AiChatService>();
+        services.AddScoped<IAiConversationService, AiConversationService>();
         services.AddHttpClient();
 
         return services;

@@ -1,18 +1,29 @@
 @{
-    ViewData["Title"] = "AI — Proje Sohbeti";
+    ViewData["Title"] = "arabam AI — Proje Sohbeti";
+    var initialConversationId = ViewData["ConversationId"] as int?;
 }
 
 <div class="am-card h-100 d-flex flex-column" style="min-height: 70vh;">
-    <div class="am-card-body d-flex flex-column flex-grow-1 p-0">
-        <div id="chatMessages" class="flex-grow-1 overflow-auto p-3" style="min-height: 320px;">
-            <div class="text-muted small text-center py-4">
-                Proje kaynak kodu hakkında soru sorun. Örn: &quot;PersonnelController’da onay akışı nasıl?&quot;
+    <div class="am-card-body d-flex flex-grow-1 p-0" style="min-height: 0;">
+        <aside id="conversationSidebar" class="am-ai-sidebar border-end bg-light" style="width: 260px; min-width: 260px; overflow-y: auto;">
+            <div class="p-2 border-bottom bg-white">
+                <a href="/Ai/Index" class="btn btn-sm btn-am-outline w-100">+ Yeni sohbet</a>
             </div>
-        </div>
-        <div class="border-top p-3 bg-light">
-            <div class="d-flex gap-2">
-                <input type="text" id="chatInput" class="form-control" placeholder="Mesajınızı yazın..." autocomplete="off" />
-                <button type="button" id="chatSend" class="btn btn-am-primary">Gönder</button>
+            <div id="conversationList" class="list-group list-group-flush">
+                <div class="text-muted small text-center py-3">Yükleniyor...</div>
+            </div>
+        </aside>
+        <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
+            <div id="chatMessages" class="flex-grow-1 overflow-auto p-3" style="min-height: 320px;">
+                <div class="text-muted small text-center py-4">
+                    Proje kaynak kodu hakkında soru sorun. Örn: &quot;PersonnelController'da onay akışı nasıl?&quot;
+                </div>
+            </div>
+            <div class="border-top p-3 bg-light">
+                <div class="d-flex gap-2">
+                    <input type="text" id="chatInput" class="form-control" placeholder="Mesajınızı yazın..." autocomplete="off" />
+                    <button type="button" id="chatSend" class="btn btn-am-primary">Gönder</button>
+                </div>
             </div>
         </div>
     </div>
@@ -24,6 +35,8 @@
     var messagesEl = document.getElementById('chatMessages');
     var inputEl = document.getElementById('chatInput');
     var sendBtn = document.getElementById('chatSend');
+    var listEl = document.getElementById('conversationList');
+    var currentConversationId = @(initialConversationId.HasValue ? initialConversationId.Value : "null");
 
     function scrollToBottom() {
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -31,11 +44,11 @@
 
     function addMessage(role, text) {
         var wrap = document.createElement('div');
-        wrap.className = 'mb-3 ' + (role === 'user' ? 'text-end' : '');
+        wrap.className = 'mb-3 ' + (role === 'user' ? 'text-end' : 'text-start');
         var bubble = document.createElement('div');
         bubble.className = role === 'user'
-            ? 'd-inline-block text-start p-2 rounded bg-am-primary text-white'
-            : 'd-inline-block text-start p-2 rounded bg-white border';
+            ? 'd-inline-block text-start p-3 rounded-3 bg-am-primary text-dark shadow-sm'
+            : 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
         bubble.style.maxWidth = '85%';
         bubble.textContent = text;
         wrap.appendChild(bubble);
@@ -48,6 +61,60 @@
         if (ph) ph.style.display = visible ? '' : 'none';
     }
 
+    function loadConversations() {
+        fetch('/Ai/GetConversations')
+            .then(function (r) { return r.json(); })
+            .then(function (items) {
+                listEl.innerHTML = '';
+                if (!items || items.length === 0) {
+                    listEl.innerHTML = '<div class="text-muted small text-center py-3">Henüz sohbet yok</div>';
+                    return;
+                }
+                items.forEach(function (c) {
+                    var a = document.createElement('a');
+                    a.href = '/Ai/Index?conversationId=' + c.id;
+                    a.className = 'list-group-item list-group-item-action' + (currentConversationId === c.id ? ' active' : '');
+                    a.textContent = (c.title || '(Sohbet)').substring(0, 50) + (c.title && c.title.length > 50 ? '…' : '');
+                    listEl.appendChild(a);
+                });
+            })
+            .catch(function () {
+                listEl.innerHTML = '<div class="text-danger small text-center py-3">Liste yüklenemedi</div>';
+            });
+    }
+
+    function loadMessages(conversationId) {
+        if (!conversationId) {
+            setPlaceholder(true);
+            messagesEl.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
+            return;
+        }
+        setPlaceholder(false);
+        messagesEl.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
+        fetch('/Ai/GetMessages?conversationId=' + conversationId)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var items = data.messages || [];
+                if (items.length === 0) {
+                    setPlaceholder(true);
+                    return;
+                }
+                setPlaceholder(false);
+                items.forEach(function (m) {
+                    addMessage(m.role, m.content || '');
+                });
+            })
+            .catch(function () {
+                addMessage('assistant', 'Mesajlar yüklenemedi.');
+            });
+    }
+
+    loadConversations();
+    if (currentConversationId) {
+        loadMessages(currentConversationId);
+        setPlaceholder(false);
+    }
+
     sendBtn.addEventListener('click', function () {
         var msg = (inputEl.value || '').trim();
         if (!msg) return;
@@ -56,13 +123,23 @@
         inputEl.value = '';
         sendBtn.disabled = true;
 
+        var body = { message: msg };
+        if (currentConversationId) body.conversationId = currentConversationId;
+
         fetch('/Ai/Chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: msg })
+            body: JSON.stringify(body)
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+            if (data.conversationId && !currentConversationId) {
+                currentConversationId = data.conversationId;
+                var newUrl = '/Ai/Index?conversationId=' + data.conversationId;
+                if (window.history && window.history.replaceState)
+                    window.history.replaceState(null, '', newUrl);
+                loadConversations();
+            }
             addMessage('assistant', data.reply || '(cevap yok)');
         })
         .catch(function (err) {

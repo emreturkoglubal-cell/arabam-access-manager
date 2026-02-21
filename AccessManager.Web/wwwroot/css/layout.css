@@ -11,8 +11,8 @@
   --am-sidebar-border: #e5e7eb;
   --am-sidebar-width: 240px;
   --am-topbar-height: 56px;
-  --am-content-max-width: 1200px;
-  --am-content-padding: 1.5rem;
+  --am-content-max-width: 100%;
+  --am-content-padding: 1rem;
   --am-footer-border: #e5e7eb;
   --am-footer-text: #6b7280;
 }
@@ -176,7 +176,6 @@
   padding: var(--am-content-padding);
   max-width: var(--am-content-max-width);
   width: 100%;
-  margin: 0 auto;
   box-sizing: border-box;
 }
 

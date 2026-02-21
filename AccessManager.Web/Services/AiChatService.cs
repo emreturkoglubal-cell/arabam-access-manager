@@ -26,7 +26,7 @@ public class AiChatService : IAiChatService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<string> SendAsync(string userMessage, CancellationToken cancellationToken = default)
+    public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, CancellationToken cancellationToken = default)
     {
         var apiKey = _config["OpenAI:ApiKey"]?.Trim();
         if (string.IsNullOrEmpty(apiKey))
@@ -49,9 +49,15 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
 
         var messages = new JsonArray
         {
-            new JsonObject { ["role"] = "system", ["content"] = systemContent },
-            new JsonObject { ["role"] = "user", ["content"] = userMessage }
+            new JsonObject { ["role"] = "system", ["content"] = systemContent }
         };
+        if (previousMessages != null)
+        {
+            foreach (var m in previousMessages)
+                if (m.Role == "user" || m.Role == "assistant")
+                    messages.Add(new JsonObject { ["role"] = m.Role, ["content"] = m.Content });
+        }
+        messages.Add(new JsonObject { ["role"] = "user", ["content"] = userMessage });
 
         var model = _config["OpenAI:Model"] ?? "gpt-4o-mini";
         var temperature = _config.GetValue("OpenAI:Temperature", 0.2);
