@@ -61,23 +61,28 @@ public sealed class GitService : IGitService
         if (!commitResult.Success && !nothingToCommit)
             return GitResult.Fail("git commit hatası: " + commitResult.Output);
 
-        // git push origin main (lokalde pushlanmamış commit varsa pushla)
+        // Mevcut branch adını al (main/master vb. repoya göre değişir; "src refspec main does not match any" hatasını önler)
+        var branch = await GetCurrentBranchAsync(repo, cancellationToken);
+        if (string.IsNullOrWhiteSpace(branch))
+            branch = "main";
+
+        // git push origin <branch>
         if (!string.IsNullOrEmpty(token))
         {
             var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
             if (string.IsNullOrEmpty(remoteUrl))
                 return GitResult.Fail("Remote origin URL alınamadı.");
             var authUrl = InjectTokenIntoUrl(remoteUrl, token);
-            var pushResult = await RunGitWithEnvAsync(repo, "push \"" + authUrl + "\" main",
+            var pushResult = await RunGitWithEnvAsync(repo, "push \"" + authUrl + "\" " + branch,
                 new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
             if (!pushResult.Success)
-                return GitResult.Fail("Commit atıldı; push başarısız. Elle push için: git push origin main. Hata: " + (pushResult.Output ?? "?"));
+                return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
         }
         else
         {
-            var pushResult = await RunGitAsync(repo, "push origin main", cancellationToken);
+            var pushResult = await RunGitAsync(repo, "push origin " + branch, cancellationToken);
             if (!pushResult.Success)
-                return GitResult.Fail("Commit atıldı; push başarısız. Elle push için: git push origin main. Hata: " + (pushResult.Output ?? "?"));
+                return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
         }
 
         return GitResult.Ok();
@@ -96,6 +101,16 @@ public sealed class GitService : IGitService
     {
         var r = await RunGitAsync(repoPath, "remote get-url origin", ct);
         return r.Success ? r.Output?.Trim() : null;
+    }
+
+    /// <summary>Repodaki mevcut branch adını döner (main, master vb.).</summary>
+    private static async Task<string?> GetCurrentBranchAsync(string repoPath, CancellationToken ct)
+    {
+        var r = await RunGitAsync(repoPath, "branch --show-current", ct);
+        var name = r.Success ? r.Output?.Trim() : null;
+        if (!string.IsNullOrWhiteSpace(name)) return name;
+        var rev = await RunGitAsync(repoPath, "rev-parse --abbrev-ref HEAD", ct);
+        return rev.Success ? rev.Output?.Trim() : null;
     }
 
     private static async Task<(bool Success, string? Output)> RunGitAsync(string repoPath, string arguments, CancellationToken ct)
