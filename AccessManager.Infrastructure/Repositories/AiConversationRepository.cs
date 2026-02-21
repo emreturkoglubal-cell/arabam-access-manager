@@ -48,6 +48,17 @@ public class AiConversationRepository : IAiConversationRepository
         return conn.Query<AiConversation>(sql, new { UserId = userId }).ToList();
     }
 
+    public (IReadOnlyList<AiConversation> Items, int Total) GetConversationsByUserPaged(int userId, int skip, int take)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var total = conn.ExecuteScalar<int>("SELECT COUNT(*) FROM ai_conversations WHERE user_id = @UserId", new { UserId = userId });
+        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt
+            FROM ai_conversations WHERE user_id = @UserId ORDER BY updated_at DESC LIMIT @Take OFFSET @Skip";
+        var items = conn.Query<AiConversation>(sql, new { UserId = userId, Skip = skip, Take = take }).ToList();
+        return (items, total);
+    }
+
     public IReadOnlyList<AiConversationMessage> GetMessagesByConversation(int conversationId)
     {
         using var conn = new NpgsqlConnection(_connectionString);

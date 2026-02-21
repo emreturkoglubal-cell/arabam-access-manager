@@ -5,18 +5,23 @@
 
 <div class="am-card h-100 d-flex flex-column" style="min-height: 70vh;">
     <div class="am-card-body d-flex flex-grow-1 p-0" style="min-height: 0;">
-        <aside id="conversationSidebar" class="am-ai-sidebar border-end bg-light" style="width: 260px; min-width: 260px; overflow-y: auto;">
-            <div class="p-2 border-bottom bg-white">
+        <aside id="conversationSidebar" class="am-ai-sidebar border-end bg-light d-flex flex-column" style="width: 260px; min-width: 260px; max-height: 70vh;">
+            <div class="p-2 border-bottom bg-white flex-shrink-0">
                 <a href="/Ai/Index" class="btn btn-sm btn-am-outline w-100">+ Yeni sohbet</a>
             </div>
-            <div id="conversationList" class="list-group list-group-flush">
-                <div class="text-muted small text-center py-3">Yükleniyor...</div>
+            <div id="conversationListWrap" class="flex-grow-1 overflow-y-auto" style="min-height: 0;">
+                <div id="conversationList" class="list-group list-group-flush">
+                    <div class="text-muted small text-center py-3">Yükleniyor...</div>
+                </div>
+                <div id="conversationListMore" class="p-2 text-center border-top bg-white" style="display: none;">
+                    <button type="button" id="loadMoreConversations" class="btn btn-sm btn-am-outline">Daha fazla yükle</button>
+                </div>
             </div>
         </aside>
         <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
             <div id="chatMessages" class="flex-grow-1 overflow-auto p-3" style="min-height: 320px;">
                 <div class="text-muted small text-center py-4">
-                    Proje kaynak kodu hakkında soru sorun. Örn: &quot;PersonnelController'da onay akışı nasıl?&quot;
+                    Proje kodu hakkında soru sorun. Örn: &quot;Personellerde onay akışı nasıl çalışıyor?&quot;
                 </div>
             </div>
             <div class="border-top p-3 bg-light">
@@ -29,6 +34,15 @@
     </div>
 </div>
 
+<style>
+    .typing-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 12px 16px; }
+    .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--am-accent, #e40030); animation: typing-blink 1.2s ease-in-out infinite both; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    .typing-indicator span:nth-child(4) { animation-delay: 0.6s; }
+    @@keyframes typing-blink { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); } 40% { opacity: 1; transform: scale(1); } }
+</style>
+
 @section Scripts {
 <script>
 (function () {
@@ -36,10 +50,27 @@
     var inputEl = document.getElementById('chatInput');
     var sendBtn = document.getElementById('chatSend');
     var listEl = document.getElementById('conversationList');
+    var listMoreEl = document.getElementById('conversationListMore');
+    var loadMoreBtn = document.getElementById('loadMoreConversations');
     var currentConversationId = @(initialConversationId.HasValue ? initialConversationId.Value : "null");
+    var conversationsSkip = 0;
+    var conversationPageSize = 20;
+    var conversationsTotal = 0;
 
     function scrollToBottom() {
         messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+    function formatAssistantMessage(text) {
+        var escaped = escapeHtml(text || '');
+        escaped = escaped.replace(/\n/g, '<br/>');
+        escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        return escaped;
     }
 
     function addMessage(role, text) {
@@ -50,10 +81,29 @@
             ? 'd-inline-block text-start p-3 rounded-3 bg-am-primary text-dark shadow-sm'
             : 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
         bubble.style.maxWidth = '85%';
-        bubble.textContent = text;
+        if (role === 'assistant')
+            bubble.innerHTML = formatAssistantMessage(text);
+        else
+            bubble.textContent = text;
         wrap.appendChild(bubble);
         messagesEl.appendChild(wrap);
         scrollToBottom();
+    }
+
+    function addTypingIndicator() {
+        var wrap = document.createElement('div');
+        wrap.className = 'mb-3 text-start';
+        wrap.id = 'typingIndicatorWrap';
+        var bubble = document.createElement('div');
+        bubble.className = 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
+        bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span><span></span></div>';
+        wrap.appendChild(bubble);
+        messagesEl.appendChild(wrap);
+        scrollToBottom();
+    }
+    function removeTypingIndicator() {
+        var el = document.getElementById('typingIndicatorWrap');
+        if (el) el.remove();
     }
 
     function setPlaceholder(visible) {
@@ -61,27 +111,41 @@
         if (ph) ph.style.display = visible ? '' : 'none';
     }
 
-    function loadConversations() {
-        fetch('/Ai/GetConversations')
+    function appendConversationItems(items) {
+        if (!items || items.length === 0) return;
+        items.forEach(function (c) {
+            var a = document.createElement('a');
+            a.href = '/Ai/Index?conversationId=' + c.id;
+            a.className = 'list-group-item list-group-item-action' + (currentConversationId === c.id ? ' active' : '');
+            a.textContent = (c.title || '(Sohbet)').substring(0, 50) + (c.title && c.title.length > 50 ? '…' : '');
+            listEl.appendChild(a);
+        });
+    }
+
+    function loadConversations(append) {
+        var skip = append ? conversationsSkip : 0;
+        if (!append) listEl.innerHTML = '<div class="text-muted small text-center py-3">Yükleniyor...</div>';
+        fetch('/Ai/GetConversations?skip=' + skip + '&take=' + conversationPageSize)
             .then(function (r) { return r.json(); })
-            .then(function (items) {
-                listEl.innerHTML = '';
-                if (!items || items.length === 0) {
+            .then(function (data) {
+                var items = data.items || [];
+                conversationsTotal = data.total || 0;
+                if (!append) listEl.innerHTML = '';
+                if (!append && items.length === 0) {
                     listEl.innerHTML = '<div class="text-muted small text-center py-3">Henüz sohbet yok</div>';
+                    listMoreEl.style.display = 'none';
                     return;
                 }
-                items.forEach(function (c) {
-                    var a = document.createElement('a');
-                    a.href = '/Ai/Index?conversationId=' + c.id;
-                    a.className = 'list-group-item list-group-item-action' + (currentConversationId === c.id ? ' active' : '');
-                    a.textContent = (c.title || '(Sohbet)').substring(0, 50) + (c.title && c.title.length > 50 ? '…' : '');
-                    listEl.appendChild(a);
-                });
+                appendConversationItems(items);
+                conversationsSkip = skip + items.length;
+                listMoreEl.style.display = (data.hasMore ? '' : 'none');
             })
             .catch(function () {
-                listEl.innerHTML = '<div class="text-danger small text-center py-3">Liste yüklenemedi</div>';
+                if (!append) listEl.innerHTML = '<div class="text-danger small text-center py-3">Liste yüklenemedi</div>';
+                listMoreEl.style.display = 'none';
             });
     }
+    loadMoreBtn.addEventListener('click', function () { loadConversations(true); });
 
     function loadMessages(conversationId) {
         if (!conversationId) {
@@ -109,7 +173,7 @@
             });
     }
 
-    loadConversations();
+    loadConversations(false);
     if (currentConversationId) {
         loadMessages(currentConversationId);
         setPlaceholder(false);
@@ -122,6 +186,7 @@
         addMessage('user', msg);
         inputEl.value = '';
         sendBtn.disabled = true;
+        addTypingIndicator();
 
         var body = { message: msg };
         if (currentConversationId) body.conversationId = currentConversationId;
@@ -133,16 +198,18 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+            removeTypingIndicator();
             if (data.conversationId && !currentConversationId) {
                 currentConversationId = data.conversationId;
                 var newUrl = '/Ai/Index?conversationId=' + data.conversationId;
                 if (window.history && window.history.replaceState)
                     window.history.replaceState(null, '', newUrl);
-                loadConversations();
+                loadConversations(false);
             }
             addMessage('assistant', data.reply || '(cevap yok)');
         })
         .catch(function (err) {
+            removeTypingIndicator();
             addMessage('assistant', 'İstek hatası: ' + err.message);
         })
         .finally(function () {

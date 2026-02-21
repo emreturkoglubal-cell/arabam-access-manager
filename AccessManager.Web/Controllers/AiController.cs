@@ -20,10 +20,15 @@ public class AiController : Controller
     }
 
     [HttpGet]
-    public IActionResult GetConversations()
+    public IActionResult GetConversations([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
-        var list = _aiConversation.GetConversationsForCurrentUser();
-        return Json(list.Select(c => new { id = c.Id, title = c.Title, updatedAt = c.UpdatedAt }));
+        var (items, total) = _aiConversation.GetConversationsPaged(skip, Math.Min(take, 50));
+        return Json(new
+        {
+            items = items.Select(c => new { id = c.Id, title = c.Title, updatedAt = c.UpdatedAt }),
+            total,
+            hasMore = skip + items.Count < total
+        });
     }
 
     [HttpGet]

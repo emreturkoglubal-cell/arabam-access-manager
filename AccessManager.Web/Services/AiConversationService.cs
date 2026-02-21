@@ -28,6 +28,13 @@ public class AiConversationService : IAiConversationService
         return _repo.GetConversationsByUser(userId.Value);
     }
 
+    public (IReadOnlyList<AiConversation> Items, int Total) GetConversationsPaged(int skip, int take)
+    {
+        var userId = _currentUser.UserId;
+        if (userId == null) return (Array.Empty<AiConversation>(), 0);
+        return _repo.GetConversationsByUserPaged(userId.Value, skip, take);
+    }
+
     public AiConversation? GetConversation(int conversationId)
     {
         var userId = _currentUser.UserId;
