@@ -60,7 +60,7 @@ public class AiController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AI Chat hatası. ConversationId: {ConversationId}", request.ConversationId);
+            _logger.LogError(ex, "AI Chat hatası. ConversationId: {ConversationId}, ExceptionType: {ExceptionType}, Message: {Message}", request.ConversationId, ex.GetType().FullName, ex.Message);
             return Json(new { reply = "Sunucu hatası: " + ex.Message });
         }
     }

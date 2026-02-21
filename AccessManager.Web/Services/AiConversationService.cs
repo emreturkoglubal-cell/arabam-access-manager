@@ -1,6 +1,7 @@
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Infrastructure.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services;
 
@@ -10,15 +11,18 @@ public class AiConversationService : IAiConversationService
     private readonly ICurrentUserService _currentUser;
     private readonly IAiConversationRepository _repo;
     private readonly IAiChatService _chat;
+    private readonly ILogger<AiConversationService> _logger;
 
     public AiConversationService(
         ICurrentUserService currentUser,
         IAiConversationRepository repo,
-        IAiChatService chat)
+        IAiChatService chat,
+        ILogger<AiConversationService> logger)
     {
         _currentUser = currentUser;
         _repo = repo;
         _chat = chat;
+        _logger = logger;
     }
 
     public IReadOnlyList<AiConversation> GetConversationsForCurrentUser()
@@ -79,9 +83,24 @@ public class AiConversationService : IAiConversationService
             .ToList();
 
         _repo.AddMessage(convId, "user", userMessage.Trim());
-        var reply = await _chat.SendAsync(userMessage.Trim(), previousMessages, cancellationToken);
-        _repo.AddMessage(convId, "assistant", reply);
 
+        string reply;
+        try
+        {
+            reply = await _chat.SendAsync(userMessage.Trim(), previousMessages, cancellationToken);
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "AiConversationService.SendMessageAsync: Bellek yetersiz (OOM). ConversationId: {ConversationId}, UserId: {UserId}", convId, userId);
+            reply = "Şu an yanıt üretilemedi (bellek sınırı). Lütfen kısa bir mesajla tekrar deneyin veya daha sonra tekrar deneyin.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AiConversationService.SendMessageAsync: AI yanıt alınırken hata. ConversationId: {ConversationId}, UserId: {UserId}", convId, userId);
+            reply = "Yanıt alınırken bir hata oluştu: " + ex.Message;
+        }
+
+        _repo.AddMessage(convId, "assistant", reply);
         return (convId, title, reply);
     }
 }

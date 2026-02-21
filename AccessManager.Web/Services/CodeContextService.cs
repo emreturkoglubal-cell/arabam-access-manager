@@ -1,92 +1,126 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services;
 
 public class CodeContextService : ICodeContextService
 {
+    private const int MaxStructureFiles = 2500;
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _config;
+    private readonly ILogger<CodeContextService> _logger;
     private static readonly string[] AllowedExtensions = { ".cs", ".cshtml", ".json" };
     private static readonly string[] SkipDirs = { "obj", "bin", "node_modules", ".git", "lib", "wwwroot/lib" };
 
-    public CodeContextService(IWebHostEnvironment env, IConfiguration config)
+    public CodeContextService(IWebHostEnvironment env, IConfiguration config, ILogger<CodeContextService> logger)
     {
         _env = env;
         _config = config;
+        _logger = logger;
     }
 
     public Task<string> GetCodeContextAsync(CancellationToken cancellationToken = default)
     {
-        var basePath = _config["CodeContext:BasePath"]?.Trim();
-        if (string.IsNullOrEmpty(basePath))
-            basePath = Path.GetDirectoryName(_env.ContentRootPath) ?? _env.ContentRootPath;
-
-        if (!Directory.Exists(basePath))
-            return Task.FromResult("# Kaynak klasörü bulunamadı: " + basePath);
-
-        var maxChars = _config.GetValue("CodeContext:MaxCharacters", 40_000);
-        var sb = new StringBuilder(maxChars + 5000);
-
-        foreach (var dir in Directory.GetDirectories(basePath))
+        try
         {
-            var dirName = Path.GetFileName(dir);
-            if (SkipDirs.Any(s => dirName.Equals(s, StringComparison.OrdinalIgnoreCase)))
-                continue;
+            var basePath = _config["CodeContext:BasePath"]?.Trim();
+            if (string.IsNullOrEmpty(basePath))
+                basePath = Path.GetDirectoryName(_env.ContentRootPath) ?? _env.ContentRootPath;
 
-            AppendDirectory(dir, sb, basePath, maxChars);
-            if (sb.Length >= maxChars) break;
+            if (!Directory.Exists(basePath))
+                return Task.FromResult("# Kaynak klasörü bulunamadı: " + basePath);
+
+            var maxChars = _config.GetValue("CodeContext:MaxCharacters", 40_000);
+            var sb = new StringBuilder(maxChars + 5000);
+
+            foreach (var dir in Directory.EnumerateDirectories(basePath))
+            {
+                var dirName = Path.GetFileName(dir);
+                if (SkipDirs.Any(s => dirName.Equals(s, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                AppendDirectory(dir, sb, basePath, maxChars);
+                if (sb.Length >= maxChars) break;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(basePath))
+            {
+                if (!AllowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                    continue;
+                AppendFile(file, basePath, sb, maxChars);
+                if (sb.Length >= maxChars) break;
+            }
+
+            if (sb.Length == 0)
+                sb.Append("# Bu dizinde uygun kaynak dosyası bulunamadı.");
+            return Task.FromResult(sb.ToString());
         }
-
-        // Kök dizindeki dosyalar (sln, global.json vb.)
-        foreach (var file in Directory.GetFiles(basePath))
+        catch (OutOfMemoryException ex)
         {
-            if (!AllowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
-                continue;
-            AppendFile(file, basePath, sb, maxChars);
-            if (sb.Length >= maxChars) break;
+            _logger.LogError(ex, "CodeContextService.GetCodeContextAsync: Bellek yetersiz (OOM). BasePath veya dizin çok büyük olabilir.");
+            return Task.FromResult("# Proje yapısı yüklenirken bellek sınırı aşıldı. Daha küçük bir dizin veya CodeContext:BasePath kullanın.");
         }
-
-        if (sb.Length == 0)
-            sb.Append("# Bu dizinde uygun kaynak dosyası bulunamadı.");
-
-        return Task.FromResult(sb.ToString());
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CodeContextService.GetCodeContextAsync: Proje yapısı okunurken hata. BasePath: {BasePath}", _config["CodeContext:BasePath"]);
+            return Task.FromResult("# Proje yapısı okunamadı: " + ex.Message);
+        }
     }
 
     public Task<string> GetProjectStructureAsync(CancellationToken cancellationToken = default)
     {
-        var basePath = _config["CodeContext:BasePath"]?.Trim();
-        if (string.IsNullOrEmpty(basePath))
-            basePath = Path.GetDirectoryName(_env.ContentRootPath) ?? _env.ContentRootPath;
-
-        if (!Directory.Exists(basePath))
-            return Task.FromResult("# Repo kökü bulunamadı: " + basePath);
-
-        var sb = new StringBuilder(4000);
-        sb.AppendLine("# Proje yapısı (repo köküne göre relative path). Detay için read_file kullan.");
-        sb.AppendLine();
-
-        foreach (var dir in Directory.GetDirectories(basePath))
+        try
         {
-            var dirName = Path.GetFileName(dir);
-            if (SkipDirs.Any(s => dirName.Equals(s, StringComparison.OrdinalIgnoreCase)))
-                continue;
-            AppendStructureDir(dir, basePath, sb);
-        }
+            var basePath = _config["CodeContext:BasePath"]?.Trim();
+            if (string.IsNullOrEmpty(basePath))
+                basePath = Path.GetDirectoryName(_env.ContentRootPath) ?? _env.ContentRootPath;
 
-        foreach (var file in Directory.GetFiles(basePath))
+            if (!Directory.Exists(basePath))
+                return Task.FromResult("# Repo kökü bulunamadı: " + basePath);
+
+            var sb = new StringBuilder(4000);
+            sb.AppendLine("# Proje yapısı (repo köküne göre relative path). Detay için read_file kullan.");
+            sb.AppendLine();
+
+            foreach (var dir in Directory.EnumerateDirectories(basePath))
+            {
+                var dirName = Path.GetFileName(dir);
+                if (SkipDirs.Any(s => dirName.Equals(s, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                AppendStructureDir(dir, basePath, sb);
+            }
+
+            foreach (var file in Directory.EnumerateFiles(basePath))
+            {
+                if (!AllowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                    continue;
+                sb.AppendLine(Path.GetRelativePath(basePath, file));
+            }
+
+            return Task.FromResult(sb.ToString());
+        }
+        catch (OutOfMemoryException ex)
         {
-            if (!AllowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
-                continue;
-            sb.AppendLine(Path.GetRelativePath(basePath, file));
+            _logger.LogError(ex, "CodeContextService.GetProjectStructureAsync: Bellek yetersiz (OOM). Repo çok büyük; EnumerateFiles ile sınırlı sayıda dosya kullanılıyor olmalı.");
+            return Task.FromResult("# Proje yapısı alınırken bellek sınırı aşıldı. Canlı ortamda repo boyutunu veya CodeContext:BasePath'i kısıtlayın.");
         }
-
-        return Task.FromResult(sb.ToString());
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CodeContextService.GetProjectStructureAsync: Proje yapısı üretilirken hata. BasePath: {BasePath}", _config["CodeContext:BasePath"]);
+            return Task.FromResult("# Proje yapısı alınamadı: " + ex.Message);
+        }
     }
 
     private void AppendStructureDir(string dirPath, string basePath, StringBuilder sb)
     {
-        foreach (var file in Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories))
+        int count = 0;
+        foreach (var file in Directory.EnumerateFiles(dirPath, "*.*", SearchOption.AllDirectories))
         {
+            if (count >= MaxStructureFiles)
+            {
+                sb.AppendLine("... (çok fazla dosya, listeleme " + MaxStructureFiles + " ile sınırlandı)");
+                return;
+            }
+            count++;
             var ext = Path.GetExtension(file);
             if (!AllowedExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase))
                 continue;
@@ -100,7 +134,7 @@ public class CodeContextService : ICodeContextService
 
     private void AppendDirectory(string dirPath, StringBuilder sb, string basePath, int maxChars)
     {
-        foreach (var file in Directory.GetFiles(dirPath, "*.*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(dirPath, "*.*", SearchOption.AllDirectories))
         {
             if (sb.Length >= maxChars) return;
 

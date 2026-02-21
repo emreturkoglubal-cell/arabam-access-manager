@@ -39,7 +39,22 @@ public class AiChatService : IAiChatService
             return "OpenAI API anahtarı tanımlı değil. Lütfen yapılandırmada OpenAI:ApiKey veya ortam değişkeni ile verin.";
         }
 
-        var structure = await _codeContext.GetProjectStructureAsync(cancellationToken);
+        string structure;
+        try
+        {
+            structure = await _codeContext.GetProjectStructureAsync(cancellationToken);
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "AiChatService.SendAsync: Proje yapısı alınırken bellek yetersiz (OOM). GetProjectStructureAsync.");
+            structure = "# Proje yapısı bellek sınırı nedeniyle yüklenemedi. Genel soruları yanıtlayabilirim.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AiChatService.SendAsync: Proje yapısı alınırken hata. GetProjectStructureAsync.");
+            structure = "# Proje yapısı yüklenemedi: " + ex.Message;
+        }
+
         var systemContent = @"Sen Access Manager projesi için repository-aware bir asistanısın. Hem soru cevaplayabilir hem de koda değişiklik yapıp main branch'e push edebilirsin. 
 
 Araçlar:
@@ -102,54 +117,66 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
             }
 
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(responseJson);
-            var choices = doc.RootElement.GetProperty("choices");
-            if (choices.GetArrayLength() == 0)
-                return lastContent ?? "Model cevap üretmedi.";
-
-            var msg = choices[0].GetProperty("message");
-            lastContent = msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String
-                ? c.GetString()
-                : null;
-
-            if (!msg.TryGetProperty("tool_calls", out var toolCallsEl) || toolCallsEl.GetArrayLength() == 0)
-                return lastContent ?? "(Boş cevap)";
-
-            var assistantMsg = new JsonObject { ["role"] = "assistant", ["content"] = lastContent ?? "" };
-            var toolCallsArray = new JsonArray();
-            foreach (var tc in toolCallsEl.EnumerateArray())
+            JsonDocument doc;
+            try
             {
-                var id = tc.GetProperty("id").GetString();
-                var fn = tc.GetProperty("function");
-                var name = fn.GetProperty("name").GetString();
-                var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
-                toolCallsArray.Add(new JsonObject
-                {
-                    ["id"] = id,
-                    ["type"] = "function",
-                    ["function"] = new JsonObject
-                    {
-                        ["name"] = name,
-                        ["arguments"] = argsStr
-                    }
-                });
+                doc = JsonDocument.Parse(responseJson);
             }
-            assistantMsg["tool_calls"] = toolCallsArray;
-            messages.Add(assistantMsg);
-
-            foreach (var tc in toolCallsEl.EnumerateArray())
+            catch (JsonException ex)
             {
-                var id = tc.GetProperty("id").GetString();
-                var fn = tc.GetProperty("function");
-                var name = fn.GetProperty("name").GetString();
-                var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
-                var toolResult = await ExecuteToolAsync(name, argsStr, cancellationToken); 
-                messages.Add(new JsonObject
+                _logger.LogError(ex, "AiChatService.SendAsync: OpenAI yanıtı JSON parse edilemedi. ResponseLength: {Length}", responseJson?.Length ?? 0);
+                return lastContent ?? "Model yanıtı işlenemedi (geçersiz JSON).";
+            }
+            using (doc)
+            {
+                var choices = doc.RootElement.GetProperty("choices");
+                if (choices.GetArrayLength() == 0)
+                    return lastContent ?? "Model cevap üretmedi.";
+
+                var msg = choices[0].GetProperty("message");
+                lastContent = msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String
+                    ? c.GetString()
+                    : null;
+
+                if (!msg.TryGetProperty("tool_calls", out var toolCallsEl) || toolCallsEl.GetArrayLength() == 0)
+                    return lastContent ?? "(Boş cevap)";
+
+                var assistantMsg = new JsonObject { ["role"] = "assistant", ["content"] = lastContent ?? "" };
+                var toolCallsArray = new JsonArray();
+                foreach (var tc in toolCallsEl.EnumerateArray())
                 {
-                    ["role"] = "tool",
-                    ["tool_call_id"] = id,
-                    ["content"] = toolResult
-                });
+                    var id = tc.GetProperty("id").GetString();
+                    var fn = tc.GetProperty("function");
+                    var name = fn.GetProperty("name").GetString();
+                    var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
+                    toolCallsArray.Add(new JsonObject
+                    {
+                        ["id"] = id,
+                        ["type"] = "function",
+                        ["function"] = new JsonObject
+                        {
+                            ["name"] = name,
+                            ["arguments"] = argsStr
+                        }
+                    });
+                }
+                assistantMsg["tool_calls"] = toolCallsArray;
+                messages.Add(assistantMsg);
+
+                foreach (var tc in toolCallsEl.EnumerateArray())
+                {
+                    var id = tc.GetProperty("id").GetString();
+                    var fn = tc.GetProperty("function");
+                    var name = fn.GetProperty("name").GetString();
+                    var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
+                    var toolResult = await ExecuteToolAsync(name, argsStr, cancellationToken);
+                    messages.Add(new JsonObject
+                    {
+                        ["role"] = "tool",
+                        ["tool_call_id"] = id,
+                        ["content"] = toolResult
+                    });
+                }
             }
         }
 
@@ -217,6 +244,7 @@ Sadece soru sorulduysa araç kullanmadan metinle cevap ver. Yanıtları Türkçe
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "AiChatService.ExecuteToolAsync: Araç çalıştırma hatası. Tool: {ToolName}, ArgumentsLength: {Length}", name, argumentsJson?.Length ?? 0);
             return "HATA: " + ex.GetType().Name + " - " + ex.Message;
         }
     }
