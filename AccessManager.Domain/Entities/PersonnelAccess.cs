@@ -2,6 +2,10 @@ using AccessManager.Domain.Enums;
 
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Personelin bir kaynak sistemdeki fiili erişimi. Yetki türü (PermissionType), rol dışı mı (IsException), verilme ve bitiş tarihi.
+/// Erişim talebi onaylanıp uygulandığında veya manuel GrantAccess ile oluşturulur; RevokeAccess ile kaldırılır.
+/// </summary>
 public class PersonnelAccess
 {
     public int Id { get; set; }

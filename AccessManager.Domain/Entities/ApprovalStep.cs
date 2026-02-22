@@ -1,5 +1,8 @@
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Erişim talebinin (AccessRequest) bir onay adımı. Yönetici, sistem sahibi veya IT onayı; StepName ile adım adı (örn. Manager, SystemOwner, IT), onaylayan ve tarih bilgisi.
+/// </summary>
 public class ApprovalStep
 {
     public int Id { get; set; }

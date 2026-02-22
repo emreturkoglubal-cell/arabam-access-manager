@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Denetim (audit) log sayfası. Tüm sistem işlemleri (giriş, personel/erişim/rol/sistem/donanım işlemleri) AuditAction türüyle kaydedilir; targetType ile filtrelenebilir, sayfalı.
+/// Yetki: Admin veya Auditor.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndAuditor)]
 public class AuditController : Controller
 {
@@ -16,6 +20,7 @@ public class AuditController : Controller
         _auditService = auditService;
     }
 
+    /// <summary>GET /Audit/Index — Denetim kayıtlarını listeler; targetType (örn. Personnel, AccessRequest) ve sayfalama ile.</summary>
     [HttpGet]
     public IActionResult Index(string? targetType, int page = 1, int pageSize = 10)
     {

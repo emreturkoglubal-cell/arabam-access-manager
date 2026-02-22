@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Hesap: giriş (Login), çıkış (Logout), erişim reddi sayfası (AccessDenied), personel fotoğrafı (PersonnelPhoto). Kimlik doğrulama cookie tabanlı; roller AppRole ile (Admin, Manager, User, Auditor, Viewer).
+/// </summary>
 [AllowAnonymous]
 public class AccountController : Controller
 {
@@ -24,6 +27,7 @@ public class AccountController : Controller
         _httpClientFactory = httpClientFactory;
     }
 
+    /// <summary>GET /Account/Login — Giriş sayfası; returnUrl ile giriş sonrası yönlendirme.</summary>
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
     {
@@ -31,6 +35,7 @@ public class AccountController : Controller
         return View(new LoginInputModel());
     }
 
+    /// <summary>POST /Account/Login — Kullanıcı adı ve parola ile giriş; başarıda audit log ve returnUrl'e yönlendirme.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginInputModel model, string? returnUrl = null, CancellationToken cancellationToken = default)
@@ -76,6 +81,7 @@ public class AccountController : Controller
         return LocalRedirect(returnUrl);
     }
 
+    /// <summary>POST /Account/Logout — Çıkış yapar; audit log yazılır ve Login sayfasına yönlendirir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Route("Account/Logout")]
@@ -93,6 +99,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    /// <summary>GET /Account/AccessDenied — Yetkisiz erişim denemesinde gösterilen sayfa.</summary>
     [HttpGet]
     public IActionResult AccessDenied() => View();
 

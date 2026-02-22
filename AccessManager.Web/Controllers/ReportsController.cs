@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Raporlar: genel istatistikler, sistem bazlı erişim sayıları, offboard raporu, istisna (rol dışı erişim) raporu. Tarih aralığı (from, to) ile filtrelenebilir.
+/// Yetki: Admin, Manager veya Auditor.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminManagerAuditor)]
 public class ReportsController : Controller
 {
@@ -16,6 +20,7 @@ public class ReportsController : Controller
         _reportService = reportService;
     }
 
+    /// <summary>GET /Reports/Index — Rapor sayfası: istatistikler, sistem bazlı erişim, offboard ve istisna raporları; from/to ile dönem seçilir.</summary>
     [HttpGet]
     public IActionResult Index(DateTime? from, DateTime? to)
     {

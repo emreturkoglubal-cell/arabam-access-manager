@@ -1,5 +1,8 @@
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Revizyon talebine eklenen ekran görüntüsü veya dosya; dosya yolu, boyut, MimeType ve gösterim sırası (DisplayOrder) saklanır.
+/// </summary>
 public class ReviseRequestImage
 {
     public int Id { get; set; }

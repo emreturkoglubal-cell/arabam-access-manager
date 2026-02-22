@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Ana sayfa ve hata sayfası. Dashboard istatistikleri (erişim sayıları, departman bazlı) gösterilir.
+/// </summary>
 public class HomeController : Controller
 {
     private readonly IReportService _reportService;
@@ -16,6 +19,7 @@ public class HomeController : Controller
         _departmentService = departmentService;
     }
 
+    /// <summary>GET /Home/Index — Dashboard: departman ve dönem seçilerek erişim istatistikleri listelenir.</summary>
     [HttpGet]
     public IActionResult Index(int? departmentId, int? periodMonths)
     {
@@ -26,6 +30,7 @@ public class HomeController : Controller
         return View(stats);
     }
 
+    /// <summary>GET /Home/Error — Hata sayfası (genel exception handler yönlendirmesi).</summary>
     [HttpGet]
     [AllowAnonymous]
     public IActionResult Error() => View();

@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Kaynak sistemler (ResourceSystem): liste, oluşturma, düzenleme, silme. Her sistemin adı, kodu, türü (Application/Infrastructure/License), kritiklik seviyesi ve isteğe bağlı sistem sahibi (OwnerId) vardır.
+/// Yetki: Liste/Edit için Admin veya Manager; Create/Delete sadece Admin.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class SystemsController : Controller
 {
@@ -31,6 +35,7 @@ public class SystemsController : Controller
         _currentUser = currentUser;
     }
 
+    /// <summary>GET /Systems/Index — Tüm kaynak sistemleri listeler; erişim sayısı ve sistem sahibi adı gösterilir.</summary>
     [HttpGet]
     public IActionResult Index()
     {
@@ -59,6 +64,7 @@ public class SystemsController : Controller
         return View();
     }
 
+    /// <summary>GET /Systems/Create — Yeni kaynak sistem oluşturma formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Create()
@@ -67,6 +73,7 @@ public class SystemsController : Controller
         return View(new SystemEditInputModel());
     }
 
+    /// <summary>POST /Systems/Create — Yeni kaynak sistem kaydı oluşturur (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -93,6 +100,7 @@ public class SystemsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Systems/Edit/{id} — Kaynak sistem düzenleme formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Edit(int id)
@@ -112,6 +120,7 @@ public class SystemsController : Controller
         });
     }
 
+    /// <summary>POST /Systems/Edit/{id} — Kaynak sistem bilgilerini günceller (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -138,6 +147,7 @@ public class SystemsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Systems/Delete/{id} — Sistem silme onay sayfası (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Delete(int id)
@@ -148,6 +158,7 @@ public class SystemsController : Controller
         return View();
     }
 
+    /// <summary>POST /Systems/Delete/{id} — Kaynak sistem siler; talep/rol/personel erişiminde kullanılıyorsa silinmez (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]

@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Departman yönetimi: liste (personel sayısı ile), yeni departman oluşturma. Personeller bir departmana bağlıdır.
+/// Yetki: Admin veya Manager.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class DepartmentsController : Controller
 {
@@ -18,6 +22,7 @@ public class DepartmentsController : Controller
         _personnelService = personnelService;
     }
 
+    /// <summary>GET /Departments/Index — Tüm departmanları ve her birindeki personel sayısını listeler.</summary>
     [HttpGet]
     public IActionResult Index()
     {
@@ -29,12 +34,14 @@ public class DepartmentsController : Controller
         return View();
     }
 
+    /// <summary>GET /Departments/Create — Yeni departman oluşturma formu.</summary>
     [HttpGet]
     public IActionResult Create()
     {
         return View(new DepartmentCreateInputModel());
     }
 
+    /// <summary>POST /Departments/Create — Yeni departman kaydı oluşturur.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(DepartmentCreateInputModel input)

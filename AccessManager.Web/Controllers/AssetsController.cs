@@ -9,6 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Donanım (Asset) yönetimi: liste (durum/tür filtresi, sayfalı), oluşturma, düzenleme, silme, zimmet atama (Assign), iade (Return).
+/// Donanım türleri: Laptop, Desktop, Monitor, Phone, Tablet vb. (AssetType). Durum: Available, Assigned, InRepair, Retired (AssetStatus).
+/// Yetki: Liste/Assign/Return için Admin veya Manager; Create/Edit/Delete sadece Admin.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class AssetsController : Controller
 {
@@ -23,6 +28,7 @@ public class AssetsController : Controller
         _currentUser = currentUser;
     }
 
+    /// <summary>GET /Assets/Index — Donanım listesi; durum (AssetStatus) ve tür (AssetType) ile filtrelenebilir, sayfalı.</summary>
     [HttpGet]
     public IActionResult Index(AssetStatus? status, AssetType? type, int page = 1, int pageSize = 10)
     {
@@ -54,6 +60,7 @@ public class AssetsController : Controller
         return View(model);
     }
 
+    /// <summary>GET /Assets/Create — Yeni donanım kaydı oluşturma formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Create()
@@ -85,6 +92,7 @@ public class AssetsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Assets/Edit/{id} — Donanım düzenleme formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Edit(int id)
@@ -104,6 +112,7 @@ public class AssetsController : Controller
         });
     }
 
+    /// <summary>POST /Assets/Edit/{id} — Donanım bilgilerini günceller (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -128,6 +137,7 @@ public class AssetsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Assets/Delete/{id} — Donanım silme onay sayfası (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Delete(int id)
@@ -138,6 +148,7 @@ public class AssetsController : Controller
         return View();
     }
 
+    /// <summary>POST /Assets/DeleteConfirmed/{id} — Donanım kaydını siler; zimmette veya geçmiş atamada kullanılıyorsa hata (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -155,6 +166,7 @@ public class AssetsController : Controller
         }
     }
 
+    /// <summary>GET /Assets/Assign/{id} — Donanım zimmet atama formu; personel listesi ile.</summary>
     [HttpGet]
     public IActionResult Assign(int id)
     {
@@ -170,6 +182,7 @@ public class AssetsController : Controller
         return View(new AssetAssignInputModel { AssetId = id });
     }
 
+    /// <summary>POST /Assets/Assign — Seçilen donanımı personele zimmetler; Asset durumu Assigned olur.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Assign(AssetAssignInputModel input)
@@ -197,6 +210,7 @@ public class AssetsController : Controller
         }
     }
 
+    /// <summary>GET /Assets/Return/{id} — Zimmet iade formu (AssignmentId ile); iade koşulu ve not alınır.</summary>
     [HttpGet]
     public IActionResult Return(int id)
     {
@@ -215,6 +229,7 @@ public class AssetsController : Controller
         return View(new AssetReturnInputModel { AssignmentId = id });
     }
 
+    /// <summary>POST /Assets/Return — Zimmet iadesini kaydeder; donanım Available olur.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Return(AssetReturnInputModel input)

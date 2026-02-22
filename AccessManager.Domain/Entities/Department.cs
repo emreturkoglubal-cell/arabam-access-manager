@@ -1,5 +1,8 @@
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Departman. Personeller departmana bağlıdır; raporlama ve filtrelemede kullanılır.
+/// </summary>
 public class Department
 {
     public int Id { get; set; }

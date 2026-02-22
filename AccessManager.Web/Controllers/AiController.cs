@@ -3,6 +3,10 @@ using AccessManager.UI.Services;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// AI asistan sayfası: proje kaynak koduna dayalı soru-cevap ve isteğe bağlı kod değişikliği (read_file, apply_diff, git commit/push).
+/// Konuşmalar conversationId ile saklanır; GetConversations, GetMessages ile listelenir, Chat POST ile mesaj gönderilir.
+/// </summary>
 public class AiController : Controller
 {
     private readonly IAiConversationService _aiConversation;
@@ -14,6 +18,7 @@ public class AiController : Controller
         _logger = logger;
     }
 
+    /// <summary>GET /Ai/Index — AI sohbet sayfası; conversationId ile mevcut konuşma açılabilir.</summary>
     [HttpGet]
     public IActionResult Index([FromQuery] int? conversationId)
     {
@@ -21,6 +26,7 @@ public class AiController : Controller
         return View();
     }
 
+    /// <summary>GET /Ai/GetConversations — Konuşma listesini sayfalı döner (JSON).</summary>
     [HttpGet]
     public IActionResult GetConversations([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
@@ -33,6 +39,7 @@ public class AiController : Controller
         });
     }
 
+    /// <summary>GET /Ai/GetMessages — Belirtilen konuşmanın mesajlarını döner (JSON).</summary>
     [HttpGet]
     public IActionResult GetMessages([FromQuery] int conversationId)
     {
@@ -47,6 +54,7 @@ public class AiController : Controller
         });
     }
 
+    /// <summary>POST /Ai/Chat — Kullanıcı mesajını AI'a gönderir; yanıt ve güncel conversationId/title JSON döner.</summary>
     [HttpPost]
     public async Task<IActionResult> Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
@@ -65,6 +73,7 @@ public class AiController : Controller
         }
     }
 
+    /// <summary>AI sohbet isteği: mevcut konuşma ID (yoksa yeni açılır) ve kullanıcı mesajı.</summary>
     public class ChatRequest
     {
         public int? ConversationId { get; set; }

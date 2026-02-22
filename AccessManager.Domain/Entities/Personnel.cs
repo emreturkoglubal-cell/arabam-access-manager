@@ -2,6 +2,10 @@ using AccessManager.Domain.Enums;
 
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Personel (çalışan) kaydı. Ad, soyad, e-posta, departman, rol, yönetici, işe giriş/çıkış tarihi ve durum bilgilerini tutar.
+/// Erişim talepleri ve donanım zimmeti personel ile ilişkilidir.
+/// </summary>
 public class Personnel
 {
     public int Id { get; set; }

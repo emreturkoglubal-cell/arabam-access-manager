@@ -2,6 +2,10 @@ using AccessManager.Domain.Enums;
 
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Erişim talebi. Bir personelin belirli bir kaynak sistemde (ResourceSystem) yetki (PermissionType) istemesi.
+/// Onay süreci: Yönetici → Sistem sahibi → IT. Onaylanırsa PersonnelAccess oluşturulur; reddedilirse talep Rejected kalır.
+/// </summary>
 public class AccessRequest
 {
     public int Id { get; set; }

@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Personel yönetimi: listeleme (filtre: departman, aktif, arama), oluşturma, detay, not ekleme, erişim verme/geri alma, donanım zimmet atama.
+/// Yetki: Admin veya Manager.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class PersonnelController : Controller
 {
@@ -40,6 +44,7 @@ public class PersonnelController : Controller
         _personnelAccessService = personnelAccessService;
     }
 
+    /// <summary>GET /Personnel/Index — Personel listesi; departman, sadece aktif ve arama metni ile filtrelenebilir, sayfalı.</summary>
     [HttpGet]
     public IActionResult Index(int? departmentId, bool? activeOnly, string? search, int page = 1, int pageSize = 10)
     {
@@ -76,6 +81,7 @@ public class PersonnelController : Controller
         return View(vm);
     }
 
+    /// <summary>GET /Personnel/Create — Yeni personel ekleme formu (departman, rol, yönetici listeleri doldurulur).</summary>
     [HttpGet]
     public IActionResult Create()
     {
@@ -85,6 +91,7 @@ public class PersonnelController : Controller
         return View(new PersonnelCreateInputModel());
     }
 
+    /// <summary>POST /Personnel/Create — Yeni personel kaydı oluşturur; başarıda listeye yönlendirir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(PersonnelCreateInputModel input)
@@ -115,6 +122,7 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id = p.Id });
     }
 
+    /// <summary>GET /Personnel/Detail/{id} — Personel detayı: erişimler, donanım zimmetleri, notlar.</summary>
     [HttpGet]
     public IActionResult Detail(int id)
     {
@@ -155,6 +163,7 @@ public class PersonnelController : Controller
         return View(vm);
     }
 
+    /// <summary>POST /Personnel/AddZimmetNote — Personelin bir zimmet kaydına not ekler.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult AddZimmetNote(int id, int assignmentId, ZimmetNoteInputModel input)
@@ -185,6 +194,7 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id });
     }
 
+    /// <summary>POST /Personnel/AddNote — Personel kaydına genel not ekler.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult AddNote(int id, PersonnelNoteInputModel input)
@@ -208,6 +218,7 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id });
     }
 
+    /// <summary>POST /Personnel/GrantAccess — Personel için belirtilen sistemde erişim açar (rol dışı / istisna olarak).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult GrantAccess(int id, int systemId)
@@ -252,6 +263,7 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id });
     }
 
+    /// <summary>POST /Personnel/RevokeAccess — Personelin belirtilen erişim kaydını kapatır (pasif yapar).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult RevokeAccess(int id, int accessId)
@@ -277,7 +289,7 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id });
     }
 
-    /// <summary>Müsait donanımlardan seçip bu personel için zimmetler.</summary>
+    /// <summary>GET /Personnel/AssignAsset/{id} — Personel için donanım zimmetleme formu; müsait donanımlar listelenir.</summary>
     [HttpGet]
     public IActionResult AssignAsset(int id)
     {
@@ -289,6 +301,7 @@ public class PersonnelController : Controller
         return View();
     }
 
+    /// <summary>POST /Personnel/AssignAsset — Seçilen donanımı personel zimmetine verir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult AssignAsset(int id, int assetId, string? notes)

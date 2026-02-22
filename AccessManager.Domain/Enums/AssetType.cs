@@ -1,6 +1,8 @@
 namespace AccessManager.Domain.Enums;
 
-/// <summary>Donanım türü (bilgisayar, telefon vb.).</summary>
+/// <summary>
+/// Donanım (Asset) türü. Laptop, masaüstü, monitör, telefon, tablet, klavye, fare veya diğer.
+/// </summary>
 public enum AssetType
 {
     Laptop,
@@ -10,5 +12,6 @@ public enum AssetType
     Tablet,
     Keyboard,
     Mouse,
+    /// <summary>Diğer donanım türü.</summary>
     Other
 }

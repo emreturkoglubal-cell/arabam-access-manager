@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// İşe giriş (onboarding): yeni personel ekleme formu ve kayıt. Personel oluşturulduktan sonra atanan role göre (RoleId) rol yetkileri (RolePermission) otomatik PersonnelAccess olarak verilir.
+/// Yetki: Admin veya Manager.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class OnboardingController : Controller
 {
@@ -31,6 +35,7 @@ public class OnboardingController : Controller
         _auditService = auditService;
     }
 
+    /// <summary>GET /Onboarding/Index — İşe giriş formu (departman, rol, yönetici listeleri).</summary>
     [HttpGet]
     public IActionResult Index()
     {
@@ -40,6 +45,7 @@ public class OnboardingController : Controller
         return View(new PersonnelCreateInputModel());
     }
 
+    /// <summary>POST /Onboarding/Index — Yeni personel kaydı oluşturur; rol atanmışsa o rolün sistem yetkilerini otomatik açar; personel detay sayfasına yönlendirir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Index(PersonnelCreateInputModel input)

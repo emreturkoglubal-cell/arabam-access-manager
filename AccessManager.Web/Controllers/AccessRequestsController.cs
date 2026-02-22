@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Erişim talepleri: liste (personel/durum filtresi), yeni talep oluşturma, detay ve onay adımları (Yönetici / Sistem sahibi / IT).
+/// Onay akışı: PendingManager → PendingSystemOwner → PendingIT → Approved; reddedilirse Rejected. Approved olan talepler uygulanınca Applied olur.
+/// Yetki: Admin, Manager veya User.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminManagerUser)]
 public class AccessRequestsController : Controller
 {
@@ -27,6 +32,7 @@ public class AccessRequestsController : Controller
         _currentUser = currentUser;
     }
 
+    /// <summary>GET /AccessRequests/Index — Erişim taleplerini listeler; personel ve durum (AccessRequestStatus) ile filtrelenebilir.</summary>
     [HttpGet]
     public IActionResult Index(int? personnelId, string? status)
     {
@@ -50,6 +56,7 @@ public class AccessRequestsController : Controller
         return View();
     }
 
+    /// <summary>GET /AccessRequests/Create — Yeni erişim talebi formu; personel ve sistem seçilir, yetki türü ve bitiş tarihi girilir.</summary>
     [HttpGet]
     public IActionResult Create(int? personnelId)
     {
@@ -65,6 +72,7 @@ public class AccessRequestsController : Controller
         return View(new AccessRequestCreateInputModel { PersonnelId = personnelId ?? 0 });
     }
 
+    /// <summary>POST /AccessRequests/Create — Yeni erişim talebi oluşturur; talep detay sayfasına yönlendirir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(AccessRequestCreateInputModel input)
@@ -91,6 +99,7 @@ public class AccessRequestsController : Controller
         return RedirectToAction(nameof(Detail), new { id = request.Id });
     }
 
+    /// <summary>GET /AccessRequests/Detail/{id} — Talep detayı ve onay adımları; onay/red butonu (stepName: Manager, SystemOwner, IT).</summary>
     [HttpGet]
     public IActionResult Detail(int id)
     {
@@ -118,6 +127,7 @@ public class AccessRequestsController : Controller
         return View();
     }
 
+    /// <summary>POST /AccessRequests/Approve — Onay adımını işler: stepName (Manager/SystemOwner/IT), approved (true/false), isteğe bağlı comment.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Approve(int id, string stepName, bool approved, string? comment)

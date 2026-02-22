@@ -1,5 +1,8 @@
 namespace AccessManager.Domain.Enums;
 
+/// <summary>
+/// Denetim (audit) log kayıt türü. Kim, ne zaman, hangi işlemi (giriş, personel oluşturma, erişim verme vb.) yaptı.
+/// </summary>
 public enum AuditAction
 {
     Login,

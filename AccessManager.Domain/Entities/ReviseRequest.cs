@@ -2,6 +2,9 @@ using AccessManager.Domain.Enums;
 
 namespace AccessManager.Domain.Entities;
 
+/// <summary>
+/// Revizyon / düzeltme talebi. Kullanıcıların sistemle ilgili iyileştirme veya hata bildirimi; başlık, açıklama ve durum (Pending/Resolved). İsteğe bağlı ekran görüntüleri (Images) eklenebilir.
+/// </summary>
 public class ReviseRequest
 {
     public int Id { get; set; }

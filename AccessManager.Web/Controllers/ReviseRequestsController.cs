@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// Revizyon talepleri: kullanıcıların sistemle ilgili düzeltme/iyileştirme talepleri. Liste (durum filtresi: Pending/Resolved), detay, oluşturma, düzenleme, durum güncelleme (UpdateStatus). İsteğe bağlı ekran görüntüsü (image) eklenebilir.
+/// Yetki: Admin veya Manager.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class ReviseRequestsController : Controller
 {
@@ -28,6 +32,7 @@ public class ReviseRequestsController : Controller
         _webHostEnvironment = webHostEnvironment;
     }
 
+    /// <summary>GET /ReviseRequests/Index — Revizyon taleplerini listeler; status (Pending/Resolved) ile filtrelenebilir.</summary>
     [HttpGet]
     public IActionResult Index(ReviseRequestStatus? status)
     {
@@ -54,6 +59,7 @@ public class ReviseRequestsController : Controller
         return View(model);
     }
 
+    /// <summary>GET /ReviseRequests/Detail/{id} — Tek revizyon talebinin detayı ve ekran görüntüleri.</summary>
     [HttpGet]
     public IActionResult Detail(int id)
     {
@@ -71,6 +77,7 @@ public class ReviseRequestsController : Controller
         return View(model);
     }
 
+    /// <summary>GET /ReviseRequests/Edit/{id} — Revizyon talebi düzenleme formu.</summary>
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -91,6 +98,7 @@ public class ReviseRequestsController : Controller
         return View(model);
     }
 
+    /// <summary>POST /ReviseRequests/Create — Yeni revizyon talebi oluşturur; isteğe bağlı görseller yüklenebilir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ReviseRequestCreateInputModel input)
@@ -120,6 +128,7 @@ public class ReviseRequestsController : Controller
         return RedirectToAction("Index");
     }
 
+    /// <summary>POST /ReviseRequests/Edit — Revizyon talebinin başlık/açıklama ve görsellerini günceller.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(ReviseRequestEditInputModel input)
@@ -150,6 +159,7 @@ public class ReviseRequestsController : Controller
         return RedirectToAction("Detail", new { id = input.Id });
     }
 
+    /// <summary>POST /ReviseRequests/UpdateStatus — Revizyon talebinin durumunu Pending veya Resolved olarak günceller.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult UpdateStatus(int id, ReviseRequestStatus status)

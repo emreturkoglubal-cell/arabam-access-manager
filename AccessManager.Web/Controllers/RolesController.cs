@@ -7,6 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// İş rolleri (Görev / Role): liste, oluşturma, düzenleme, silme ve rol bazlı yetkiler (EditPermissions, AddPermission, RemovePermission).
+/// Rolün her kaynak sistem için PermissionType tanımlanır; personel role atandığında bu yetkiler varsayılan olarak uygulanır.
+/// Yetki: Liste/EditPermissions için Admin veya Manager; Create/Edit/Delete sadece Admin.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class RolesController : Controller
 {
@@ -23,6 +28,7 @@ public class RolesController : Controller
         _currentUser = currentUser;
     }
 
+    /// <summary>GET /Roles/Index — Tüm rolleri ve her rolün sistem bazlı yetkilerini listeler.</summary>
     [HttpGet]
     public IActionResult Index()
     {
@@ -41,10 +47,12 @@ public class RolesController : Controller
         return View();
     }
 
+    /// <summary>GET /Roles/Create — Yeni rol oluşturma formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Create() => View(new RoleEditInputModel());
 
+    /// <summary>POST /Roles/Create — Yeni iş rolü kaydı oluşturur (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -67,6 +75,7 @@ public class RolesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Roles/Edit/{id} — Rol düzenleme formu (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Edit(int id)
@@ -77,6 +86,7 @@ public class RolesController : Controller
         return View(new RoleEditInputModel { Name = role.Name, Code = role.Code, Description = role.Description });
     }
 
+    /// <summary>POST /Roles/Edit/{id} — Rol adı/kod/açıklamasını günceller (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -99,6 +109,7 @@ public class RolesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>GET /Roles/EditPermissions/{id} — Rolün sistem bazlı yetkilerini (RolePermission) düzenleme sayfası (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult EditPermissions(int id)
@@ -113,6 +124,7 @@ public class RolesController : Controller
         return View(new RoleAddPermissionInputModel());
     }
 
+    /// <summary>POST /Roles/AddPermission — Role belirtilen sistem için yetki (PermissionType, IsDefault) ekler (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -126,6 +138,7 @@ public class RolesController : Controller
         return RedirectToAction(nameof(EditPermissions), new { id });
     }
 
+    /// <summary>POST /Roles/RemovePermission — Rolün belirtilen RolePermission kaydını kaldırır (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
@@ -141,6 +154,7 @@ public class RolesController : Controller
         return RedirectToAction(nameof(EditPermissions), new { id });
     }
 
+    /// <summary>GET /Roles/Delete/{id} — Rol silme onay sayfası (Admin).</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Delete(int id)
@@ -152,6 +166,7 @@ public class RolesController : Controller
         return View();
     }
 
+    /// <summary>POST /Roles/Delete/{id} — Rolü siler; personelde atanmışsa silinmez (Admin).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName("Delete")]

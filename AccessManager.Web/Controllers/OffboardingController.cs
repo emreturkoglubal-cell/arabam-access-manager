@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
 
+/// <summary>
+/// İşten çıkış (offboarding): personel seçilir, bitiş tarihi verilir; personel durumu Offboarded yapılır. Result sayfasında özet gösterilir.
+/// Yetki: Admin veya Manager.
+/// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
 public class OffboardingController : Controller
 {
@@ -19,6 +23,7 @@ public class OffboardingController : Controller
         _auditService = auditService;
     }
 
+    /// <summary>GET /Offboarding/Index — İşten çıkış formu; aktif personel listesi.</summary>
     [HttpGet]
     public IActionResult Index()
     {
@@ -26,6 +31,7 @@ public class OffboardingController : Controller
         return View(new OffboardingInputModel());
     }
 
+    /// <summary>POST /Offboarding/Index — Seçilen personeli offboard eder (EndDate ile); Result sayfasına yönlendirir.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Index(OffboardingInputModel input)
@@ -43,6 +49,7 @@ public class OffboardingController : Controller
         return RedirectToAction(nameof(Result), new { id = p.Id });
     }
 
+    /// <summary>GET /Offboarding/Result/{id} — İşten çıkış tamamlandı özet sayfası.</summary>
     [HttpGet]
     public IActionResult Result(int id)
     {
@@ -53,6 +60,7 @@ public class OffboardingController : Controller
     }
 }
 
+/// <summary>İşten çıkış formu: seçilen personel ve bitiş tarihi.</summary>
 public class OffboardingInputModel
 {
     public int? SelectedPersonnelId { get; set; }
