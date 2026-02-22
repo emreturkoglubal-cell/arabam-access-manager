@@ -89,11 +89,13 @@ static void EnsureRepoOnCleanMain(string repoPath, IConfiguration config, ILogge
         var originUrl = remoteUrlRaw!.Split('\n')[0].Trim();
         var token = config["Git:Token"]?.Trim();
         var fetchTarget = !string.IsNullOrEmpty(token) ? InjectToken(originUrl, token) : "origin";
-        RunGit(repoPath, "fetch \"" + fetchTarget + "\" main");
+        var (fetchOk, _) = RunGit(repoPath, "fetch \"" + fetchTarget + "\" main");
+        if (!fetchOk) return;
+        // URL ile fetch yapınca ref FETCH_HEAD'de olur; origin/main güncellenmeyebilir. FETCH_HEAD'den main'e geç.
         var (coOk, _) = RunGit(repoPath, "checkout main");
-        if (!coOk) RunGit(repoPath, "checkout -b main origin/main");
-        RunGit(repoPath, "reset --hard origin/main");
-        logger.LogError("Git: Repo main branch üzerinde ve origin/main ile sıfırlandı. Base branch her zaman main.");
+        if (!coOk) RunGit(repoPath, "checkout -b main FETCH_HEAD");
+        else RunGit(repoPath, "reset --hard FETCH_HEAD");
+        logger.LogError("Git: Repo main branch üzerinde ve FETCH_HEAD ile sıfırlandı. Base branch her zaman main.");
     }
     catch (Exception ex)
     {

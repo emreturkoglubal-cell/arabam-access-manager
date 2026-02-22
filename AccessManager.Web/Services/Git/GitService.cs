@@ -80,10 +80,11 @@ public sealed class GitService : IGitService
                     _logger.LogError("GitService.CommitAndPush: fetch origin main başarısız. Output: {Output}", fetchResult.Output ?? "(boş)");
                     return GitResult.Fail("main branch alınamadı. Hata: " + (fetchResult.Output ?? "?"));
                 }
-                var createResult = await RunGitWithEnvAsync(repo, "checkout -b " + MainBranch + " origin/" + MainBranch, env, cancellationToken);
+                // URL ile fetch yapınca ref FETCH_HEAD'de olur; origin/main güncellenmez. Bu yüzden FETCH_HEAD'den branch oluştur.
+                var createResult = await RunGitWithEnvAsync(repo, "checkout -b " + MainBranch + " FETCH_HEAD", env, cancellationToken);
                 if (!createResult.Success)
                 {
-                    _logger.LogError("GitService.CommitAndPush: checkout -b main origin/main başarısız. Output: {Output}", createResult.Output ?? "(boş)");
+                    _logger.LogError("GitService.CommitAndPush: checkout -b main FETCH_HEAD başarısız. Output: {Output}", createResult.Output ?? "(boş)");
                     return GitResult.Fail("main branch'a geçilemedi. Hata: " + (createResult.Output ?? "?"));
                 }
             }
