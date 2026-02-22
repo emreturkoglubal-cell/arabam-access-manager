@@ -112,38 +112,40 @@ public sealed class GitService : IGitService
             return GitResult.Fail("git commit hatası: " + msg);
         }
 
-        // Mevcut branch adını al (main/master vb. repoya göre değişir; "src refspec main does not match any" hatasını önler)
+        // Mevcut branch adını al (main/master vb. repoya göre değişir)
         var branch = await GetCurrentBranchAsync(repo, cancellationToken);
         if (string.IsNullOrWhiteSpace(branch))
             branch = "main";
 
-        // git push origin <branch>
-        if (!string.IsNullOrEmpty(token))
+        var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
+        if (string.IsNullOrEmpty(remoteUrl))
+            return GitResult.Fail("Remote origin URL alınamadı.");
+
+        var authUrl = !string.IsNullOrEmpty(token) ? InjectTokenIntoUrl(remoteUrl, token) : null;
+        var pushTarget = authUrl ?? "origin";
+
+        // Canlıda "rejected (fetch first)" önlemek: push öncesi remote'daki değişiklikleri alıp rebase ile üste koy
+        var pullArgs = $"pull --rebase \"{pushTarget}\" {branch}";
+        var pullResult = await RunGitWithEnvAsync(repo, pullArgs,
+            new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
+        if (!pullResult.Success)
         {
-            var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
-            if (string.IsNullOrEmpty(remoteUrl))
-                return GitResult.Fail("Remote origin URL alınamadı.");
-            var authUrl = InjectTokenIntoUrl(remoteUrl, token);
-            var pushResult = await RunGitWithEnvAsync(repo, "push \"" + authUrl + "\" " + branch,
-                new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
-            if (!pushResult.Success)
-            {
-                _logger.LogError(
-                    "GitService.CommitAndPush: push başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PushOutput: {Output}",
-                    repo, branch, pushResult.Output ?? "(boş)");
-                return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
-            }
+            var pullOut = pullResult.Output ?? "";
+            _logger.LogError(
+                "GitService.CommitAndPush: pull --rebase başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PullOutput: {Output}",
+                repo, branch, pullOut);
+            return GitResult.Fail("Push öncesi pull başarısız (remote ile birleştirilemedi veya conflict). Hata: " + pullOut);
         }
-        else
+
+        // git push
+        var pushResult = await RunGitWithEnvAsync(repo, "push \"" + pushTarget + "\" " + branch,
+            new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
+        if (!pushResult.Success)
         {
-            var pushResult = await RunGitAsync(repo, "push origin " + branch, cancellationToken);
-            if (!pushResult.Success)
-            {
-                _logger.LogError(
-                    "GitService.CommitAndPush: push başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PushOutput: {Output}",
-                    repo, branch, pushResult.Output ?? "(boş)");
-                return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
-            }
+            _logger.LogError(
+                "GitService.CommitAndPush: push başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PushOutput: {Output}",
+                repo, branch, pushResult.Output ?? "(boş)");
+            return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
         }
 
         return GitResult.Ok();
