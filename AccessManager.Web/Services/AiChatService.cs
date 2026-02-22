@@ -66,7 +66,7 @@ Araçlar:
 - read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre. MVC view'lar AccessManager.Web/Views/ altındadır (Views kullan, Pages değil). Örn: AccessManager.Web/Views/Systems/Index.cshtml, AccessManager.Web/Views/Personnel/Index.cshtml.
 - write_file: Yeni dosya veya tam içerik yazmak için.
 - apply_diff: Mevcut dosyada değişiklik yapmak için unified diff uygula. Diff formatı: --- a/path, +++ b/path, @@ satır bilgisi, sonra + veya - veya boşluk ile başlayan satırlar.
-- git_commit_and_push: Değişiklikleri commit edip push et. Sadece değiştirdiğin dosyaların path'lerini paths listesine ver (branch adı otomatik tespit edilir).
+- git_commit_and_push: Değişiklikleri commit edip her zaman main branch'e push et. Yeni branch oluşturma; sadece değiştirdiğin dosyaların path'lerini paths listesine ver.
 
 Kod değişikliği isteniyorsa: Önce read_file ile ilgili dosyayı oku, sonra apply_diff veya write_file ile değişikliği yap, en sonda git_commit_and_push ile commit ve push yap. Commit mesajı Türkçe veya İngilizce kısa ve anlamlı olsun.
 Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı oradan ver; tahmin yapma. Yanıtları Türkçe ver.

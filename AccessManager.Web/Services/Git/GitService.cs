@@ -29,6 +29,9 @@ public sealed class GitService : IGitService
         }
     }
 
+    /// <summary>Base branch her zaman main (Cloud Run main'e push'ta otomatik deploy eder).</summary>
+    private const string MainBranch = "main";
+
     public async Task<GitResult> CommitAndPushAsync(
         IReadOnlyList<string> relativePaths,
         string commitMessage,
@@ -48,12 +51,50 @@ public sealed class GitService : IGitService
                 return GitResult.Fail($"Geçersiz dosya yolu: {rel}");
         }
 
+        var env = new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" };
+
+        // 1) Rebase/merge kalıntısı varsa temizle (canlıda "rebase-merge directory" hatası önlenir)
+        var rebaseMerge = Path.Combine(repo, ".git", "rebase-merge");
+        var rebaseApply = Path.Combine(repo, ".git", "rebase-apply");
+        if (Directory.Exists(rebaseMerge) || Directory.Exists(rebaseApply))
+        {
+            var abortResult = await RunGitWithEnvAsync(repo, "rebase --abort", env, cancellationToken);
+            if (!abortResult.Success)
+                _logger.LogError("GitService.CommitAndPush: rebase --abort tamamlanamadı. Output: {Output}", abortResult.Output ?? "(boş)");
+        }
+
+        // 2) Her zaman main branch üzerinde çalış
+        var currentBranch = await GetCurrentBranchAsync(repo, cancellationToken);
+        if (!string.Equals(currentBranch, MainBranch, StringComparison.OrdinalIgnoreCase))
+        {
+            var coResult = await RunGitWithEnvAsync(repo, "checkout " + MainBranch, env, cancellationToken);
+            if (!coResult.Success)
+            {
+                // main yoksa origin/main'dan oluştur
+                var originUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
+                var fetchAuthUrl = !string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(originUrl) ? InjectTokenIntoUrl(originUrl, token) : null;
+                var fetchTarget = fetchAuthUrl ?? "origin";
+                var fetchResult = await RunGitWithEnvAsync(repo, "fetch \"" + fetchTarget + "\" " + MainBranch, env, cancellationToken);
+                if (!fetchResult.Success)
+                {
+                    _logger.LogError("GitService.CommitAndPush: fetch origin main başarısız. Output: {Output}", fetchResult.Output ?? "(boş)");
+                    return GitResult.Fail("main branch alınamadı. Hata: " + (fetchResult.Output ?? "?"));
+                }
+                var createResult = await RunGitWithEnvAsync(repo, "checkout -b " + MainBranch + " origin/" + MainBranch, env, cancellationToken);
+                if (!createResult.Success)
+                {
+                    _logger.LogError("GitService.CommitAndPush: checkout -b main origin/main başarısız. Output: {Output}", createResult.Output ?? "(boş)");
+                    return GitResult.Fail("main branch'a geçilemedi. Hata: " + (createResult.Output ?? "?"));
+                }
+            }
+        }
+
         // Normalize paths for comparison (forward slash, no leading slash)
         var normalizedPaths = relativePaths
             .Select(p => p.Replace('\\', '/').TrimStart('/'))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // git add -f: force add (ignore ignore rules); sadece verilen path'leri stage'le
+        // 3) git add -f: sadece verilen path'leri stage'le
         var addArgs = "add -f -- " + string.Join(" ", relativePaths.Select(p => $"\"{p.Replace("\"", "\\\"")}\""));
         var addResult = await RunGitAsync(repo, addArgs, cancellationToken);
         if (!addResult.Success)
@@ -112,11 +153,7 @@ public sealed class GitService : IGitService
             return GitResult.Fail("git commit hatası: " + msg);
         }
 
-        // Mevcut branch adını al (main/master vb. repoya göre değişir)
-        var branch = await GetCurrentBranchAsync(repo, cancellationToken);
-        if (string.IsNullOrWhiteSpace(branch))
-            branch = "main";
-
+        // 4) Remote: her zaman main'e push (Cloud Run main'de otomatik deploy)
         var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
         if (string.IsNullOrEmpty(remoteUrl))
             return GitResult.Fail("Remote origin URL alınamadı.");
@@ -124,28 +161,26 @@ public sealed class GitService : IGitService
         var authUrl = !string.IsNullOrEmpty(token) ? InjectTokenIntoUrl(remoteUrl, token) : null;
         var pushTarget = authUrl ?? "origin";
 
-        // Canlıda "rejected (fetch first)" önlemek: push öncesi remote'daki değişiklikleri alıp rebase ile üste koy
-        var pullArgs = $"pull --rebase \"{pushTarget}\" {branch}";
-        var pullResult = await RunGitWithEnvAsync(repo, pullArgs,
-            new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
+        // 5) Push öncesi origin/main'ı çekip kendi commit'imizi üste koy
+        var pullArgs = $"pull --rebase \"{pushTarget}\" {MainBranch}";
+        var pullResult = await RunGitWithEnvAsync(repo, pullArgs, env, cancellationToken);
         if (!pullResult.Success)
         {
             var pullOut = pullResult.Output ?? "";
             _logger.LogError(
-                "GitService.CommitAndPush: pull --rebase başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PullOutput: {Output}",
-                repo, branch, pullOut);
-            return GitResult.Fail("Push öncesi pull başarısız (remote ile birleştirilemedi veya conflict). Hata: " + pullOut);
+                "GitService.CommitAndPush: pull --rebase origin main başarısız. RepoPath: {RepoPath}, PullOutput: {Output}",
+                repo, pullOut);
+            return GitResult.Fail("Push öncesi pull (origin main) başarısız. Hata: " + pullOut);
         }
 
-        // git push
-        var pushResult = await RunGitWithEnvAsync(repo, "push \"" + pushTarget + "\" " + branch,
-            new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" }, cancellationToken);
+        // 6) Her zaman main branch'e push
+        var pushResult = await RunGitWithEnvAsync(repo, "push \"" + pushTarget + "\" " + MainBranch, env, cancellationToken);
         if (!pushResult.Success)
         {
             _logger.LogError(
-                "GitService.CommitAndPush: push başarısız. RepoPath: {RepoPath}, Branch: {Branch}, PushOutput: {Output}",
-                repo, branch, pushResult.Output ?? "(boş)");
-            return GitResult.Fail("Commit atıldı; push başarısız. Branch: " + branch + ". Hata: " + (pushResult.Output ?? "?"));
+                "GitService.CommitAndPush: push origin main başarısız. RepoPath: {RepoPath}, PushOutput: {Output}",
+                repo, pushResult.Output ?? "(boş)");
+            return GitResult.Fail("Push (origin main) başarısız. Hata: " + (pushResult.Output ?? "?"));
         }
 
         return GitResult.Ok();
@@ -166,7 +201,7 @@ public sealed class GitService : IGitService
         return r.Success ? r.Output?.Trim() : null;
     }
 
-    /// <summary>Repodaki mevcut branch adını döner (main, master vb.).</summary>
+    /// <summary>Repodaki mevcut branch adını döner (checkout main için kullanılır).</summary>
     private static async Task<string?> GetCurrentBranchAsync(string repoPath, CancellationToken ct)
     {
         var r = await RunGitAsync(repoPath, "branch --show-current", ct);

@@ -72,11 +72,63 @@ if (isTmpRepo && !Directory.Exists(repoFullPath) && Directory.Exists("/app/repo"
         Directory.CreateDirectory(repoFullPath!);
         CopyDirectory("/app/repo", repoFullPath!);
         app.Logger.LogError("Cloud Run: /app/repo yazılabilir olması için /tmp/repo'ya kopyalandı. apply_diff ve push artık çalışabilir.");
+        EnsureRepoOnCleanMain(repoFullPath!, app.Configuration, app.Logger);
     }
     catch (Exception ex)
     {
         app.Logger.LogError(ex, "Cloud Run: /app/repo -> /tmp/repo kopyalanamadı. apply_diff/push başarısız olabilir (dosya sistemi salt okunur).");
     }
+}
+
+static void EnsureRepoOnCleanMain(string repoPath, IConfiguration config, ILogger logger)
+{
+    try
+    {
+        var (ok, remoteUrlRaw) = RunGit(repoPath, "remote get-url origin");
+        if (!ok || string.IsNullOrWhiteSpace(remoteUrlRaw)) return;
+        var originUrl = remoteUrlRaw!.Split('\n')[0].Trim();
+        var token = config["Git:Token"]?.Trim();
+        var fetchTarget = !string.IsNullOrEmpty(token) ? InjectToken(originUrl, token) : "origin";
+        RunGit(repoPath, "fetch \"" + fetchTarget + "\" main");
+        var (coOk, _) = RunGit(repoPath, "checkout main");
+        if (!coOk) RunGit(repoPath, "checkout -b main origin/main");
+        RunGit(repoPath, "reset --hard origin/main");
+        logger.LogError("Git: Repo main branch üzerinde ve origin/main ile sıfırlandı. Base branch her zaman main.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Git: EnsureRepoOnCleanMain atlandı.");
+    }
+}
+
+static string InjectToken(string url, string token)
+{
+    if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return "https://" + token + "@" + url.Substring(8);
+    if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)) return "http://" + token + "@" + url.Substring(7);
+    return url;
+}
+
+static (bool success, string output) RunGit(string repoPath, string arguments)
+{
+    try
+    {
+        using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = arguments,
+            WorkingDirectory = repoPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+        if (p == null) return (false, "");
+        var stdout = p.StandardOutput.ReadToEnd();
+        var stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        return (p.ExitCode == 0, (stdout + "\n" + stderr).Trim());
+    }
+    catch { return (false, ""); }
 }
 
 // Git/CodeContext path doğrulama: canlıda read_file ve push için repo yolunun doğru olduğunu kontrol et
