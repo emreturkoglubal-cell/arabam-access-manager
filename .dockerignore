@@ -1,6 +1,6 @@
-# Git ( .git image'a dahil ediliyor ki canlıda AI push atabilsin )
-.gitignore
-.gitattributes
+# Git: .git image'a dahil (canlıda AI push atabilsin). .gitignore/.gitattributes dahil edilmeli ki repo working tree tam olsun (commit "no changes added" olmasın).
+# .gitignore
+# .gitattributes
 
 # Build çıktıları
 **/bin
@@ -35,10 +35,10 @@ project.fragment.lock.json
 **/.env
 **/.env.*
 
-# Dokümantasyon (image küçük kalsın)
-docs
-*.md
-!README.md
+# Dokümantasyon: docs ve .md dahil edilmeli ki container'da git status "deleted" göstermesin; AI commit/push çalışsın.
+# docs
+# *.md
+# !README.md
 
 # Eski / farklı proje (sadece Web deploy ediyoruz)
 AccessManager/

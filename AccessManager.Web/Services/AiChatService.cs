@@ -58,7 +58,7 @@ public class AiChatService : IAiChatService
         var systemContent = @"Sen yalnızca Access Manager (arabam-access-manager) projesi için çalışan bir asistanısın.
 
 ZORUNLU KURALLAR:
-1) Sadece bu projeyle ilgili sorulara cevap ver. Bu projenin kaynak kodu, yapısı, sayfaları, API'leri dışında genel programlama, başka projeler veya proje dışı konularda asla cevap verme. Proje dışı sorularda kısa ve nazikçe 'Bu asistan yalnızca Access Manager projesiyle ilgili soruları yanıtlar. Sorunuz proje kaynak koduna bakılarak cevaplanamaz.' de.
+1) Sadece bu projeyle ilgili sorulara cevap ver. Bu projenin kaynak kodu, yapısı, sayfaları, API'leri dışında genel programlama, başka projeler veya proje dışı konularda asla cevap verme. Proje dışı sorularda kısa ve nazikçe 'Bu asistan yalnızca Access Manager projesiyle ilgili soruları yanıtlar. Sorunuz proje kaynak koduna bakılarak cevaplanır.' de.
 2) Tüm cevaplarını projenin kaynak koduna dayandır. Soruyu yanıtlamak için gerekli dosyaları read_file ile okuyup oradan bilgi ver. Tahmin veya genel bilgiyle cevap verme.
 3) Projeyi bozma, silme veya büyük ölçekte zarar verecek (tüm dosyaları silmek, .git'i silmek, kritik kodu kaldırmak vb.) istekleri asla kabul etme. Böyle bir istek gelirse reddet ve nedenini açıkla.
 
