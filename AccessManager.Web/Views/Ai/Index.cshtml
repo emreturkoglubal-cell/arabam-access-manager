@@ -48,14 +48,15 @@
     .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
     .typing-indicator span:nth-child(4) { animation-delay: 0.6s; }
     @@keyframes typing-blink { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); } 40% { opacity: 1; transform: scale(1); } }
-    /* AI cevabında kod blokları */
+    /* AI cevabında kod blokları – beyaz arka plan, tema rengi vurgu (sol çizgi) */
     .am-ai-code-block {
         margin: 0.75rem 0;
         padding: 1rem 1.25rem;
-        background: #1e1e1e;
-        color: #d4d4d4;
+        background: var(--am-card-bg, #ffffff);
+        color: var(--am-text, #111827);
         border-radius: 8px;
-        border: 1px solid rgba(0,0,0,0.2);
+        border: 1px solid var(--am-border, #e5e7eb);
+        border-left: 4px solid var(--am-accent, #e40030);
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 0.9rem;
         line-height: 1.5;
@@ -65,12 +66,17 @@
     }
     .am-ai-code-block code { background: none; color: inherit; padding: 0; font-size: inherit; }
     .am-ai-inline-code {
-        background: rgba(0,0,0,0.08);
+        background: var(--am-accent-light, #fef2f2);
+        color: var(--am-accent, #e40030);
         padding: 0.15em 0.4em;
         border-radius: 4px;
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 0.9em;
     }
+    /* AI cevabında markdown başlıkları */
+    .am-ai-h1 { font-size: 1.35rem; font-weight: 700; margin: 1rem 0 0.5rem; color: var(--am-text, #111827); }
+    .am-ai-h2 { font-size: 1.2rem; font-weight: 700; margin: 0.9rem 0 0.4rem; color: var(--am-text, #111827); }
+    .am-ai-h3 { font-size: 1.05rem; font-weight: 600; margin: 0.75rem 0 0.35rem; color: var(--am-accent, #e40030); }
 </style>
 
 @section Scripts {
@@ -118,6 +124,10 @@
     }
     function formatInlineMarkdown(s) {
         var escaped = escapeHtml(s);
+        // Markdown başlıklar (satır başı #, ##, ###)
+        escaped = escaped.replace(/^### (.+)$/gm, function(_, t) { return '<h3 class="am-ai-h3">' + t + '</h3>'; });
+        escaped = escaped.replace(/^## (.+)$/gm, function(_, t) { return '<h2 class="am-ai-h2">' + t + '</h2>'; });
+        escaped = escaped.replace(/^# (.+)$/gm, function(_, t) { return '<h1 class="am-ai-h1">' + t + '</h1>'; });
         escaped = escaped.replace(/\n/g, '<br/>');
         escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         escaped = escaped.replace(/`([^`]+)`/g, '<code class="am-ai-inline-code">$1</code>');
