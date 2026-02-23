@@ -16,6 +16,7 @@ public class AiChatService : IAiChatService
     private readonly ICodeContextService _codeContext;
     private readonly ICodeChunkSearchService? _codeChunkSearch;
     private readonly IAgentTools _agentTools;
+    private readonly IPendingPushStore _pendingPush;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AiChatService> _logger;
 
@@ -23,6 +24,7 @@ public class AiChatService : IAiChatService
         IConfiguration config,
         ICodeContextService codeContext,
         IAgentTools agentTools,
+        IPendingPushStore pendingPush,
         IHttpClientFactory httpClientFactory,
         ILogger<AiChatService> logger,
         ICodeChunkSearchService? codeChunkSearch = null)
@@ -30,12 +32,13 @@ public class AiChatService : IAiChatService
         _config = config;
         _codeContext = codeContext;
         _agentTools = agentTools;
+        _pendingPush = pendingPush;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _codeChunkSearch = codeChunkSearch;
     }
 
-    public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, CancellationToken cancellationToken = default)
+    public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, int? conversationId = null, CancellationToken cancellationToken = default)
     {
         var apiKey = _config["OpenAI:ApiKey"]?.Trim();
         if (string.IsNullOrEmpty(apiKey))
@@ -98,11 +101,15 @@ ZORUNLU KURALLAR:
 
 Araçlar:
 - read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre. MVC view'lar AccessManager.Web/Views/ altındadır (Views kullan, Pages değil). Örn: AccessManager.Web/Views/Systems/Index.cshtml, AccessManager.Web/Views/Personnel/Index.cshtml.
-- write_file: Yeni dosya veya tam içerik yazmak için.
-- apply_diff: Mevcut dosyada değişiklik yapmak için unified diff uygula. Diff formatı: --- a/path, +++ b/path, @@ satır bilgisi, sonra + veya - veya boşluk ile başlayan satırlar.
-- git_commit_and_push: Değişiklikleri commit edip her zaman main branch'e push et. Yeni branch oluşturma; sadece değiştirdiğin dosyaların path'lerini paths listesine ver.
+- write_file: Yeni dosya veya tam içerik yazmak için. Sonrasında ASLA git_commit_and_push çağırma; kullanıcıya gösterip onay al, onayda confirm_and_push kullan.
+- apply_diff: Mevcut dosyada değişiklik yapmak için unified diff uygula. Diff formatı: --- a/path, +++ b/path, @@ satır bilgisi, sonra + veya - veya boşluk ile başlayan satırlar. Sonrasında ASLA git_commit_and_push çağırma; kullanıcıya diff'i gösterip onay al, onayda confirm_and_push kullan.
+- confirm_and_push: Kullanıcı ""Evet, pushla"" veya ""Onayla"" dediğinde çağır. Bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.
+- git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde ve confirm_and_push dışında kullan. apply_diff/write_file sonrası doğrudan ÇAĞIRMA.
 
-Kod değişikliği isteniyorsa: Önce read_file ile ilgili dosyayı oku, sonra apply_diff veya write_file ile değişikliği yap, en sonda git_commit_and_push ile commit ve push yap. Commit mesajı Türkçe veya İngilizce kısa ve anlamlı olsun.
+Kod değişikliği isteniyorsa:
+1) Önce read_file ile ilgili dosyayı oku, sonra apply_diff veya write_file ile değişikliği yap.
+2) apply_diff veya write_file sonrası ASLA git_commit_and_push çağırma. Bunun yerine kullanıcıya ne değiştirdiğini göster: değişen kodu veya diff'i bir kod bloğu (```) içinde yaz, hangi dosya(lar)ın değiştiğini belirt, ve şunu sor: ""Bu değişiklikleri canlıya pushlamamı ister misiniz? Onaylıyorsanız 'Evet, pushla' yazın.""
+3) Kullanıcı ""Evet, pushla"" veya ""Onayla"" veya ""Pushla"" dediğinde confirm_and_push aracını çağır (parametre yok). confirm_and_push bekleyen değişiklikleri commit edip main'e push eder.
 Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı oradan ver; tahmin yapma. Yanıtları Türkçe ver.
 " + relevantChunksBlock + @"
 
@@ -207,9 +214,9 @@ Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı or
                 {
                     var id = tc.GetProperty("id").GetString();
                     var fn = tc.GetProperty("function");
-                    var name = fn.GetProperty("name").GetString();
+                    var name = fn.GetProperty("name").GetString() ?? "";
                     var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
-                    var toolResult = await ExecuteToolAsync(name, argsStr, cancellationToken);
+                    var toolResult = await ExecuteToolAsync(name, argsStr, conversationId, cancellationToken);
                     messages.Add(new JsonObject
                     {
                         ["role"] = "tool",
@@ -223,7 +230,7 @@ Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı or
         return lastContent ?? "Araç döngüsü sınırına ulaşıldı. Özet: işlem yapıldı veya devam etmek için tekrar deneyin."; 
     }
 
-    private async Task<string> ExecuteToolAsync(string name, string argumentsJson, CancellationToken cancellationToken)
+    private async Task<string> ExecuteToolAsync(string name, string argumentsJson, int? conversationId, CancellationToken cancellationToken)
     {
         JsonElement root;
         try
@@ -253,7 +260,9 @@ Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı or
                         return "HATA: 'path' parametresi gerekli.";
                     if (!root.TryGetProperty("content", out var contentEl))
                         return "HATA: 'content' parametresi gerekli.";
-                    return await _agentTools.WriteFileAsync(pathEl.GetString() ?? "", contentEl.GetString() ?? "", cancellationToken);
+                    var wPath = pathEl.GetString() ?? "";
+                    var content = contentEl.GetString() ?? "";
+                    return await _agentTools.WriteFileAsync(wPath, content, conversationId, cancellationToken);
                 }
                 case "apply_diff":
                 {
@@ -264,7 +273,13 @@ Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı or
                     var path = pathEl.GetString() ?? "";
                     var diff = diffEl.GetString() ?? "";
                     _logger.LogError("AiChatService.apply_diff: path: {Path}, diff (ilk 1000 karakter): {DiffPreview}", path, diff.Length > 1000 ? diff[..1000] + "..." : diff);
-                    return await _agentTools.ApplyDiffAsync(path, diff, cancellationToken);
+                    return await _agentTools.ApplyDiffAsync(path, diff, conversationId, cancellationToken);
+                }
+                case "confirm_and_push":
+                {
+                    if (!conversationId.HasValue || conversationId.Value < 1)
+                        return "HATA: Onay bekleyen değişiklik eşleştirilemedi (konuşma bilgisi yok).";
+                    return await _agentTools.ConfirmPushAsync(conversationId.Value, cancellationToken);
                 }
                 case "git_commit_and_push":
                 {

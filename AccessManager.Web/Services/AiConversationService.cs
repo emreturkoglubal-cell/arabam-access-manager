@@ -87,7 +87,7 @@ public class AiConversationService : IAiConversationService
         string reply;
         try
         {
-            reply = await _chat.SendAsync(userMessage.Trim(), previousMessages, cancellationToken);
+            reply = await _chat.SendAsync(userMessage.Trim(), previousMessages, convId, cancellationToken);
         }
         catch (OutOfMemoryException ex)
         {

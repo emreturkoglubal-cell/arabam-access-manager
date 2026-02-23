@@ -73,7 +73,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "git_commit_and_push",
-                    ["description"] = "Değiştirilen dosyaları commit edip origin main'e push eder. Deploy pipeline tetiklenir.",
+                    ["description"] = "Sadece kullanıcı açıkça commit/push istediğinde kullan. Kod değişikliği yaptıktan sonra ÖNCE kullanıcıya gösterip onay al, onayda confirm_and_push kullan.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
@@ -83,6 +83,21 @@ public static class OpenAiToolDefinitions
                             ["paths"] = new JsonObject { ["type"] = "array", ["items"] = new JsonObject { ["type"] = "string" }, ["description"] = "Commit edilecek dosya yolları (repo köküne göre)" }
                         },
                         ["required"] = new JsonArray { "commit_message", "paths" }
+                    }
+                }
+            },
+            new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = "confirm_and_push",
+                    ["description"] = "Kullanıcı değişiklikleri onayladığında (örn. 'Evet, pushla' dediğinde) çağır. apply_diff/write_file sonrası bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.",
+                    ["parameters"] = new JsonObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JsonObject { },
+                        ["required"] = new JsonArray { }
                     }
                 }
             }

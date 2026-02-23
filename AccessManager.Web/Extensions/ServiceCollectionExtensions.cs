@@ -111,6 +111,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CodeChunkIndexService>();
         services.AddScoped<AccessManager.UI.Services.Git.IGitService, AccessManager.UI.Services.Git.GitService>();
         services.AddScoped<AccessManager.UI.Services.CodeModification.ICodeModificationService, AccessManager.UI.Services.CodeModification.CodeModificationService>();
+        services.AddSingleton<AccessManager.UI.Services.Agent.IPendingPushStore, AccessManager.UI.Services.Agent.PendingPushStore>();
         services.AddScoped<AccessManager.UI.Services.Agent.IAgentTools, AccessManager.UI.Services.Agent.AgentTools>();
         services.AddScoped<IAiChatService, AiChatService>();
         services.AddScoped<IAiConversationService, AiConversationService>();
