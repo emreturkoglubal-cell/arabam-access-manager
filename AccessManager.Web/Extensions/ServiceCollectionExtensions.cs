@@ -86,6 +86,12 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new ExtendedLogRepository(cs);
         });
+        services.AddScoped<ICodeChunkRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required for code chunks (pgvector).");
+            return new CodeChunkRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -100,6 +106,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAssetService, AssetService>();
         services.AddScoped<IReviseRequestService, ReviseRequestService>();
         services.AddScoped<ICodeContextService, CodeContextService>();
+        services.AddScoped<IEmbeddingService, OpenAiEmbeddingService>();
+        services.AddScoped<ICodeChunkSearchService, CodeChunkSearchService>();
+        services.AddScoped<CodeChunkIndexService>();
         services.AddScoped<AccessManager.UI.Services.Git.IGitService, AccessManager.UI.Services.Git.GitService>();
         services.AddScoped<AccessManager.UI.Services.CodeModification.ICodeModificationService, AccessManager.UI.Services.CodeModification.CodeModificationService>();
         services.AddScoped<AccessManager.UI.Services.Agent.IAgentTools, AccessManager.UI.Services.Agent.AgentTools>();

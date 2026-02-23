@@ -10,8 +10,11 @@ namespace AccessManager.UI.Services;
 public class AiChatService : IAiChatService
 {
     private const int MaxToolRoundTrips = 10;
+    private const int VectorSearchTopK = 10;
+
     private readonly IConfiguration _config;
     private readonly ICodeContextService _codeContext;
+    private readonly ICodeChunkSearchService? _codeChunkSearch;
     private readonly IAgentTools _agentTools;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AiChatService> _logger;
@@ -21,13 +24,15 @@ public class AiChatService : IAiChatService
         ICodeContextService codeContext,
         IAgentTools agentTools,
         IHttpClientFactory httpClientFactory,
-        ILogger<AiChatService> logger)
+        ILogger<AiChatService> logger,
+        ICodeChunkSearchService? codeChunkSearch = null)
     {
         _config = config;
         _codeContext = codeContext;
         _agentTools = agentTools;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _codeChunkSearch = codeChunkSearch;
     }
 
     public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, CancellationToken cancellationToken = default)
@@ -55,6 +60,35 @@ public class AiChatService : IAiChatService
             structure = "# Proje yapısı yüklenemedi: " + ex.Message;
         }
 
+        var relevantChunksBlock = "";
+        if (_codeChunkSearch != null)
+        {
+            try
+            {
+                var hasIndex = await _codeChunkSearch.HasIndexAsync(cancellationToken);
+                if (hasIndex)
+                {
+                    var chunks = await _codeChunkSearch.GetRelevantChunksAsync(userMessage, VectorSearchTopK, cancellationToken);
+                    if (chunks.Count > 0)
+                    {
+                        var sb = new StringBuilder();
+                        sb.AppendLine("\n--- Soruya en alakalı kod parçaları (vektör araması) ---");
+                        sb.AppendLine("Cevaplarını önce bu parçalara dayandır; gerekirse read_file ile tam dosyayı oku.");
+                        foreach (var (path, content) in chunks)
+                        {
+                            sb.AppendLine("\n## " + path);
+                            sb.AppendLine(content);
+                        }
+                        relevantChunksBlock = sb.ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "AiChatService: Vektör araması atlandı.");
+            }
+        }
+
         var systemContent = @"Sen yalnızca Access Manager (arabam-access-manager) projesi için çalışan bir asistanısın.
 
 ZORUNLU KURALLAR:
@@ -70,6 +104,7 @@ Araçlar:
 
 Kod değişikliği isteniyorsa: Önce read_file ile ilgili dosyayı oku, sonra apply_diff veya write_file ile değişikliği yap, en sonda git_commit_and_push ile commit ve push yap. Commit mesajı Türkçe veya İngilizce kısa ve anlamlı olsun.
 Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı oradan ver; tahmin yapma. Yanıtları Türkçe ver.
+" + relevantChunksBlock + @"
 
 --- Proje yapısı (path'ler repo köküne göre) ---
 " + structure;
