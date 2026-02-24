@@ -1,3 +1,13 @@
+<div class="col-md-4">
+    <label asp-for="ManagerId" class="form-label">Yönetici İsmi</label>
+    <select asp-for="ManagerId" class="form-select" asp-items="@(new SelectList(managers, "Id", "FirstName + ' ' + LastName"))">
+        <option value="">Seçiniz</option>
+        @foreach (var m in managers)
+        {
+            <option value="@m.Id">@m.FirstName @m.LastName</option>
+        }
+    </select>
+</div>
 @model AccessManager.UI.ViewModels.PersonnelCreateInputModel
 @{
     ViewData["Title"] = "Yeni Personel";
