@@ -31,6 +31,11 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new PersonnelRepository(cs);
         });
+        services.AddScoped<IManagerRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ManagerRepository(cs);
+        });
         services.AddScoped<IResourceSystemRepository>(sp =>
         {
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
@@ -96,6 +101,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPersonnelService, PersonnelService>();
+        services.AddScoped<IManagerService, ManagerService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<ISystemService, SystemService>();
         services.AddScoped<IRoleService, RoleService>();

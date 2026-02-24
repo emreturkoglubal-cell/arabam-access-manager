@@ -16,6 +16,7 @@ namespace AccessManager.UI.Controllers;
 public class OnboardingController : Controller
 {
     private readonly IPersonnelService _personnelService;
+    private readonly IManagerService _managerService;
     private readonly IDepartmentService _departmentService;
     private readonly IRoleService _roleService;
     private readonly IPersonnelAccessService _accessService;
@@ -23,12 +24,14 @@ public class OnboardingController : Controller
 
     public OnboardingController(
         IPersonnelService personnelService,
+        IManagerService managerService,
         IDepartmentService departmentService,
         IRoleService roleService,
         IPersonnelAccessService accessService,
         IAuditService auditService)
     {
         _personnelService = personnelService;
+        _managerService = managerService;
         _departmentService = departmentService;
         _roleService = roleService;
         _accessService = accessService;
@@ -41,7 +44,7 @@ public class OnboardingController : Controller
     {
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
-        ViewBag.Managers = _personnelService.GetActive();
+        ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
         return View(new PersonnelCreateInputModel());
     }
 
@@ -55,7 +58,7 @@ public class OnboardingController : Controller
             ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _personnelService.GetActive();
+            ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
             return View(input);
         }
 

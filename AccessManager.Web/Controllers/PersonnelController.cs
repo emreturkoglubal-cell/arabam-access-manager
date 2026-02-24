@@ -16,6 +16,7 @@ namespace AccessManager.UI.Controllers;
 public class PersonnelController : Controller
 {
     private readonly IPersonnelService _personnelService;
+    private readonly IManagerService _managerService;
     private readonly IDepartmentService _departmentService;
     private readonly IRoleService _roleService;
     private readonly ISystemService _systemService;
@@ -26,6 +27,7 @@ public class PersonnelController : Controller
 
     public PersonnelController(
         IPersonnelService personnelService,
+        IManagerService managerService,
         IDepartmentService departmentService,
         IRoleService roleService,
         ISystemService systemService,
@@ -35,6 +37,7 @@ public class PersonnelController : Controller
         IPersonnelAccessService personnelAccessService)
     {
         _personnelService = personnelService;
+        _managerService = managerService;
         _departmentService = departmentService;
         _roleService = roleService;
         _systemService = systemService;
@@ -87,7 +90,7 @@ public class PersonnelController : Controller
     {
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
-        ViewBag.Managers = _personnelService.GetActive();
+        ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
         return View(new PersonnelCreateInputModel());
     }
 
@@ -101,7 +104,7 @@ public class PersonnelController : Controller
             ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _personnelService.GetActive();
+            ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
             return View(input);
         }
 
@@ -160,7 +163,29 @@ public class PersonnelController : Controller
         vm.Notes = _personnelService.GetNotes(id).ToList();
         foreach (var assignment in assetAssignments)
             vm.AssignmentNotes[assignment.Id] = _assetService.GetNotesForAssignment(assignment.Id).ToList();
+
+        ViewBag.ManagersForEdit = _personnelService.GetActive().Where(p => p.Id != id).ToList();
+        ViewBag.CurrentManagerLevel = personnel.ManagerId.HasValue ? _managerService.GetManagerLevelByPersonnelId(personnel.ManagerId.Value) : (short?)null;
         return View(vm);
+    }
+
+    /// <summary>POST /Personnel/UpdateManager/{id} — Personelin yöneticisini ve yönetici seviyesini günceller.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateManager(int id, int? managerId, short level = 1)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        if (managerId.HasValue && managerId == id)
+        {
+            TempData["ManagerUpdateError"] = "Kişi kendisinin yöneticisi olamaz.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        if (level < 1 || level > 4) level = 1;
+        _managerService.UpdatePersonnelManager(id, managerId, level);
+        _auditService.Log(AuditAction.PersonnelUpdated, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?", "Personnel", id.ToString(), $"Yönetici güncellendi: {personnel.FirstName} {personnel.LastName}");
+        TempData["ManagerUpdateSuccess"] = "Yönetici güncellendi.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>POST /Personnel/AddZimmetNote — Personelin bir zimmet kaydına not ekler.</summary>

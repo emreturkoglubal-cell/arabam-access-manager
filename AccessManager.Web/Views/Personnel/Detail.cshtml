@@ -3,6 +3,8 @@
 @using AccessManager.Domain.Entities
 @{
     ViewData["Title"] = "Personel Detay";
+    var managersForEdit = ViewBag.ManagersForEdit as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var currentManagerLevel = ViewBag.CurrentManagerLevel as short? ?? 1;
 }
 
 <nav aria-label="breadcrumb">
@@ -12,8 +14,12 @@
     </ol>
 </nav>
 
-@if (Model.Personnel == null) { return; }
-
+@if (Model.Personnel == null)
+{
+    <p class="text-muted">Personel bulunamadı.</p>
+}
+else
+{
 @if (TempData["RevokeError"] != null)
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -25,6 +31,20 @@
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         @TempData["GrantError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["ManagerUpdateSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["ManagerUpdateSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["ManagerUpdateError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ManagerUpdateError"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
     </div>
 }
@@ -57,13 +77,21 @@
                     <dt class="col-sm-4">Rol</dt>
                     <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
                     <dt class="col-sm-4">Yönetici İsmi</dt>
-                    <dd class="col-sm-8">@(Model.ManagerName ?? "-")</dd>
+                    <dd class="col-sm-8">
+                        @(Model.ManagerName ?? "-")
+                        <button type="button" class="btn btn-am-ghost btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#managerEditModal" aria-label="Yönetici güncelle">Güncelle</button>
+                    </dd>
                     <dt class="col-sm-4">İşe giriş</dt>
                     <dd class="col-sm-8">@Model.Personnel.StartDate.ToString("dd.MM.yyyy")</dd>
                     <dt class="col-sm-4">İşten çıkış</dt>
                     <dd class="col-sm-8">@(Model.Personnel.EndDate?.ToString("dd.MM.yyyy") ?? "-")</dd>
                     <dt class="col-sm-4">Durum</dt>
-                    <dd class="col-sm-8"><span class="am-badge @(Model.Personnel.Status == PersonnelStatus.Active ? "success" : "secondary")">@StatusLabels.PersonnelStatus(Model.Personnel.Status)</span></dd>
+                    <dd class="col-sm-8">
+                        @{
+                            var statusBadgeClass = Model.Personnel.Status == PersonnelStatus.Active ? "success" : "secondary";
+                        }
+                        <span class="am-badge @statusBadgeClass">@StatusLabels.PersonnelStatus(Model.Personnel.Status)</span>
+                    </dd>
                 </dl>
             </div>
         </div>
@@ -145,8 +173,9 @@
                             var access = Model.AccessList.FirstOrDefault(a => a.ResourceSystemId == sys.Id);
                             var sysName = Model.SystemNames.GetValueOrDefault(sys.Id, sys.Name ?? sys.Code ?? sys.Id.ToString());
                             var isActive = access?.IsActive == true;
-                            var isOffboardedWithOpen = Model.Personnel?.EndDate.HasValue == true && isActive;
-                            <li class="list-group-item d-flex justify-content-between align-items-center @(isOffboardedWithOpen ? "am-row-warning" : "")">
+                            var isOffboardedWithOpen = Model.Personnel != null && Model.Personnel.EndDate.HasValue && isActive;
+                            var rowWarningClass = isOffboardedWithOpen ? "am-row-warning" : "";
+                            <li class="list-group-item d-flex justify-content-between align-items-center @rowWarningClass">
                                 <span>@sysName @(access?.IsException == true ? "(Rol dışı)" : "") @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</span>
                                 @if (isActive)
                                 {
@@ -216,7 +245,7 @@
                 }
             </div>
         </div>
-        @if (Model.Personnel?.EndDate.HasValue == true && Model.AccessList.Any(a => a.IsActive))
+        @if (Model.Personnel.EndDate.HasValue == true && Model.AccessList.Any(a => a.IsActive))
         {
             <div class="am-card mb-3 border-warning">
                 <div class="am-card-header text-warning">İşten çıkmış ama açık yetkisi olan</div>
@@ -243,4 +272,58 @@
     </div>
 </div>
 
+<div class="modal fade" id="managerEditModal" tabindex="-1" aria-labelledby="managerEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="managerEditModalLabel">Yönetici ata / güncelle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form method="post" asp-controller="Personnel" asp-action="UpdateManager" asp-route-id="@Model.Personnel.Id">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="managerId" class="form-label">Yönetici</label>
+                        <select name="managerId" id="managerId" class="form-select">
+                            <option value="">— Yönetici yok —</option>
+                            @foreach (var p in managersForEdit)
+                            {
+                                if (Model.Personnel.ManagerId == p.Id)
+                                {
+                                    <option value="@p.Id" selected>@p.FirstName @p.LastName</option>
+                                }
+                                else
+                                {
+                                    <option value="@p.Id">@p.FirstName @p.LastName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="level" class="form-label">Yönetici seviyesi (1 = en üst, 4 = en alt)</label>
+                        <select name="level" id="level" class="form-select">
+                            @for (var i = 1; i <= 4; i++)
+                            {
+                                if (currentManagerLevel == i)
+                                {
+                                    <option value="@i" selected>@i</option>
+                                }
+                                else
+                                {
+                                    <option value="@i">@i</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-am-ghost" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}
