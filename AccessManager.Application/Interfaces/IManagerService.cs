@@ -7,8 +7,10 @@ namespace AccessManager.Application.Interfaces;
 /// </summary>
 public interface IManagerService
 {
-    /// <summary>Personel eklerken Yönetici dropdown'ında gösterilecek kişiler: managers tablosundaki en alt yöneticilerin personel kayıtları. Tablo boşsa tüm aktif personel döner.</summary>
+    /// <summary>Personel eklerken Yönetici dropdown'ında gösterilecek kişiler: managers tablosundaki en alt yöneticilerin personel kayıtları.</summary>
     IReadOnlyList<Personnel> GetLeafManagerPersonnel();
+    /// <summary>Yönetici dropdown'ında gösterilecek kişiler: managers tablosunda is_active = true olan tüm yöneticilerin personel kayıtları, level (küçükten büyüğe) sıralı.</summary>
+    IReadOnlyList<Personnel> GetActiveManagerPersonnel();
     /// <summary>Belirtilen personel ID'sinin managers kaydındaki seviyesini (1-4) döner; yoksa null.</summary>
     short? GetManagerLevelByPersonnelId(int personnelId);
     /// <summary>Personelin yöneticisini ve (yönetici atanmışsa) o yöneticinin seviyesini günceller.</summary>

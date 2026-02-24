@@ -248,12 +248,16 @@ else
     </div>
     <div class="col-md-6">
         <div class="am-card mb-3">
-            <div class="am-card-header">Aktif Yetkiler</div>
+            @{ var activeAccessCount = Model.AccessList.Count(a => a.IsActive); }
+            <div class="am-card-header">Aktif Yetkiler / @activeAccessCount</div>
             <div class="am-card-body">
-                <p class="small text-muted mb-2">Tüm uygulamalar; yetkisi olan ve olmayan (açılıp kapatılan dahil).</p>
                 @if (Model.AllSystems.Any())
                 {
-                    <div class="am-table-wrap">
+                    var systemsSorted = Model.AllSystems
+                        .OrderByDescending(s => Model.AccessList.Any(a => a.ResourceSystemId == s.Id && a.IsActive))
+                        .ThenBy(s => Model.SystemNames.GetValueOrDefault(s.Id, ""))
+                        .ToList();
+                    <div class="am-table-wrap am-access-list-scroll">
                         <table class="am-table mb-0">
                             <thead>
                                 <tr>
@@ -264,7 +268,7 @@ else
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var sys in Model.AllSystems)
+                                @foreach (var sys in systemsSorted)
                                 {
                                     var access = Model.AccessList.FirstOrDefault(a => a.ResourceSystemId == sys.Id);
                                     var sysName = Model.SystemNames.GetValueOrDefault(sys.Id, sys.Name ?? sys.Code ?? sys.Id.ToString());
@@ -497,9 +501,9 @@ else
                             </select>
                         </div>
                         <div class="col-12">
-                            <div class="form-check">
-                                <input type="checkbox" name="IsManager" id="editIsManager" value="true" class="form-check-input" @(isManager ? "checked" : "") />
-                                <label for="editIsManager" class="form-check-label">Yönetici olarak işaretle</label>
+                            <div class="am-manager-toggle">
+                                <input type="checkbox" name="IsManager" id="editIsManager" value="true" class="am-manager-toggle__input" @(isManager ? "checked" : "") />
+                                <label for="editIsManager" class="am-manager-toggle__btn">Yönetici olarak işaretle</label>
                             </div>
                         </div>
                     </div>

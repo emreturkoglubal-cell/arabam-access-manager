@@ -90,7 +90,7 @@ public class PersonnelController : Controller
     {
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
-        ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
+        ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
         return View(new PersonnelCreateInputModel());
     }
 
@@ -104,7 +104,7 @@ public class PersonnelController : Controller
             ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
+            ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
             return View(input);
         }
 
@@ -189,7 +189,7 @@ public class PersonnelController : Controller
         var skip = (vm.SubordinatesPage - 1) * vm.SubordinatesPageSize;
         vm.Subordinates = allSubordinates.Skip(skip).Take(vm.SubordinatesPageSize).ToList();
 
-        var managersForEditList = _managerService.GetLeafManagerPersonnel().Where(p => p.Id != id).ToList();
+        var managersForEditList = _managerService.GetActiveManagerPersonnel().Where(p => p.Id != id).ToList();
         if (personnel.ManagerId.HasValue && managersForEditList.All(p => p.Id != personnel.ManagerId.Value))
         {
             var currentManager = _personnelService.GetById(personnel.ManagerId.Value);

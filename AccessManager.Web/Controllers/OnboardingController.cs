@@ -44,7 +44,7 @@ public class OnboardingController : Controller
     {
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
-        ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
+        ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
         return View(new PersonnelCreateInputModel());
     }
 
@@ -58,7 +58,7 @@ public class OnboardingController : Controller
             ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
-            ViewBag.Managers = _managerService.GetLeafManagerPersonnel();
+            ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
             return View(input);
         }
 

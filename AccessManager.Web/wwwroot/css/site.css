@@ -231,6 +231,12 @@ body {
   overflow: hidden;
 }
 
+/* Aktif Yetkiler tablosu: 5 satır yüksekliği, tab içinde scroll */
+.am-table-wrap.am-access-list-scroll {
+  max-height: 16.5rem;
+  overflow-y: auto;
+}
+
 .am-table {
   width: 100%;
   border-collapse: collapse;

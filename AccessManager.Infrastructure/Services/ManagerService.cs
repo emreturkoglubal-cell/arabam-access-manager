@@ -24,6 +24,16 @@ public class ManagerService : IManagerService
         return _personnelRepo.GetByIds(ids);
     }
 
+    public IReadOnlyList<Personnel> GetActiveManagerPersonnel()
+    {
+        var activeManagers = _managerRepo.GetActiveManagers();
+        if (activeManagers.Count == 0)
+            return new List<Personnel>();
+        var personnelList = _personnelRepo.GetByIds(activeManagers.Select(m => m.PersonnelId).ToList());
+        var byId = personnelList.ToDictionary(p => p.Id);
+        return activeManagers.Select(m => byId[m.PersonnelId]).ToList();
+    }
+
     public short? GetManagerLevelByPersonnelId(int personnelId)
     {
         var m = _managerRepo.GetByPersonnelId(personnelId);

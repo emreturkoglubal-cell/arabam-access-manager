@@ -103,6 +103,48 @@
   opacity: 0.9;
 }
 
+/* Yönetici olarak işaretle / ekle: buton toggle, metin genişliğinde, seçilince soft yeşil */
+.am-manager-toggle {
+  position: relative;
+  margin: 0;
+  display: inline-block;
+}
+.am-manager-toggle__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.am-manager-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  color: var(--am-sidebar-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--am-sidebar-border);
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  width: auto;
+}
+.am-manager-toggle__btn:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+.am-manager-toggle__input:checked + .am-manager-toggle__btn {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+.am-manager-toggle__input:focus-visible + .am-manager-toggle__btn {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
 .app-sidebar-overlay {
   display: none;
   position: fixed;

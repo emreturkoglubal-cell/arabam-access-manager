@@ -25,6 +25,18 @@ public class ManagerRepository : IManagerRepository
         return conn.Query<Manager>(sql).ToList();
     }
 
+    public IReadOnlyList<Manager> GetActiveManagers()
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"
+            SELECT id AS Id, personnel_id AS PersonnelId, level AS Level, parent_manager_id AS ParentManagerId, is_active AS IsActive, created_at AS CreatedAt, updated_at AS UpdatedAt
+            FROM managers
+            WHERE is_active = true
+            ORDER BY level, id";
+        return conn.Query<Manager>(sql).ToList();
+    }
+
     public Manager? GetById(int id)
     {
         using var conn = new NpgsqlConnection(_connectionString);
