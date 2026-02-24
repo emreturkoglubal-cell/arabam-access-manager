@@ -276,7 +276,7 @@ else
                                     var isOffboardedWithOpen = Model.Personnel != null && Model.Personnel.EndDate.HasValue && isActive;
                                     var rowWarningClass = isOffboardedWithOpen ? "am-row-warning" : "";
                                     <tr class="@rowWarningClass">
-                                        <td>@sysName @(access?.IsException == true ? "(Rol dışı)" : "") @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</td>
+                                        <td>@sysName @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</td>
                                         <td>
                                             @if (sys.OwnerId.HasValue && Model.SystemOwnerNames.TryGetValue(sys.Id, out var ownerName))
                                             {
