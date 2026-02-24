@@ -6,6 +6,7 @@
     var managersForEdit = ViewBag.ManagersForEdit as IReadOnlyList<Personnel> ?? new List<Personnel>();
     var departmentsForEdit = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
     var rolesForEdit = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
+    var isManager = ViewBag.IsManager as bool? ?? false;
 }
 
 <nav aria-label="breadcrumb">
@@ -252,33 +253,67 @@ else
                 <p class="small text-muted mb-2">Tüm uygulamalar; yetkisi olan ve olmayan (açılıp kapatılan dahil).</p>
                 @if (Model.AllSystems.Any())
                 {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var sys in Model.AllSystems)
-                        {
-                            var access = Model.AccessList.FirstOrDefault(a => a.ResourceSystemId == sys.Id);
-                            var sysName = Model.SystemNames.GetValueOrDefault(sys.Id, sys.Name ?? sys.Code ?? sys.Id.ToString());
-                            var isActive = access?.IsActive == true;
-                            var isOffboardedWithOpen = Model.Personnel != null && Model.Personnel.EndDate.HasValue && isActive;
-                            var rowWarningClass = isOffboardedWithOpen ? "am-row-warning" : "";
-                            <li class="list-group-item d-flex justify-content-between align-items-center @rowWarningClass">
-                                <span>@sysName @(access?.IsException == true ? "(Rol dışı)" : "") @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</span>
-                                @if (isActive)
+                    <div class="am-table-wrap">
+                        <table class="am-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="am-table-th-normal">Uygulama</th>
+                                    <th class="am-table-th-normal">Sorumlu Kişi</th>
+                                    <th class="am-table-th-normal">Sorumlu Departman</th>
+                                    <th class="am-table-th-normal">Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sys in Model.AllSystems)
                                 {
-                                    <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@access!.Id" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--active" style="cursor:pointer;">Aktif</button>
-                                    </form>
+                                    var access = Model.AccessList.FirstOrDefault(a => a.ResourceSystemId == sys.Id);
+                                    var sysName = Model.SystemNames.GetValueOrDefault(sys.Id, sys.Name ?? sys.Code ?? sys.Id.ToString());
+                                    var isActive = access?.IsActive == true;
+                                    var isOffboardedWithOpen = Model.Personnel != null && Model.Personnel.EndDate.HasValue && isActive;
+                                    var rowWarningClass = isOffboardedWithOpen ? "am-row-warning" : "";
+                                    <tr class="@rowWarningClass">
+                                        <td>@sysName @(access?.IsException == true ? "(Rol dışı)" : "") @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</td>
+                                        <td>
+                                            @if (sys.OwnerId.HasValue && Model.SystemOwnerNames.TryGetValue(sys.Id, out var ownerName))
+                                            {
+                                                <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@sys.OwnerId.Value">@ownerName</a>
+                                            }
+                                            else
+                                            {
+                                                @:—
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (sys.ResponsibleDepartmentId.HasValue && Model.SystemResponsibleDepartmentNames.TryGetValue(sys.Id, out var deptName))
+                                            {
+                                                <a class="am-link" asp-controller="Departments" asp-action="Detail" asp-route-id="@sys.ResponsibleDepartmentId.Value">@deptName</a>
+                                            }
+                                            else
+                                            {
+                                                @:—
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (isActive)
+                                            {
+                                                <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@access!.Id" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--active" style="cursor:pointer;">Aktif</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" asp-controller="Personnel" asp-action="GrantAccess" asp-route-id="@Model.Personnel.Id" asp-route-systemId="@sys.Id" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--passive" style="cursor:pointer;">Pasif</button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
                                 }
-                                else
-                                {
-                                    <form method="post" asp-controller="Personnel" asp-action="GrantAccess" asp-route-id="@Model.Personnel.Id" asp-route-systemId="@sys.Id" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--passive" style="cursor:pointer;">Pasif</button>
-                                    </form>
-                                }
-                            </li>
-                        }
-                    </ul>
+                            </tbody>
+                        </table>
+                    </div>
                 }
                 else
                 {
@@ -460,6 +495,12 @@ else
                                     }
                                 }
                             </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" name="IsManager" id="editIsManager" value="true" class="form-check-input" @(isManager ? "checked" : "") />
+                                <label for="editIsManager" class="form-check-label">Yönetici olarak işaretle</label>
+                            </div>
                         </div>
                     </div>
                 </div>

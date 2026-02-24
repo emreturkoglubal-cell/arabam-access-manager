@@ -10,6 +10,8 @@ public class Manager
     /// <summary>1 = en üst yönetici, 4 = en alt yönetici.</summary>
     public short Level { get; set; }
     public int? ParentManagerId { get; set; }
+    /// <summary>false ise yönetici pasif; dropdown'da listelenmez.</summary>
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

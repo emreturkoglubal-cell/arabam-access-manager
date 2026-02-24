@@ -14,6 +14,10 @@ public class PersonnelDetailViewModel
     public string? RoleName { get; set; }
     public string? ManagerName { get; set; }
     public Dictionary<int, string> SystemNames { get; set; } = new();
+    /// <summary>Sistem id -> sorumlu kişi adı (yetkiler listesinde link için).</summary>
+    public Dictionary<int, string> SystemOwnerNames { get; set; } = new();
+    /// <summary>Sistem id -> sorumlu departman adı (yetkiler listesinde link için).</summary>
+    public Dictionary<int, string> SystemResponsibleDepartmentNames { get; set; } = new();
     /// <summary>Tüm uygulamalar (yetkisi olan ve olmayan görünsün).</summary>
     public List<ResourceSystem> AllSystems { get; set; } = new();
     /// <summary>Faz 1: Birden fazla not, kim yazdığı görünsün.</summary>

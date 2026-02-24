@@ -10,4 +10,6 @@ public class PersonnelCreateInputModel
     public int? ManagerId { get; set; }
     public DateTime StartDate { get; set; } = DateTime.Today;
     public int? RoleId { get; set; }
+    /// <summary>Seçiliyse personel managers tablosuna level 4 ile eklenir.</summary>
+    public bool IsManager { get; set; }
 }

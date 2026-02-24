@@ -52,9 +52,58 @@ public class ManagerService : IManagerService
                 {
                     PersonnelId = managerPersonnelId.Value,
                     Level = level,
-                    ParentManagerId = null
+                    ParentManagerId = null,
+                    IsActive = true
                 });
             }
         }
+    }
+
+    public void SetPersonAsManager(int personnelId, bool isManager, int? managerPersonnelId = null)
+    {
+        var existing = _managerRepo.GetByPersonnelId(personnelId);
+        if (isManager)
+        {
+            int? parentManagerId = null;
+            short level = 1;
+            if (managerPersonnelId.HasValue)
+            {
+                var parentManager = _managerRepo.GetByPersonnelId(managerPersonnelId.Value);
+                if (parentManager != null)
+                {
+                    parentManagerId = parentManager.Id;
+                    level = (short)Math.Min(4, parentManager.Level + 1);
+                }
+            }
+
+            if (existing != null)
+            {
+                existing.ParentManagerId = parentManagerId;
+                existing.Level = level;
+                existing.IsActive = true;
+                _managerRepo.Update(existing);
+            }
+            else
+            {
+                _managerRepo.Insert(new Manager
+                {
+                    PersonnelId = personnelId,
+                    Level = level,
+                    ParentManagerId = parentManagerId,
+                    IsActive = true
+                });
+            }
+        }
+        else if (existing != null)
+        {
+            existing.IsActive = false;
+            _managerRepo.Update(existing);
+        }
+    }
+
+    public bool IsPersonManagerActive(int personnelId)
+    {
+        var m = _managerRepo.GetByPersonnelId(personnelId);
+        return m != null && m.IsActive;
     }
 }

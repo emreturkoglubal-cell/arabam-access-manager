@@ -75,6 +75,8 @@ public class OnboardingController : Controller
             Status = PersonnelStatus.Active
         };
         _personnelService.Add(p);
+        if (input.IsManager)
+            _managerService.SetPersonAsManager(p.Id, true, input.ManagerId);
 
         if (input.RoleId.HasValue)
         {

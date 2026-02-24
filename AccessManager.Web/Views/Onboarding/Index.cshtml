@@ -59,6 +59,12 @@
                 <input asp-for="StartDate" class="form-control" type="date" />
             </div>
             <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="IsManager" class="form-check-input" />
+                    <label asp-for="IsManager" class="form-check-label">Yönetici olarak ekle</label>
+                </div>
+            </div>
+            <div class="col-12">
                 <button type="submit" class="btn btn-am-primary">Personel ekle ve yetkileri ata</button>
                 <a asp-controller="Personnel" asp-action="Index" class="btn btn-am-ghost">Personel listesi</a>
             </div>

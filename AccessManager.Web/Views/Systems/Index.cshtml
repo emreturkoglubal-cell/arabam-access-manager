@@ -5,6 +5,7 @@
     ViewData["Title"] = "Uygulamalar";
     var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
     var ownerNames = ViewBag.OwnerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var responsibleDepartmentNames = ViewBag.ResponsibleDepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var accessCounts = ViewBag.AccessCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
 
@@ -26,8 +27,9 @@
                         <th>Kod</th>
                         <th>Ad</th>
                         <th>Tür</th>
-                        <th>Kritik seviye yeni</th>
-<th>Yönetici</th>
+                        <th>Kritik seviye</th>
+                        <th>Sorumlu Departman</th>
+                        <th>Sorumlu Kişi</th>
                         <th>Aktif erişim sayısı</th>
                         @if (User.IsInRole(AppRoleNames.Admin))
                         {
@@ -44,7 +46,28 @@
                             <td>@s.Name</td>
                             <td>@s.SystemType</td>
                             <td><span class="badge bg-@(s.CriticalLevel == CriticalLevel.High ? "danger" : s.CriticalLevel == CriticalLevel.Medium ? "warning" : "secondary")">@s.CriticalLevel</span></td>
-                            <td>@(ownerNames.TryGetValue(s.Id, out var owner) ? owner : "-")</td>
+                            <td>
+                                @if (s.ResponsibleDepartmentId.HasValue)
+                                {
+                                    var deptName = responsibleDepartmentNames.TryGetValue(s.Id, out var dn) ? dn : "—";
+                                    <a class="am-link" asp-controller="Departments" asp-action="Detail" asp-route-id="@s.ResponsibleDepartmentId.Value">@deptName</a>
+                                }
+                                else
+                                {
+                                    @:—
+                                }
+                            </td>
+                            <td>
+                                @if (s.OwnerId.HasValue)
+                                {
+                                    var ownerName = ownerNames.TryGetValue(s.Id, out var owner) ? owner : "—";
+                                    <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@s.OwnerId.Value">@ownerName</a>
+                                }
+                                else
+                                {
+                                    @:—
+                                }
+                            </td>
                             <td>@(accessCounts.TryGetValue(s.Id, out var cnt) ? cnt : 0)</td>
                             @if (User.IsInRole(AppRoleNames.Admin))
                             {

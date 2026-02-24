@@ -1,8 +1,17 @@
 @using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
 @{
     ViewData["Title"] = "Departman Detay";
     var department = ViewBag.Department as Department;
     var personnelCount = ViewBag.PersonnelCount as int? ?? 0;
+    var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var personnelTotalCount = ViewBag.PersonnelTotalCount as int? ?? 0;
+    var personnelPageNumber = ViewBag.PersonnelPageNumber as int? ?? 1;
+    var personnelTotalPages = ViewBag.PersonnelTotalPages as int? ?? 1;
+    var personnelPageSize = ViewBag.PersonnelPageSize as int? ?? 10;
+    var roleNames = ViewBag.RoleNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var departmentNames = ViewBag.DepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 @if (department == null)
 {
@@ -50,6 +59,76 @@ else
             <dt class="col-sm-4">Personel sayısı</dt>
             <dd class="col-sm-8">@personnelCount</dd>
         </dl>
+    </div>
+</div>
+
+<div class="am-card mb-3">
+    <div class="am-card-header">Bu departmandaki personeller (aktif)</div>
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table am-table-rows-clickable">
+                <thead>
+                    <tr>
+                        <th class="am-table-col-avatar"></th>
+                        <th class="am-table-th-normal">ID</th>
+                        <th class="am-table-th-normal">Ad Soyad</th>
+                        <th class="am-table-th-normal">E-posta</th>
+                        <th class="am-table-th-normal">Rol</th>
+                        <th class="am-table-th-normal">Yönetici İsmi</th>
+                        <th class="am-table-th-normal">Giriş</th>
+                        <th class="am-table-th-normal">Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in personnelList)
+                    {
+                        var roleName = p.RoleId.HasValue && roleNames.TryGetValue(p.RoleId.Value, out var rn) ? rn : "—";
+                        var managerName = p.ManagerId.HasValue && managerNames.TryGetValue(p.ManagerId.Value, out var mn) ? mn : "—";
+                        var detailUrl = Url.Action("Detail", "Personnel", new { id = p.Id }) ?? "#";
+                        <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
+                            <td class="am-table-cell-avatar">
+                                @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
+                                {
+                                    <img src="@p.ImageUrl" alt="" class="am-avatar am-avatar-sm" />
+                                }
+                                else
+                                {
+                                    <span class="am-avatar am-avatar-sm am-avatar-default" aria-hidden="true"><i class="bi bi-person-circle"></i></span>
+                                }
+                            </td>
+                            <td>@p.Id</td>
+                            <td>@p.FirstName @p.LastName</td>
+                            <td>@p.Email</td>
+                            <td>@roleName</td>
+                            <td>@managerName</td>
+                            <td>@p.StartDate.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <span class="am-badge @(p.Status == PersonnelStatus.Active ? "success" : p.Status == PersonnelStatus.Offboarded ? "secondary" : "warning")">@StatusLabels.PersonnelStatus(p.Status)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!personnelList.Any())
+        {
+            <p class="text-muted mb-0 p-3">Bu departmanda aktif personel yok.</p>
+        }
+        else if (personnelTotalPages > 1)
+        {
+            <div class="p-3">
+                @await Html.PartialAsync("_Pagination", new AccessManager.UI.ViewModels.PaginationViewModel
+                {
+                    Controller = "Departments",
+                    Action = "Detail",
+                    PageNumber = personnelPageNumber,
+                    TotalPages = personnelTotalPages,
+                    TotalCount = personnelTotalCount,
+                    PageSize = personnelPageSize,
+                    RouteValues = new Microsoft.AspNetCore.Routing.RouteValueDictionary { ["id"] = department!.Id }
+                })
+            </div>
+        }
     </div>
 </div>
 

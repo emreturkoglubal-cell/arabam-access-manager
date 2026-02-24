@@ -121,6 +121,8 @@ public class PersonnelController : Controller
             Status = PersonnelStatus.Active
         };
         _personnelService.Add(p);
+        if (input.IsManager)
+            _managerService.SetPersonAsManager(p.Id, true, input.ManagerId);
         _auditService.Log(AuditAction.PersonnelCreated, null, "Sistem", "Personnel", p.Id.ToString(), $"{p.FirstName} {p.LastName}");
         return RedirectToAction(nameof(Detail), new { id = p.Id });
     }
@@ -160,6 +162,22 @@ public class PersonnelController : Controller
         vm.AllSystems = allSystems;
         foreach (var sys in allSystems)
             vm.SystemNames[sys.Id] = sys.Name ?? sys.Code ?? sys.Id.ToString();
+        var systemOwnerIds = allSystems.Where(s => s.OwnerId.HasValue).Select(s => s.OwnerId!.Value).Distinct().ToList();
+        var systemOwners = systemOwnerIds.Count > 0 ? _personnelService.GetByIds(systemOwnerIds) : new List<Personnel>();
+        var systemOwnerNameByPersonnelId = systemOwners.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
+        foreach (var sys in allSystems)
+        {
+            if (sys.OwnerId.HasValue && systemOwnerNameByPersonnelId.TryGetValue(sys.OwnerId.Value, out var ownerName))
+                vm.SystemOwnerNames[sys.Id] = ownerName;
+        }
+        var systemDeptIds = allSystems.Where(s => s.ResponsibleDepartmentId.HasValue).Select(s => s.ResponsibleDepartmentId!.Value).Distinct().ToList();
+        var allDepts = _departmentService.GetAll();
+        var deptNameById = allDepts.ToDictionary(d => d.Id, d => d.Name ?? "—");
+        foreach (var sys in allSystems)
+        {
+            if (sys.ResponsibleDepartmentId.HasValue && deptNameById.TryGetValue(sys.ResponsibleDepartmentId.Value, out var deptName))
+                vm.SystemResponsibleDepartmentNames[sys.Id] = deptName;
+        }
         vm.Notes = _personnelService.GetNotes(id).ToList();
         foreach (var assignment in assetAssignments)
             vm.AssignmentNotes[assignment.Id] = _assetService.GetNotesForAssignment(assignment.Id).ToList();
@@ -171,8 +189,16 @@ public class PersonnelController : Controller
         var skip = (vm.SubordinatesPage - 1) * vm.SubordinatesPageSize;
         vm.Subordinates = allSubordinates.Skip(skip).Take(vm.SubordinatesPageSize).ToList();
 
-        ViewBag.ManagersForEdit = _personnelService.GetActive().Where(p => p.Id != id).ToList();
+        var managersForEditList = _managerService.GetLeafManagerPersonnel().Where(p => p.Id != id).ToList();
+        if (personnel.ManagerId.HasValue && managersForEditList.All(p => p.Id != personnel.ManagerId.Value))
+        {
+            var currentManager = _personnelService.GetById(personnel.ManagerId.Value);
+            if (currentManager != null && _managerService.IsPersonManagerActive(currentManager.Id))
+                managersForEditList.Add(currentManager);
+        }
+        ViewBag.ManagersForEdit = managersForEditList;
         ViewBag.CurrentManagerLevel = personnel.ManagerId.HasValue ? _managerService.GetManagerLevelByPersonnelId(personnel.ManagerId.Value) : (short?)null;
+        ViewBag.IsManager = _managerService.IsPersonManagerActive(id);
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
         return View(vm);
@@ -207,6 +233,7 @@ public class PersonnelController : Controller
         if (input.Status >= 0 && input.Status <= 2)
             personnel.Status = (PersonnelStatus)input.Status;
         _personnelService.Update(personnel);
+        _managerService.SetPersonAsManager(id, input.IsManager, input.ManagerId);
         _auditService.Log(AuditAction.PersonnelUpdated, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?", "Personnel", id.ToString(), $"Kişisel bilgiler güncellendi: {personnel.FirstName} {personnel.LastName}");
         TempData["PersonnelEditSuccess"] = "Kişisel bilgiler güncellendi.";
         return RedirectToAction(nameof(Detail), new { id });

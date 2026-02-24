@@ -17,13 +17,15 @@ public class DepartmentsController : Controller
 {
     private readonly IDepartmentService _departmentService;
     private readonly IPersonnelService _personnelService;
+    private readonly IRoleService _roleService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
 
-    public DepartmentsController(IDepartmentService departmentService, IPersonnelService personnelService, IAuditService auditService, ICurrentUserService currentUser)
+    public DepartmentsController(IDepartmentService departmentService, IPersonnelService personnelService, IRoleService roleService, IAuditService auditService, ICurrentUserService currentUser)
     {
         _departmentService = departmentService;
         _personnelService = personnelService;
+        _roleService = roleService;
         _auditService = auditService;
         _currentUser = currentUser;
     }
@@ -40,9 +42,9 @@ public class DepartmentsController : Controller
         return View();
     }
 
-    /// <summary>GET /Departments/Detail/{id} — Departman detayı (bilgiler + personel sayısı).</summary>
+    /// <summary>GET /Departments/Detail/{id} — Departman detayı (bilgiler + bu departmandaki aktif personel listesi, sayfalı).</summary>
     [HttpGet]
-    public IActionResult Detail(int id)
+    public IActionResult Detail(int id, int page = 1)
     {
         var department = _departmentService.GetById(id);
         if (department == null) return NotFound();
@@ -50,6 +52,23 @@ public class DepartmentsController : Controller
         var personnelCount = countByDept.TryGetValue(id, out var c) ? c : 0;
         ViewBag.Department = department;
         ViewBag.PersonnelCount = personnelCount;
+
+        var pageSize = 10;
+        if (page < 1) page = 1;
+        var paged = _personnelService.GetPaged(departmentId: id, activeOnly: true, search: null, page, pageSize);
+        ViewBag.PersonnelList = paged.Items;
+        ViewBag.PersonnelTotalCount = paged.TotalCount;
+        ViewBag.PersonnelPageNumber = paged.PageNumber;
+        ViewBag.PersonnelTotalPages = (paged.TotalCount + pageSize - 1) / pageSize;
+        ViewBag.PersonnelPageSize = pageSize;
+
+        var roles = _roleService.GetAll();
+        ViewBag.RoleNames = roles.ToDictionary(r => r.Id, r => r.Name ?? "—");
+        ViewBag.DepartmentNames = new Dictionary<int, string> { { department.Id, department.Name ?? "—" } };
+        var managerIds = paged.Items.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct().ToList();
+        var managers = managerIds.Count > 0 ? _personnelService.GetByIds(managerIds) : new List<Personnel>();
+        ViewBag.ManagerNames = managers.ToDictionary(m => m.Id, m => $"{m.FirstName} {m.LastName}");
+
         return View();
     }
 

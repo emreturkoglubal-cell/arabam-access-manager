@@ -16,4 +16,6 @@ public class PersonnelEditInputModel
     public int? RoleId { get; set; }
     /// <summary>0=Active, 1=Passive, 2=Offboarded</summary>
     public short Status { get; set; }
+    /// <summary>Seçiliyse managers kaydı aktif (level 4); değilse is_active false.</summary>
+    public bool IsManager { get; set; }
 }

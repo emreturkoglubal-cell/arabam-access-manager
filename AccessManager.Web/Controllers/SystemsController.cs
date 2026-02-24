@@ -48,7 +48,7 @@ public class SystemsController : Controller
         var activeAccesses = _accessService.GetActive();
         var accessCounts = systems.ToDictionary(s => s.Id, s => activeAccesses.Count(a => a.ResourceSystemId == s.Id));
 
-        // Sahip isimleri: sadece gerekli personel ID'leri için tek sorgu (N+1 önlemi)
+        // Sorumlu kişi isimleri
         var ownerIds = systems.Where(s => s.OwnerId.HasValue).Select(s => s.OwnerId!.Value).Distinct().ToList();
         var owners = ownerIds.Count > 0 ? _personnelService.GetByIds(ownerIds) : new List<Personnel>();
         var ownerNameByPersonnelId = owners.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
@@ -61,8 +61,20 @@ public class SystemsController : Controller
                 ownerNames[s.Id] = "-";
         }
 
+        // Sorumlu departman isimleri
+        var deptIds = systems.Where(s => s.ResponsibleDepartmentId.HasValue).Select(s => s.ResponsibleDepartmentId!.Value).Distinct().ToList();
+        var allDepts = _departmentService.GetAll();
+        var deptNameById = allDepts.ToDictionary(d => d.Id, d => d.Name ?? "—");
+        var responsibleDepartmentNames = new Dictionary<int, string>();
+        foreach (var s in systems)
+        {
+            if (s.ResponsibleDepartmentId.HasValue && deptNameById.TryGetValue(s.ResponsibleDepartmentId.Value, out var name))
+                responsibleDepartmentNames[s.Id] = name;
+        }
+
         ViewBag.Systems = systems;
         ViewBag.OwnerNames = ownerNames;
+        ViewBag.ResponsibleDepartmentNames = responsibleDepartmentNames;
         ViewBag.AccessCounts = accessCounts;
         return View();
     }
