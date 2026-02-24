@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Yeni Sistem";
     var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
 }
 
 <div class="am-card am-card--narrow">
@@ -28,12 +29,22 @@
                 <select asp-for="CriticalLevel" class="form-select" asp-items="Html.GetEnumSelectList<CriticalLevel>()"></select>
             </div>
             <div class="mb-3">
-                <label asp-for="OwnerId" class="form-label">Sistem sahibi (personel)</label>
+                <label asp-for="ResponsibleDepartmentId" class="form-label">Sorumlu Departman</label>
+                <select asp-for="ResponsibleDepartmentId" class="form-select">
+                    <option value="0">— Seçin —</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.Id">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OwnerId" class="form-label">Sorumlu Kişi</label>
                 <select asp-for="OwnerId" class="form-select">
                     <option value="0">— Seçin —</option>
                     @foreach (var p in personnelList)
                     {
-                        <option value="@p.Id">@p.FirstName @p.LastName (#@p.Id)</option>
+                        <option value="@p.Id">@p.FirstName @p.LastName</option>
                     }
                 </select>
             </div>

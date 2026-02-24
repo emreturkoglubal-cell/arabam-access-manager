@@ -4,7 +4,8 @@
 @{
     ViewData["Title"] = "Personel Detay";
     var managersForEdit = ViewBag.ManagersForEdit as IReadOnlyList<Personnel> ?? new List<Personnel>();
-    var currentManagerLevel = ViewBag.CurrentManagerLevel as short? ?? 1;
+    var departmentsForEdit = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var rolesForEdit = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
 }
 
 <nav aria-label="breadcrumb">
@@ -48,6 +49,20 @@ else
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
     </div>
 }
+@if (TempData["PersonnelEditSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["PersonnelEditSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["PersonnelEditError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["PersonnelEditError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
 
 <div class="am-personnel-detail-header mb-4">
     @if (!string.IsNullOrWhiteSpace(Model.Personnel.ImageUrl))
@@ -63,7 +78,10 @@ else
 <div class="row">
     <div class="col-md-6">
         <div class="am-card mb-3">
-            <div class="am-card-header">Kişisel Bilgiler</div>
+            <div class="am-card-header d-flex justify-content-between align-items-center">
+                <span>Kişisel Bilgiler</span>
+                <button type="button" class="btn btn-sm btn-am-outline" data-bs-toggle="modal" data-bs-target="#personnelEditModal" aria-label="Kişisel bilgileri düzenle">Düzenle</button>
+            </div>
             <div class="am-card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">ID</dt>
@@ -78,8 +96,14 @@ else
                     <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
                     <dt class="col-sm-4">Yönetici İsmi</dt>
                     <dd class="col-sm-8">
-                        @(Model.ManagerName ?? "-")
-                        <button type="button" class="btn btn-am-ghost btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#managerEditModal" aria-label="Yönetici güncelle">Güncelle</button>
+                        @if (Model.Personnel.ManagerId.HasValue && !string.IsNullOrEmpty(Model.ManagerName))
+                        {
+                            <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@Model.Personnel.ManagerId.Value">@Model.ManagerName</a>
+                        }
+                        else
+                        {
+                            @(Model.ManagerName ?? "-")
+                        }
                     </dd>
                     <dt class="col-sm-4">İşe giriş</dt>
                     <dd class="col-sm-8">@Model.Personnel.StartDate.ToString("dd.MM.yyyy")</dd>
@@ -95,6 +119,67 @@ else
                 </dl>
             </div>
         </div>
+        @if (Model.SubordinatesTotalCount > 0)
+        {
+        <div class="am-card mb-3">
+            <div class="am-card-header">Bağlı olan personeller</div>
+            <div class="am-card-body">
+                <div class="am-table-wrap">
+                    <table class="am-table mb-0">
+                        <thead>
+                            <tr>
+                                <th class="am-table-th-normal">Ad Soyad</th>
+                                <th class="am-table-th-normal">Pozisyon</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sub in Model.Subordinates)
+                            {
+                                <tr>
+                                    <td>
+                                        <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@sub.Id">@sub.FirstName @sub.LastName</a>
+                                    </td>
+                                    <td>@(sub.Position ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (Model.SubordinatesTotalCount > Model.SubordinatesPageSize)
+                {
+                    var totalPages = (Model.SubordinatesTotalCount + Model.SubordinatesPageSize - 1) / Model.SubordinatesPageSize;
+                    <nav aria-label="Bağlı personeller sayfaları" class="mt-2">
+                        <ul class="pagination pagination-sm mb-0">
+                            @if (Model.SubordinatesPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@Model.Personnel.Id" asp-route-subordinatesPage="@(Model.SubordinatesPage - 1)">Önceki</a>
+                                </li>
+                            }
+                            @for (var pg = 1; pg <= totalPages; pg++)
+                            {
+                                if (pg == Model.SubordinatesPage)
+                                {
+                                    <li class="page-item active" aria-current="page"><span class="page-link">@pg</span></li>
+                                }
+                                else
+                                {
+                                    <li class="page-item"><a class="page-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@Model.Personnel.Id" asp-route-subordinatesPage="@pg">@pg</a></li>
+                                }
+                            }
+                            @if (Model.SubordinatesPage < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@Model.Personnel.Id" asp-route-subordinatesPage="@(Model.SubordinatesPage + 1)">Sonraki</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                    <p class="small text-muted mt-1 mb-0">@Model.SubordinatesTotalCount personel, sayfa @Model.SubordinatesPage / @totalPages</p>
+                }
+            </div>
+        </div>
+        }
         <div class="am-card mb-3">
             <div class="am-card-header">Zimmetteki donanım</div>
             <div class="am-card-body">
@@ -272,53 +357,115 @@ else
     </div>
 </div>
 
-<div class="modal fade" id="managerEditModal" tabindex="-1" aria-labelledby="managerEditModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="personnelEditModal" tabindex="-1" aria-labelledby="personnelEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="managerEditModalLabel">Yönetici ata / güncelle</h5>
+                <h5 class="modal-title" id="personnelEditModalLabel">Kişisel bilgileri düzenle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
             </div>
-            <form method="post" asp-controller="Personnel" asp-action="UpdateManager" asp-route-id="@Model.Personnel.Id">
+            <form method="post" asp-controller="Personnel" asp-action="UpdatePersonnel" asp-route-id="@Model.Personnel.Id">
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="managerId" class="form-label">Yönetici</label>
-                        <select name="managerId" id="managerId" class="form-select">
-                            <option value="">— Yönetici yok —</option>
-                            @foreach (var p in managersForEdit)
-                            {
-                                if (Model.Personnel.ManagerId == p.Id)
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editFirstName" class="form-label">Ad</label>
+                            <input type="text" name="FirstName" id="editFirstName" class="form-control" value="@Model.Personnel.FirstName" required maxlength="100" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editLastName" class="form-label">Soyad</label>
+                            <input type="text" name="LastName" id="editLastName" class="form-control" value="@Model.Personnel.LastName" required maxlength="100" />
+                        </div>
+                        <div class="col-12">
+                            <label for="editEmail" class="form-label">E-posta</label>
+                            <input type="email" name="Email" id="editEmail" class="form-control" value="@Model.Personnel.Email" required maxlength="255" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editDepartmentId" class="form-label">Departman</label>
+                            <select name="DepartmentId" id="editDepartmentId" class="form-select" required>
+                                @foreach (var d in departmentsForEdit)
                                 {
-                                    <option value="@p.Id" selected>@p.FirstName @p.LastName</option>
+                                    if (Model.Personnel.DepartmentId == d.Id)
+                                    {
+                                        <option value="@d.Id" selected>@d.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@d.Id">@d.Name</option>
+                                    }
                                 }
-                                else
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPosition" class="form-label">Pozisyon</label>
+                            <input type="text" name="Position" id="editPosition" class="form-control" value="@Model.Personnel.Position" maxlength="200" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editRoleId" class="form-label">Rol</label>
+                            <select name="RoleId" id="editRoleId" class="form-select">
+                                <option value="">— Seçiniz —</option>
+                                @foreach (var r in rolesForEdit)
                                 {
-                                    <option value="@p.Id">@p.FirstName @p.LastName</option>
+                                    if (Model.Personnel.RoleId == r.Id)
+                                    {
+                                        <option value="@r.Id" selected>@r.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@r.Id">@r.Name</option>
+                                    }
                                 }
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="level" class="form-label">Yönetici seviyesi (1 = en üst, 4 = en alt)</label>
-                        <select name="level" id="level" class="form-select">
-                            @for (var i = 1; i <= 4; i++)
-                            {
-                                if (currentManagerLevel == i)
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editManagerId" class="form-label">Yönetici</label>
+                            <select name="ManagerId" id="editManagerId" class="form-select">
+                                <option value="">— Yönetici yok —</option>
+                                @foreach (var p in managersForEdit)
                                 {
-                                    <option value="@i" selected>@i</option>
+                                    if (Model.Personnel.ManagerId == p.Id)
+                                    {
+                                        <option value="@p.Id" selected>@p.FirstName @p.LastName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@p.Id">@p.FirstName @p.LastName</option>
+                                    }
                                 }
-                                else
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editStartDate" class="form-label">İşe giriş</label>
+                            <input type="date" name="StartDate" id="editStartDate" class="form-control" value="@Model.Personnel.StartDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editEndDate" class="form-label">İşten çıkış</label>
+                            <input type="date" name="EndDate" id="editEndDate" class="form-control" value="@(Model.Personnel.EndDate?.ToString("yyyy-MM-dd") ?? "")" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editStatus" class="form-label">Durum</label>
+                            <select name="Status" id="editStatus" class="form-select">
+                                @{
+                                    var statusOptions = new[] { (0, "Aktif"), (1, "Pasif"), (2, "İşten ayrıldı") };
+                                }
+                                @foreach (var so in statusOptions)
                                 {
-                                    <option value="@i">@i</option>
+                                    if ((int)Model.Personnel.Status == so.Item1)
+                                    {
+                                        <option value="@so.Item1" selected>@so.Item2</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@so.Item1">@so.Item2</option>
+                                    }
                                 }
-                            }
-                        </select>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-am-ghost" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-am-primary">Kaydet</button>
+                    <button type="submit" class="btn btn-am-primary">Güncelle</button>
                 </div>
             </form>
         </div>

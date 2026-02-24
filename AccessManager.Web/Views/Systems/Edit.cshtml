@@ -3,8 +3,9 @@
 @using AccessManager.Domain.Entities
 @{
     ViewData["Title"] = "Sistem Düzenle";
-    var system = ViewBag.System as AccessManager.Domain.Entities.ResourceSystem;
+    var system = ViewBag.System as ResourceSystem;
     var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
 }
 
 <div class="am-card am-card--narrow">
@@ -29,12 +30,36 @@
                 <select asp-for="CriticalLevel" class="form-select" asp-items="Html.GetEnumSelectList<CriticalLevel>()"></select>
             </div>
             <div class="mb-3">
-                <label asp-for="OwnerId" class="form-label">Sistem sahibi (personel)</label>
+                <label asp-for="ResponsibleDepartmentId" class="form-label">Sorumlu Departman</label>
+                <select asp-for="ResponsibleDepartmentId" class="form-select">
+                    <option value="0">— Seçin —</option>
+                    @foreach (var d in departments)
+                    {
+                        if (Model.ResponsibleDepartmentId == d.Id)
+                        {
+                            <option value="@d.Id" selected>@d.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@d.Id">@d.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OwnerId" class="form-label">Sorumlu Kişi</label>
                 <select asp-for="OwnerId" class="form-select">
                     <option value="0">— Seçin —</option>
                     @foreach (var p in personnelList)
                     {
-                        <option value="@p.Id">@p.FirstName @p.LastName (#@p.Id)</option>
+                        if (Model.OwnerId == p.Id)
+                        {
+                            <option value="@p.Id" selected>@p.FirstName @p.LastName</option>
+                        }
+                        else
+                        {
+                            <option value="@p.Id">@p.FirstName @p.LastName</option>
+                        }
                     }
                 </select>
             </div>

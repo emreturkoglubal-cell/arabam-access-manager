@@ -13,4 +13,6 @@ public interface IDepartmentService
     Department? GetById(int id);
     /// <summary>Yeni departman oluşturur; ad zorunlu, kod ve açıklama isteğe bağlı.</summary>
     Department Add(string name, string? code, string? description);
+    /// <summary>Mevcut departman bilgilerini günceller.</summary>
+    void Update(Department department);
 }

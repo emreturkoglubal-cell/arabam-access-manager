@@ -19,7 +19,7 @@ public class ManagerService : IManagerService
     {
         var leafManagers = _managerRepo.GetLeafManagers();
         if (leafManagers.Count == 0)
-            return _personnelRepo.GetActive();
+            return new List<Personnel>();
         var ids = leafManagers.Select(m => m.PersonnelId).Distinct().ToList();
         return _personnelRepo.GetByIds(ids);
     }

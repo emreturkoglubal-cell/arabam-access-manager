@@ -28,4 +28,10 @@ public class DepartmentService : IDepartmentService
         department.Id = _repo.Insert(department);
         return department;
     }
+
+    public void Update(Department department)
+    {
+        ArgumentNullException.ThrowIfNull(department);
+        _repo.Update(department);
+    }
 }

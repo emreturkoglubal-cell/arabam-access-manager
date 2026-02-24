@@ -125,9 +125,9 @@ public class PersonnelController : Controller
         return RedirectToAction(nameof(Detail), new { id = p.Id });
     }
 
-    /// <summary>GET /Personnel/Detail/{id} — Personel detayı: erişimler, donanım zimmetleri, notlar.</summary>
+    /// <summary>GET /Personnel/Detail/{id} — Personel detayı: erişimler, donanım zimmetleri, notlar, astlar (sayfalı).</summary>
     [HttpGet]
-    public IActionResult Detail(int id)
+    public IActionResult Detail(int id, int subordinatesPage = 1)
     {
         var (personnel, accesses) = _personnelService.GetWithAccesses(id);
         if (personnel == null) return NotFound();
@@ -164,9 +164,52 @@ public class PersonnelController : Controller
         foreach (var assignment in assetAssignments)
             vm.AssignmentNotes[assignment.Id] = _assetService.GetNotesForAssignment(assignment.Id).ToList();
 
+        var allSubordinates = _personnelService.GetByManagerId(id).ToList();
+        vm.SubordinatesTotalCount = allSubordinates.Count;
+        vm.SubordinatesPageSize = 10;
+        vm.SubordinatesPage = subordinatesPage < 1 ? 1 : subordinatesPage;
+        var skip = (vm.SubordinatesPage - 1) * vm.SubordinatesPageSize;
+        vm.Subordinates = allSubordinates.Skip(skip).Take(vm.SubordinatesPageSize).ToList();
+
         ViewBag.ManagersForEdit = _personnelService.GetActive().Where(p => p.Id != id).ToList();
         ViewBag.CurrentManagerLevel = personnel.ManagerId.HasValue ? _managerService.GetManagerLevelByPersonnelId(personnel.ManagerId.Value) : (short?)null;
+        ViewBag.Departments = _departmentService.GetAll();
+        ViewBag.Roles = _roleService.GetAll();
         return View(vm);
+    }
+
+    /// <summary>POST /Personnel/UpdatePersonnel/{id} — Kişisel bilgiler modalından gelen tüm alanları günceller (ID hariç).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdatePersonnel(int id, PersonnelEditInputModel input)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        if (input == null || string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName) || string.IsNullOrWhiteSpace(input.Email))
+        {
+            TempData["PersonnelEditError"] = "Ad, soyad ve e-posta zorunludur.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        if (input.ManagerId.HasValue && input.ManagerId.Value == id)
+        {
+            TempData["PersonnelEditError"] = "Kişi kendisinin yöneticisi olamaz.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        personnel.FirstName = input.FirstName.Trim();
+        personnel.LastName = input.LastName.Trim();
+        personnel.Email = input.Email.Trim();
+        personnel.DepartmentId = input.DepartmentId;
+        personnel.Position = string.IsNullOrWhiteSpace(input.Position) ? null : input.Position.Trim();
+        personnel.ManagerId = input.ManagerId;
+        personnel.StartDate = input.StartDate;
+        personnel.EndDate = input.EndDate;
+        personnel.RoleId = input.RoleId;
+        if (input.Status >= 0 && input.Status <= 2)
+            personnel.Status = (PersonnelStatus)input.Status;
+        _personnelService.Update(personnel);
+        _auditService.Log(AuditAction.PersonnelUpdated, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?", "Personnel", id.ToString(), $"Kişisel bilgiler güncellendi: {personnel.FirstName} {personnel.LastName}");
+        TempData["PersonnelEditSuccess"] = "Kişisel bilgiler güncellendi.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>POST /Personnel/UpdateManager/{id} — Personelin yöneticisini ve yönetici seviyesini günceller.</summary>

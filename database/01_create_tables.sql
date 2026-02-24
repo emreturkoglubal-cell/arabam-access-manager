@@ -95,19 +95,21 @@ COMMENT ON COLUMN managers.level IS '1=En üst yönetici, 4=En alt yönetici';
 -- 4. resource_systems
 -- -----------------------------------------------------------------------------
 CREATE TABLE resource_systems (
-    id              SERIAL PRIMARY KEY,
-    name            VARCHAR(200) NOT NULL,
-    code            VARCHAR(50),
-    system_type     SMALLINT NOT NULL DEFAULT 0,
-    critical_level  SMALLINT NOT NULL DEFAULT 1,
-    owner_id        INT REFERENCES personnel (id),
-    description     TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    id                      SERIAL PRIMARY KEY,
+    name                    VARCHAR(200) NOT NULL,
+    code                    VARCHAR(50),
+    system_type             SMALLINT NOT NULL DEFAULT 0,
+    critical_level          SMALLINT NOT NULL DEFAULT 1,
+    responsible_department_id INT REFERENCES departments (id),
+    owner_id                INT REFERENCES personnel (id),
+    description             TEXT,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_resource_systems_system_type CHECK (system_type IN (0, 1, 2)),
     CONSTRAINT chk_resource_systems_critical_level CHECK (critical_level IN (0, 1, 2))
 );
 
+CREATE INDEX ix_resource_systems_responsible_department_id ON resource_systems (responsible_department_id) WHERE responsible_department_id IS NOT NULL;
 CREATE INDEX ix_resource_systems_owner_id ON resource_systems (owner_id) WHERE owner_id IS NOT NULL;
 CREATE INDEX ix_resource_systems_code ON resource_systems (code) WHERE code IS NOT NULL;
 CREATE INDEX ix_resource_systems_system_type ON resource_systems (system_type);

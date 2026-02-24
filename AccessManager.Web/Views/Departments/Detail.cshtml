@@ -1,0 +1,89 @@
+@using AccessManager.Domain.Entities
+@{
+    ViewData["Title"] = "Departman Detay";
+    var department = ViewBag.Department as Department;
+    var personnelCount = ViewBag.PersonnelCount as int? ?? 0;
+}
+@if (department == null)
+{
+    <p class="text-muted">Departman bulunamadı.</p>
+}
+else
+{
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Departments" asp-action="Index">Departmanlar</a></li>
+        <li class="breadcrumb-item active">@department.Name</li>
+    </ol>
+</nav>
+
+@if (TempData["DepartmentEditSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["DepartmentEditSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["DepartmentEditError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["DepartmentEditError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<div class="am-card mb-3">
+    <div class="am-card-header d-flex justify-content-between align-items-center">
+        <span>Departman Bilgileri</span>
+        <button type="button" class="btn btn-sm btn-am-outline" data-bs-toggle="modal" data-bs-target="#departmentEditModal" aria-label="Departman bilgilerini düzenle">Düzenle</button>
+    </div>
+    <div class="am-card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">ID</dt>
+            <dd class="col-sm-8">@department.Id</dd>
+            <dt class="col-sm-4">Kod</dt>
+            <dd class="col-sm-8">@(department.Code ?? "—")</dd>
+            <dt class="col-sm-4">Departman Adı</dt>
+            <dd class="col-sm-8">@department.Name</dd>
+            <dt class="col-sm-4">Açıklama</dt>
+            <dd class="col-sm-8">@(department.Description ?? "—")</dd>
+            <dt class="col-sm-4">Personel sayısı</dt>
+            <dd class="col-sm-8">@personnelCount</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="modal fade" id="departmentEditModal" tabindex="-1" aria-labelledby="departmentEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="departmentEditModalLabel">Departman bilgilerini düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form method="post" asp-controller="Departments" asp-action="UpdateDepartment" asp-route-id="@department.Id">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Departman Adı</label>
+                        <input type="text" name="Name" id="editName" class="form-control" value="@department.Name" required maxlength="200" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCode" class="form-label">Kod</label>
+                        <input type="text" name="Code" id="editCode" class="form-control" value="@department.Code" maxlength="50" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Açıklama</label>
+                        <textarea name="Description" id="editDescription" class="form-control" rows="3" maxlength="2000">@department.Description</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-am-ghost" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-am-primary">Güncelle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<a asp-controller="Departments" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}

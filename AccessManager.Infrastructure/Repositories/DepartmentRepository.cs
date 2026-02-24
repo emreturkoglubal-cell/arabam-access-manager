@@ -39,4 +39,12 @@ public class DepartmentRepository : IDepartmentRepository
         const string sql = @"INSERT INTO departments (name, code, description) VALUES (@Name, @Code, @Description) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new { department.Name, department.Code, department.Description });
     }
+
+    public void Update(Department department)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"UPDATE departments SET name = @Name, code = @Code, description = @Description WHERE id = @Id";
+        conn.Execute(sql, new { department.Id, department.Name, department.Code, department.Description });
+    }
 }

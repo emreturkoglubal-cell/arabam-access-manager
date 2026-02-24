@@ -13,22 +13,22 @@
 
 <div class="am-card">
     <div class="am-card-body p-0">
-        <div class="am-table-wrap">
+        <div class="am-table-wrap am-table-rows-clickable">
             <table class="am-table">
                 <thead>
                     <tr>
-                        <th>Kod</th>
-                        <th>Departman Adı</th>
-                        <th>Açıklama Metni</th>
-                        <th>Personel sayısı</th>
+                        <th class="am-table-th-normal">Kod</th>
+                        <th class="am-table-th-normal">Departman Adı</th>
+                        <th class="am-table-th-normal">Açıklama Metni</th>
+                        <th class="am-table-th-normal">Personel sayısı</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var d in departments)
                     {
-                        <tr>
+                        <tr role="button" tabindex="0" class="am-table-row-clickable" data-href="@Url.Action("Detail", "Departments", new { id = d.Id })" onclick="window.location.href=this.dataset.href">
                             <td>@(d.Code ?? "—")</td>
-                            <td><strong>@d.Name</strong></td>
+                            <td>@d.Name</td>
                             <td>@(d.Description ?? "—")</td>
                             <td>@(countByDept.TryGetValue(d.Id, out var c) ? c : 0)</td>
                         </tr>

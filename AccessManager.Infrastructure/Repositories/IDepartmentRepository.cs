@@ -7,4 +7,5 @@ public interface IDepartmentRepository
     IReadOnlyList<Department> GetAll();
     Department? GetById(int id);
     int Insert(Department department);
+    void Update(Department department);
 }

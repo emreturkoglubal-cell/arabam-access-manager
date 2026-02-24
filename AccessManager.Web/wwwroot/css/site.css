@@ -267,6 +267,22 @@ body {
   border-bottom: none;
 }
 
+.am-table-th-normal {
+  font-weight: 400 !important;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.875rem;
+}
+
+/* Tema uyumlu metin linki (mavi/altı çizgi yok) */
+.am-link {
+  color: var(--am-text);
+  text-decoration: none;
+}
+.am-link:hover {
+  color: var(--am-accent);
+}
+
 /* Personel listesi: avatar sütunu */
 .am-table-col-avatar {
   width: 48px;

@@ -17,6 +17,7 @@ public class SystemsController : Controller
 {
     private readonly ISystemService _systemService;
     private readonly IPersonnelService _personnelService;
+    private readonly IDepartmentService _departmentService;
     private readonly IPersonnelAccessService _accessService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
@@ -24,12 +25,14 @@ public class SystemsController : Controller
     public SystemsController(
         ISystemService systemService,
         IPersonnelService personnelService,
+        IDepartmentService departmentService,
         IPersonnelAccessService accessService,
         IAuditService auditService,
         ICurrentUserService currentUser)
     {
         _systemService = systemService;
         _personnelService = personnelService;
+        _departmentService = departmentService;
         _accessService = accessService;
         _auditService = auditService;
         _currentUser = currentUser;
@@ -70,6 +73,7 @@ public class SystemsController : Controller
     public IActionResult Create()
     {
         ViewBag.PersonnelList = _personnelService.GetActive();
+        ViewBag.Departments = _departmentService.GetAll();
         return View(new SystemEditInputModel());
     }
 
@@ -83,6 +87,7 @@ public class SystemsController : Controller
         {
             ModelState.AddModelError(nameof(input.Name), "Sistem adı gerekli.");
             ViewBag.PersonnelList = _personnelService.GetActive();
+            ViewBag.Departments = _departmentService.GetAll();
             return View(input);
         }
         var system = new ResourceSystem
@@ -91,6 +96,7 @@ public class SystemsController : Controller
             Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim(),
             SystemType = input.SystemType,
             CriticalLevel = input.CriticalLevel,
+            ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId,
             OwnerId = input.OwnerId == 0 ? null : input.OwnerId,
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim()
         };
@@ -109,12 +115,14 @@ public class SystemsController : Controller
         if (system == null) return NotFound();
         ViewBag.System = system;
         ViewBag.PersonnelList = _personnelService.GetActive();
+        ViewBag.Departments = _departmentService.GetAll();
         return View(new SystemEditInputModel
         {
             Name = system.Name,
             Code = system.Code,
             SystemType = system.SystemType,
             CriticalLevel = system.CriticalLevel,
+            ResponsibleDepartmentId = system.ResponsibleDepartmentId ?? 0,
             OwnerId = system.OwnerId ?? 0,
             Description = system.Description
         });
@@ -133,12 +141,14 @@ public class SystemsController : Controller
             ModelState.AddModelError(nameof(input.Name), "Sistem adı gerekli.");
             ViewBag.System = system;
             ViewBag.PersonnelList = _personnelService.GetActive();
+            ViewBag.Departments = _departmentService.GetAll();
             return View(input);
         }
         system.Name = input.Name.Trim();
         system.Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim();
         system.SystemType = input.SystemType;
         system.CriticalLevel = input.CriticalLevel;
+        system.ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId;
         system.OwnerId = input.OwnerId == 0 ? null : input.OwnerId;
         system.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         _systemService.Update(system);

@@ -20,4 +20,9 @@ public class PersonnelDetailViewModel
     public List<PersonnelNote> Notes { get; set; } = new();
     /// <summary>Zimmet kaydına göre notlar (AssignmentId -> not listesi).</summary>
     public Dictionary<int, List<AssetAssignmentNote>> AssignmentNotes { get; set; } = new();
+    /// <summary>Bu personel yönetici ise, ona bağlı personeller (sayfalı).</summary>
+    public IReadOnlyList<Personnel> Subordinates { get; set; } = new List<Personnel>();
+    public int SubordinatesTotalCount { get; set; }
+    public int SubordinatesPage { get; set; } = 1;
+    public int SubordinatesPageSize { get; set; } = 10;
 }
