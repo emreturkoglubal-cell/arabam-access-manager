@@ -2,33 +2,42 @@
     ViewData["Title"] = "arabam AI — Proje Sohbeti";
     var initialConversationId = ViewData["ConversationId"] as int?;
 }
-<div class="ai-chat-page-wrap">
-<div class="am-card d-flex flex-column ai-chat-card">
+<div class="ai-chat-page-wrap" id="aiChatWrap">
+<div class="am-card d-flex flex-column ai-chat-card" id="aiChatCard">
     <div class="am-card-body d-flex flex-grow-1 p-0 ai-chat-body">
-        <aside id="conversationSidebar" class="am-ai-sidebar border-end bg-light d-flex flex-column ai-chat-sidebar">
-            <div class="p-2 border-bottom bg-white flex-shrink-0">
+        <aside id="conversationSidebar" class="am-ai-sidebar d-flex flex-column ai-chat-sidebar">
+            <div class="p-2 border-bottom flex-shrink-0 ai-chat-sidebar-header">
                 <a href="/Ai/Index" class="btn btn-sm btn-am-outline w-100">+ Yeni sohbet</a>
             </div>
             <div id="conversationListWrap" class="flex-grow-1 overflow-y-auto ai-chat-list-wrap">
                 <div id="conversationList" class="list-group list-group-flush">
                     <div class="text-muted small text-center py-3">Yükleniyor...</div>
                 </div>
-                <div id="conversationListMore" class="p-2 text-center border-top bg-white" style="display: none;">
+                <div id="conversationListMore" class="p-2 text-center border-top" style="display: none;">
                     <button type="button" id="loadMoreConversations" class="btn btn-sm btn-am-outline">Daha fazla yükle</button>
                 </div>
             </div>
         </aside>
+        <div id="sidebarEdgeStrip" class="ai-chat-sidebar-edge" title="Sohbet geçmişini aç/kapat" role="button" tabindex="0" aria-label="Kenar çubuğunu aç veya kapat">
+            <i id="sidebarEdgeIcon" class="ai-sidebar-edge-icon ai-sidebar-edge-icon--collapse" aria-hidden="true"></i>
+        </div>
         <div class="d-flex flex-column flex-grow-1 ai-chat-main" style="min-width: 0;">
-            <div id="chatMessages" class="flex-grow-1 overflow-auto p-3" style="min-height: 0;">
-                <div id="welcomePlaceholder" class="text-center py-5 px-3">
-                    <p id="welcomeTypewriter" class="text-muted mb-0" style="min-height: 2.5em; font-size: 1.05rem; line-height: 1.6;"></p>
+            <div id="chatMessages" class="flex-grow-1 overflow-auto p-3 d-flex flex-column ai-chat-messages-scroll" style="min-height: 0;">
+                <div id="welcomeBlock" class="ai-chat-welcome-block flex-grow-1 d-flex flex-column align-items-center justify-content-center text-center px-3">
+                    <p id="welcomeTypewriter" class="text-muted mb-4 ai-chat-welcome-text" style="min-height: 2.5em; font-size: 1.05rem; line-height: 1.6;"></p>
+                    <div id="inputBar" class="ai-chat-input-bar ai-chat-input-bar--center">
+                        <div class="ai-chat-input-inner ai-chat-input-row">
+                            <textarea id="chatInput" class="form-control ai-chat-input" rows="1" placeholder="Herhangi bir şey sor..." autocomplete="off"></textarea>
+                            <button type="button" id="chatSend" class="ai-chat-send-arrow" title="Gönder" aria-label="Gönder">
+                                <i class="ai-chat-send-arrow-icon" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
+                <div id="messagesContainer" class="ai-chat-messages-container" style="display: none;"></div>
             </div>
-            <div class="border-top p-3 bg-light flex-shrink-0">
-                <div class="d-flex gap-2 align-items-end">
-                    <textarea id="chatInput" class="form-control ai-chat-input" rows="2" placeholder="Mesajınızı yazın..." autocomplete="off"></textarea>
-                    <button type="button" id="chatSend" class="btn btn-am-primary flex-shrink-0">Gönder</button>
-                </div>
+            <div id="inputBarBottom" class="ai-chat-input-bar ai-chat-input-bar--bottom border-top p-3 flex-shrink-0" style="display: none;">
+                <div id="inputBarBottomInner" class="ai-chat-input-bottom-inner"><!-- inputBar buraya taşınır --></div>
             </div>
         </div>
     </div>
@@ -38,11 +47,158 @@
 <style>
     .ai-chat-page-wrap { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
     .ai-chat-card { flex: 1 1 0; min-height: 320px; }
-    .ai-chat-body { min-height: 0; height: 100%; }
-    .ai-chat-sidebar { width: 260px; min-width: 260px; min-height: 0; }
+    .ai-chat-body { min-height: 0; height: 100%; position: relative; }
+    .ai-chat-sidebar {
+        width: 260px; min-width: 260px; min-height: 0;
+        background: var(--am-accent-light, #fef2f2);
+        border-color: var(--am-border, #e5e7eb) !important;
+        transition: width 0.2s ease, min-width 0.2s ease;
+    }
+    .ai-chat-sidebar.ai-chat-sidebar--collapsed {
+        width: 0; min-width: 0; overflow: hidden; padding: 0; border: none;
+    }
+    .ai-chat-sidebar.ai-chat-sidebar--collapsed .ai-chat-sidebar-header,
+    .ai-chat-sidebar.ai-chat-sidebar--collapsed #conversationListWrap,
+    .ai-chat-sidebar.ai-chat-sidebar--collapsed #conversationListMore { display: none !important; }
+    .ai-chat-sidebar-header { background: var(--am-card-bg, #fff); border-color: var(--am-border) !important; }
+    .ai-chat-sidebar-edge {
+        width: 16px;
+        min-width: 16px;
+        background: var(--am-border, #e5e7eb);
+        border-left: 1px solid var(--am-border);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 0.75rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background 0.15s ease;
+    }
+    .ai-chat-sidebar-edge:hover {
+        background: var(--am-accent-light, #fef2f2);
+    }
+    .ai-sidebar-edge-icon {
+        width: 0;
+        height: 0;
+        display: inline-block;
+        border: solid transparent;
+        box-sizing: border-box;
+    }
+    .ai-sidebar-edge-icon--collapse {
+        border-width: 6px 8px 6px 0;
+        border-right-color: var(--am-text-muted, #6b7280);
+    }
+    .ai-sidebar-edge-icon--expand {
+        border-width: 6px 0 6px 8px;
+        border-left-color: var(--am-text-muted, #6b7280);
+    }
+    .ai-chat-sidebar-edge:hover .ai-sidebar-edge-icon--collapse {
+        border-right-color: var(--am-accent, #e40030);
+    }
+    .ai-chat-sidebar-edge:hover .ai-sidebar-edge-icon--expand {
+        border-left-color: var(--am-accent, #e40030);
+    }
     .ai-chat-list-wrap { min-height: 0; }
     .ai-chat-main { min-height: 0; }
-    .ai-chat-input { resize: vertical; min-height: 2.5rem; max-height: 12rem; }
+    .ai-chat-has-messages .ai-chat-welcome-block {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+    }
+    .ai-chat-has-messages #chatMessages { justify-content: flex-start; }
+    .ai-chat-messages-scroll { justify-content: flex-start; }
+    .ai-chat-messages-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        flex-grow: 1;
+        min-height: 0;
+    }
+    .ai-chat-input-bar { width: 100%; }
+    .ai-chat-input-bar--center { max-width: 640px; }
+    .ai-chat-input-bar--bottom {
+        background: var(--am-card-bg, #fff);
+    }
+    .ai-chat-input-bottom-inner {
+        max-width: 640px;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .ai-chat-input-inner--centered { max-width: 640px; margin-left: auto; margin-right: auto; }
+    .ai-chat-input-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border: 1px solid var(--am-border, #e5e7eb);
+        border-radius: 1.5rem;
+        background: var(--am-card-bg, #fff);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        padding: 0 0.5rem 0 1rem;
+        min-height: 2.5rem;
+    }
+    .ai-chat-input-row:focus-within {
+        border-color: var(--am-accent, #e40030);
+        box-shadow: 0 0 0 2px rgba(228, 0, 48, 0.15);
+    }
+    .ai-chat-input {
+        resize: none;
+        min-height: 2rem;
+        max-height: 10rem;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0.5rem 0.25rem 0.5rem 0;
+        background: transparent;
+        flex: 1;
+    }
+    .ai-chat-input:focus {
+        outline: none;
+    }
+    .ai-chat-send-arrow {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border: 1px solid var(--am-border, #e5e7eb);
+        border-radius: 50%;
+        background: #fff;
+        color: var(--am-accent, #e40030);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .ai-chat-send-arrow:hover {
+        background: var(--am-accent-light, #fef2f2);
+        border-color: var(--am-accent, #e40030);
+    }
+    .ai-chat-send-arrow-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 12px;
+        height: 14px;
+    }
+    .ai-chat-send-arrow-icon::before {
+        content: '';
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 6px solid currentColor;
+        margin-bottom: 2px;
+    }
+    .ai-chat-send-arrow-icon::after {
+        content: '';
+        width: 2px;
+        height: 6px;
+        background: currentColor;
+        border-radius: 1px;
+    }
     .typing-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 12px 16px; }
     .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--am-accent, #e40030); animation: typing-blink 1.2s ease-in-out infinite both; }
     .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
@@ -113,11 +269,18 @@
 <script>
 (function () {
     var messagesEl = document.getElementById('chatMessages');
+    var messagesContainer = document.getElementById('messagesContainer');
+    var welcomeBlock = document.getElementById('welcomeBlock');
+    var inputBar = document.getElementById('inputBar');
+    var inputBarBottom = document.getElementById('inputBarBottom');
     var inputEl = document.getElementById('chatInput');
     var sendBtn = document.getElementById('chatSend');
     var listEl = document.getElementById('conversationList');
     var listMoreEl = document.getElementById('conversationListMore');
     var loadMoreBtn = document.getElementById('loadMoreConversations');
+    var sidebar = document.getElementById('conversationSidebar');
+    var sidebarEdgeStrip = document.getElementById('sidebarEdgeStrip');
+    var sidebarEdgeIcon = document.getElementById('sidebarEdgeIcon');
     var currentConversationId = @(initialConversationId.HasValue ? initialConversationId.Value : "null");
     var conversationsSkip = 0;
     var conversationPageSize = 20;
@@ -126,6 +289,64 @@
     function scrollToBottom() {
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
+
+    var inputBarBottomInner = document.getElementById('inputBarBottomInner');
+
+    var aiChatCard = document.getElementById('aiChatCard');
+
+    function switchToChatMode() {
+        stopTypewriter();
+        welcomeBlock.style.display = 'none';
+        if (aiChatCard) aiChatCard.classList.add('ai-chat-has-messages');
+        messagesContainer.style.display = 'flex';
+        inputBarBottom.style.display = 'block';
+        if (inputBarBottomInner) {
+            inputBarBottomInner.appendChild(inputBar);
+        } else {
+            inputBarBottom.appendChild(inputBar);
+        }
+        var inner = inputBar.querySelector('.ai-chat-input-inner');
+        if (inner) inner.classList.add('ai-chat-input-inner--centered');
+    }
+
+    function switchToWelcomeMode() {
+        if (aiChatCard) aiChatCard.classList.remove('ai-chat-has-messages');
+        welcomeBlock.style.display = '';
+        messagesContainer.style.display = 'none';
+        inputBarBottom.style.display = 'none';
+        var inner = inputBar.querySelector('.ai-chat-input-inner');
+        if (inner) inner.classList.remove('ai-chat-input-inner--centered');
+        welcomeBlock.appendChild(inputBar);
+    }
+
+    function isSidebarCollapsed() {
+        return localStorage.getItem('ai-sidebar-collapsed') === '1';
+    }
+    function setSidebarCollapsed(collapsed) {
+        if (collapsed) {
+            sidebar.classList.add('ai-chat-sidebar--collapsed');
+            if (sidebarEdgeIcon) {
+                sidebarEdgeIcon.className = 'ai-sidebar-edge-icon ai-sidebar-edge-icon--expand';
+            }
+            localStorage.setItem('ai-sidebar-collapsed', '1');
+        } else {
+            sidebar.classList.remove('ai-chat-sidebar--collapsed');
+            if (sidebarEdgeIcon) {
+                sidebarEdgeIcon.className = 'ai-sidebar-edge-icon ai-sidebar-edge-icon--collapse';
+            }
+            localStorage.setItem('ai-sidebar-collapsed', '0');
+        }
+    }
+    function toggleSidebar() {
+        setSidebarCollapsed(!sidebar.classList.contains('ai-chat-sidebar--collapsed'));
+    }
+    if (sidebarEdgeStrip) {
+        sidebarEdgeStrip.addEventListener('click', toggleSidebar);
+        sidebarEdgeStrip.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSidebar(); }
+        });
+    }
+    if (isSidebarCollapsed()) setSidebarCollapsed(true);
 
     function escapeHtml(s) {
         if (!s) return '';
@@ -185,6 +406,7 @@
     }
 
     function addMessage(role, text) {
+        if (welcomeBlock.style.display !== 'none') switchToChatMode();
         var wrap = document.createElement('div');
         wrap.className = 'mb-3 ' + (role === 'user' ? 'text-end' : 'text-start');
         var bubble = document.createElement('div');
@@ -197,11 +419,12 @@
         else
             bubble.textContent = text;
         wrap.appendChild(bubble);
-        messagesEl.appendChild(wrap);
+        messagesContainer.appendChild(wrap);
         scrollToBottom();
     }
 
     function addTypingIndicator() {
+        if (welcomeBlock.style.display !== 'none') switchToChatMode();
         var wrap = document.createElement('div');
         wrap.className = 'mb-3 text-start';
         wrap.id = 'typingIndicatorWrap';
@@ -209,7 +432,7 @@
         bubble.className = 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
         bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span><span></span></div>';
         wrap.appendChild(bubble);
-        messagesEl.appendChild(wrap);
+        messagesContainer.appendChild(wrap);
         scrollToBottom();
     }
     function removeTypingIndicator() {
@@ -217,7 +440,6 @@
         if (el) el.remove();
     }
 
-    var welcomePlaceholderEl = document.getElementById('welcomePlaceholder');
     var welcomeTypewriterEl = document.getElementById('welcomeTypewriter');
     var welcomeTexts = [
         'Proje kodu hakkında soru sorun. Örn: "Personellerde onay akışı nasıl çalışıyor?"',
@@ -237,7 +459,7 @@
     }
 
     function runTypewriterStep() {
-        if (!welcomePlaceholderEl || welcomePlaceholderEl.style.display === 'none') return;
+        if (!welcomeBlock || welcomeBlock.style.display === 'none') return;
         var text = welcomeTexts[typewriterTextIndex];
         if (typewriterCharIndex <= text.length) {
             welcomeTypewriterEl.textContent = text.slice(0, typewriterCharIndex);
@@ -248,14 +470,14 @@
         typewriterTimeoutId = setTimeout(function () {
             typewriterTextIndex = (typewriterTextIndex + 1) % welcomeTexts.length;
             typewriterCharIndex = 0;
-            if (welcomePlaceholderEl && welcomePlaceholderEl.style.display !== 'none')
+            if (welcomeBlock && welcomeBlock.style.display !== 'none')
                 typewriterTimeoutId = setTimeout(runTypewriterStep, 300);
         }, 1100);
     }
 
     function startTypewriter() {
         stopTypewriter();
-        if (!welcomePlaceholderEl || !welcomeTypewriterEl) return;
+        if (!welcomeBlock || !welcomeTypewriterEl) return;
         typewriterTextIndex = 0;
         typewriterCharIndex = 0;
         welcomeTypewriterEl.textContent = '';
@@ -263,10 +485,14 @@
     }
 
     function setPlaceholder(visible) {
-        if (!welcomePlaceholderEl) return;
-        welcomePlaceholderEl.style.display = visible ? '' : 'none';
-        if (visible) startTypewriter();
-        else stopTypewriter();
+        if (!welcomeBlock) return;
+        if (visible) {
+            switchToWelcomeMode();
+            startTypewriter();
+        } else {
+            switchToChatMode();
+            stopTypewriter();
+        }
     }
 
     function appendConversationItems(items) {
@@ -308,11 +534,11 @@
     function loadMessages(conversationId) {
         if (!conversationId) {
             setPlaceholder(true);
-            messagesEl.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
+            messagesContainer.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
             return;
         }
         setPlaceholder(false);
-        messagesEl.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
+        messagesContainer.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
         fetch('/Ai/GetMessages?conversationId=' + conversationId)
             .then(function (r) { return r.json(); })
             .then(function (data) {
