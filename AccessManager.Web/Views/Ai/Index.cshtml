@@ -25,9 +25,9 @@
                 </div>
             </div>
             <div class="border-top p-3 bg-light flex-shrink-0">
-                <div class="d-flex gap-2">
-                    <input type="text" id="chatInput" class="form-control" placeholder="Mesajınızı yazın..." autocomplete="off" />
-                    <button type="button" id="chatSend" class="btn btn-am-primary">Gönder</button>
+                <div class="d-flex gap-2 align-items-end">
+                    <textarea id="chatInput" class="form-control ai-chat-input" rows="2" placeholder="Mesajınızı yazın..." autocomplete="off"></textarea>
+                    <button type="button" id="chatSend" class="btn btn-am-primary flex-shrink-0">Gönder</button>
                 </div>
             </div>
         </div>
@@ -42,6 +42,7 @@
     .ai-chat-sidebar { width: 260px; min-width: 260px; min-height: 0; }
     .ai-chat-list-wrap { min-height: 0; }
     .ai-chat-main { min-height: 0; }
+    .ai-chat-input { resize: vertical; min-height: 2.5rem; max-height: 12rem; }
     .typing-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 12px 16px; }
     .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--am-accent, #e40030); animation: typing-blink 1.2s ease-in-out infinite both; }
     .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
