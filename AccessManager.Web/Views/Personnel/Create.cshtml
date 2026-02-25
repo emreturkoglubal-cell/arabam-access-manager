@@ -32,6 +32,10 @@
                 <input asp-for="Email" class="form-control" type="email" />
                 <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
+            <div class="col-12">
+                <label asp-for="PhoneNumber" class="form-label">Telefon</label>
+                <input asp-for="PhoneNumber" class="form-control" type="tel" />
+            </div>
             <div class="col-md-4">
                 <label asp-for="DepartmentId" class="form-label">Departman</label>
                 <select asp-for="DepartmentId" class="form-select" asp-items="@(new SelectList(departments, "Id", "Name"))"></select>

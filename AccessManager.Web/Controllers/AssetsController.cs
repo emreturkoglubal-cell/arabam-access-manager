@@ -109,6 +109,7 @@ public class AssetsController : Controller
             Status = input.Status,
             Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
             PurchaseDate = input.PurchaseDate,
+            PurchasePrice = input.PurchasePrice,
             DepreciationEndDate = depreciationEnd
         };
         _assetService.Create(asset);
@@ -132,6 +133,7 @@ public class AssetsController : Controller
             Status = asset.Status,
             Notes = asset.Notes,
             PurchaseDate = asset.PurchaseDate,
+            PurchasePrice = asset.PurchasePrice,
             DepreciationEndDate = asset.DepreciationEndDate
         });
     }
@@ -157,6 +159,7 @@ public class AssetsController : Controller
         asset.Status = input.Status;
         asset.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
         asset.PurchaseDate = input.PurchaseDate;
+        asset.PurchasePrice = input.PurchasePrice;
         asset.DepreciationEndDate = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
         _assetService.Update(asset);
         TempData["AssetEditSuccess"] = "Donanım bilgileri güncellendi.";

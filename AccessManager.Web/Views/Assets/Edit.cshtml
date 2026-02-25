@@ -45,6 +45,10 @@
                 <input asp-for="PurchaseDate" class="form-control" type="date" />
             </div>
             <div class="mb-3">
+                <label asp-for="PurchasePrice" class="form-label">Satın alma ücreti (TL)</label>
+                <input asp-for="PurchasePrice" class="form-control" type="number" step="0.01" min="0" placeholder="Örn. 15000,50" />
+            </div>
+            <div class="mb-3">
                 <label asp-for="DepreciationEndDate" class="form-label">Amortisman tarihi</label>
                 <input asp-for="DepreciationEndDate" class="form-control" type="date" />
                 <span class="form-text">Boş bırakılırsa satın alma tarihi + 5 yıl kullanılır.</span>

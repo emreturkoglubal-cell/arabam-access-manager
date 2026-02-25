@@ -87,6 +87,8 @@ else
                 <dl class="row mb-0">
                     <dt class="col-sm-4">E-posta</dt>
                     <dd class="col-sm-8">@Model.Personnel.Email</dd>
+                    <dt class="col-sm-4">Telefon</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.PhoneNumber ?? "—")</dd>
                     <dt class="col-sm-4">Departman</dt>
                     <dd class="col-sm-8">@Model.DepartmentName</dd>
                     <dt class="col-sm-4">Pozisyon</dt>
@@ -416,6 +418,10 @@ else
                         <div class="col-12">
                             <label for="editEmail" class="form-label">E-posta</label>
                             <input type="email" name="Email" id="editEmail" class="form-control" value="@Model.Personnel.Email" required maxlength="255" />
+                        </div>
+                        <div class="col-12">
+                            <label for="editPhoneNumber" class="form-label">Telefon</label>
+                            <input type="tel" name="PhoneNumber" id="editPhoneNumber" class="form-control" value="@Model.Personnel.PhoneNumber" maxlength="50" />
                         </div>
                         <div class="col-md-6">
                             <label for="editDepartmentId" class="form-label">Departman</label>

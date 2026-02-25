@@ -114,6 +114,7 @@ public class PersonnelController : Controller
             FirstName = input.FirstName.Trim(),
             LastName = input.LastName.Trim(),
             Email = input.Email.Trim(),
+            PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim(),
             DepartmentId = input.DepartmentId,
             Position = input.Position?.Trim(),
             ManagerId = input.ManagerId,
@@ -225,6 +226,7 @@ public class PersonnelController : Controller
         personnel.FirstName = input.FirstName.Trim();
         personnel.LastName = input.LastName.Trim();
         personnel.Email = input.Email.Trim();
+        personnel.PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim();
         personnel.DepartmentId = input.DepartmentId;
         personnel.Position = string.IsNullOrWhiteSpace(input.Position) ? null : input.Position.Trim();
         personnel.ManagerId = input.ManagerId;

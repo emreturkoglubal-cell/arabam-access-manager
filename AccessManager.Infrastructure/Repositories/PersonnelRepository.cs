@@ -17,7 +17,7 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel ORDER BY status, id";
@@ -28,7 +28,7 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE status = 0 ORDER BY id";
@@ -68,7 +68,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         var countSql = $"SELECT COUNT(*) {baseSql}";
         var totalCount = Convert.ToInt32(conn.ExecuteScalar(countSql, pars));
-        var dataSql = $@"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        var dataSql = $@"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             {baseSql} ORDER BY status, id LIMIT @PageSize OFFSET @Offset";
@@ -80,7 +80,7 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE id = @Id";
@@ -93,7 +93,7 @@ public class PersonnelRepository : IPersonnelRepository
             return new List<Personnel>();
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE id = ANY(@Ids)";
@@ -104,7 +104,7 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE manager_id = @ManagerId ORDER BY id";
@@ -115,7 +115,7 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email,
+        const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
             status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
             FROM personnel WHERE department_id = @DepartmentId ORDER BY id";
@@ -144,10 +144,10 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO personnel (first_name, last_name, email, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment)
-            VALUES (@FirstName, @LastName, @Email, @DepartmentId, @Position, @ManagerId, @StartDate, @EndDate, @Status, @RoleId, @Location, @ImageUrl, @Rating, @ManagerComment) RETURNING id";
+        const string sql = @"INSERT INTO personnel (first_name, last_name, email, phone, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment)
+            VALUES (@FirstName, @LastName, @Email, @PhoneNumber, @DepartmentId, @Position, @ManagerId, @StartDate, @EndDate, @Status, @RoleId, @Location, @ImageUrl, @Rating, @ManagerComment) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new {
-            personnel.FirstName, personnel.LastName, personnel.Email, personnel.DepartmentId, personnel.Position,
+            personnel.FirstName, personnel.LastName, personnel.Email, personnel.PhoneNumber, personnel.DepartmentId, personnel.Position,
             personnel.ManagerId, personnel.StartDate, personnel.EndDate, Status = (short)personnel.Status, personnel.RoleId,
             personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment
         });
@@ -157,12 +157,12 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"UPDATE personnel SET first_name=@FirstName, last_name=@LastName, email=@Email,
+        const string sql = @"UPDATE personnel SET first_name=@FirstName, last_name=@LastName, email=@Email, phone=@PhoneNumber,
             department_id=@DepartmentId, position=@Position, manager_id=@ManagerId, start_date=@StartDate, end_date=@EndDate,
             status=@Status, role_id=@RoleId, location=@Location, image_url=@ImageUrl, rating=@Rating, manager_comment=@ManagerComment, updated_at=now()
             WHERE id=@Id";
         conn.Execute(sql, new {
-            personnel.Id, personnel.FirstName, personnel.LastName, personnel.Email, personnel.DepartmentId, personnel.Position,
+            personnel.Id, personnel.FirstName, personnel.LastName, personnel.Email, personnel.PhoneNumber, personnel.DepartmentId, personnel.Position,
             personnel.ManagerId, personnel.StartDate, personnel.EndDate, Status = (short)personnel.Status, personnel.RoleId,
             personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment
         });
