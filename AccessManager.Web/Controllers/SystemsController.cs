@@ -19,6 +19,7 @@ public class SystemsController : Controller
     private readonly IPersonnelService _personnelService;
     private readonly IDepartmentService _departmentService;
     private readonly IPersonnelAccessService _accessService;
+    private readonly IRoleService _roleService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
 
@@ -27,6 +28,7 @@ public class SystemsController : Controller
         IPersonnelService personnelService,
         IDepartmentService departmentService,
         IPersonnelAccessService accessService,
+        IRoleService roleService,
         IAuditService auditService,
         ICurrentUserService currentUser)
     {
@@ -34,6 +36,7 @@ public class SystemsController : Controller
         _personnelService = personnelService;
         _departmentService = departmentService;
         _accessService = accessService;
+        _roleService = roleService;
         _auditService = auditService;
         _currentUser = currentUser;
     }
@@ -76,6 +79,48 @@ public class SystemsController : Controller
         ViewBag.OwnerNames = ownerNames;
         ViewBag.ResponsibleDepartmentNames = responsibleDepartmentNames;
         ViewBag.AccessCounts = accessCounts;
+        return View();
+    }
+
+    /// <summary>GET /Systems/Detail/{id} — Uygulama detayı (bilgiler + bu uygulamada aktif yetkisi olan personel listesi, sayfalı).</summary>
+    [HttpGet]
+    public IActionResult Detail(int id, int page = 1)
+    {
+        var system = _systemService.GetById(id);
+        if (system == null) return NotFound();
+
+        var activeAccesses = _accessService.GetActive().Where(a => a.ResourceSystemId == id).ToList();
+        var personnelIds = activeAccesses.Select(a => a.PersonnelId).Distinct().ToList();
+        var allPersonnel = personnelIds.Count > 0
+            ? _personnelService.GetByIds(personnelIds).Where(p => p.Status == Domain.Enums.PersonnelStatus.Active).OrderBy(p => p.LastName).ThenBy(p => p.FirstName).ToList()
+            : new List<Personnel>();
+
+        var pageSize = 10;
+        if (page < 1) page = 1;
+        var totalCount = allPersonnel.Count;
+        var totalPages = (totalCount + pageSize - 1) / pageSize;
+        var skip = (page - 1) * pageSize;
+        var personnelList = allPersonnel.Skip(skip).Take(pageSize).ToList();
+
+        ViewBag.System = system;
+        ViewBag.PersonnelList = personnelList;
+        ViewBag.PersonnelTotalCount = totalCount;
+        ViewBag.PersonnelPageNumber = page;
+        ViewBag.PersonnelTotalPages = totalPages;
+        ViewBag.PersonnelPageSize = pageSize;
+
+        var roleNames = _roleService.GetAll().ToDictionary(r => r.Id, r => r.Name ?? "—");
+        ViewBag.RoleNames = roleNames;
+        var managerIds = personnelList.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct().ToList();
+        var managers = managerIds.Count > 0 ? _personnelService.GetByIds(managerIds) : new List<Personnel>();
+        ViewBag.ManagerNames = managers.ToDictionary(m => m.Id, m => $"{m.FirstName} {m.LastName}");
+
+        var ownerName = system.OwnerId.HasValue ? _personnelService.GetById(system.OwnerId.Value) : null;
+        ViewBag.OwnerName = ownerName != null ? $"{ownerName.FirstName} {ownerName.LastName}" : null;
+        ViewBag.ResponsibleDepartmentName = system.ResponsibleDepartmentId.HasValue
+            ? _departmentService.GetById(system.ResponsibleDepartmentId.Value)?.Name ?? "—"
+            : "—";
+
         return View();
     }
 

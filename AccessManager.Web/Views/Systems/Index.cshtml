@@ -31,17 +31,13 @@
                         <th>Sorumlu Departman</th>
                         <th>Sorumlu Kişi</th>
                         <th>Aktif erişim sayısı</th>
-                        @if (User.IsInRole(AppRoleNames.Admin))
-                        {
-                            <th class="am-table-col-actions--wide"></th>
-                        }
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var s in systems)
                     {
-                        var editUrl = Url.Action("Edit", "Systems", new { id = s.Id }) ?? "#";
-                        <tr class="am-table-row-clickable" data-href="@editUrl" role="button" tabindex="0">
+                        var detailUrl = Url.Action("Detail", "Systems", new { id = s.Id }) ?? "#";
+                        <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0" onclick="window.location.href=this.dataset.href">
                             <td>@(s.Code ?? "-")</td>
                             <td>@s.Name</td>
                             <td>@s.SystemType</td>
@@ -69,15 +65,6 @@
                                 }
                             </td>
                             <td>@(accessCounts.TryGetValue(s.Id, out var cnt) ? cnt : 0)</td>
-                            @if (User.IsInRole(AppRoleNames.Admin))
-                            {
-                                <td class="am-table-col-actions" onclick="event.stopPropagation();">
-                                    <div class="d-flex flex-nowrap gap-2">
-                                        <a asp-controller="Systems" asp-action="Edit" asp-route-id="@s.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Düzenle</a>
-                                        <a asp-controller="Systems" asp-action="Delete" asp-route-id="@s.Id" class="btn btn-am-outline-danger btn-sm">Sil</a>
-                                    </div>
-                                </td>
-                            }
                         </tr>
                     }
                 </tbody>
