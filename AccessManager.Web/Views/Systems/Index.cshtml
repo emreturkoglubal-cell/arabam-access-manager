@@ -41,7 +41,7 @@
                             <td>@(s.Code ?? "-")</td>
                             <td>@s.Name</td>
                             <td>@s.SystemType</td>
-                            <td><span class="badge bg-@(s.CriticalLevel == CriticalLevel.High ? "danger" : s.CriticalLevel == CriticalLevel.Medium ? "warning" : "secondary")">@s.CriticalLevel</span></td>
+                            <td><span class="badge @(s.CriticalLevel == CriticalLevel.High ? "am-critical-high" : s.CriticalLevel == CriticalLevel.Medium ? "am-critical-medium" : "am-critical-low")">@s.CriticalLevel</span></td>
                             <td>
                                 @if (s.ResponsibleDepartmentId.HasValue)
                                 {

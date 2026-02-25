@@ -380,6 +380,11 @@ body {
 .am-badge.info { background: #dbeafe; color: #1e40af; }
 .am-badge.danger { background: #fee2e2; color: #991b1b; }
 
+/* Kritik seviye: tema kırmızısı tonları (Low soft, High koyu) */
+.badge.am-critical-low { background: var(--am-accent-light, #fef2f2); color: var(--am-accent-hover, #ab0025); }
+.badge.am-critical-medium { background: var(--am-accent, #e40030); color: #fff; }
+.badge.am-critical-high { background: var(--am-accent-hover, #ab0025); color: #fff; }
+
 /* Personel detay: Aktif/Pasif yetki toggle — büyük yazı, açık yeşil / tema kırmızı soft */
 .am-access-toggle {
   display: inline-block;

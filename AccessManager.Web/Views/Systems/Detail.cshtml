@@ -44,7 +44,7 @@ else
             <dt class="col-sm-4">Tür</dt>
             <dd class="col-sm-8">@system.SystemType</dd>
             <dt class="col-sm-4">Kritik seviye</dt>
-            <dd class="col-sm-8"><span class="badge bg-@(system.CriticalLevel == CriticalLevel.High ? "danger" : system.CriticalLevel == CriticalLevel.Medium ? "warning" : "secondary")">@system.CriticalLevel</span></dd>
+            <dd class="col-sm-8"><span class="badge @(system.CriticalLevel == CriticalLevel.High ? "am-critical-high" : system.CriticalLevel == CriticalLevel.Medium ? "am-critical-medium" : "am-critical-low")">@system.CriticalLevel</span></dd>
             <dt class="col-sm-4">Sorumlu Departman</dt>
             <dd class="col-sm-8">
                 @if (system.ResponsibleDepartmentId.HasValue)
