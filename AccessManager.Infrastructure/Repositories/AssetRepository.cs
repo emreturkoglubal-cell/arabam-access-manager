@@ -19,7 +19,7 @@ public class AssetRepository : IAssetRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
-            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt FROM assets ORDER BY name";
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, depreciation_end_date AS DepreciationEndDate, created_at AS CreatedAt FROM assets ORDER BY name";
         return conn.Query<Asset>(sql).ToList();
     }
 
@@ -28,7 +28,7 @@ public class AssetRepository : IAssetRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
-            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt FROM assets WHERE status = @Status ORDER BY name";
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, depreciation_end_date AS DepreciationEndDate, created_at AS CreatedAt FROM assets WHERE status = @Status ORDER BY name";
         return conn.Query<Asset>(sql, new { Status = (short)status }).ToList();
     }
 
@@ -37,7 +37,7 @@ public class AssetRepository : IAssetRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
-            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt FROM assets WHERE asset_type = @Type ORDER BY name";
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, depreciation_end_date AS DepreciationEndDate, created_at AS CreatedAt FROM assets WHERE asset_type = @Type ORDER BY name";
         return conn.Query<Asset>(sql, new { Type = (short)type }).ToList();
     }
 
@@ -56,7 +56,7 @@ public class AssetRepository : IAssetRepository
         var totalCount = conn.ExecuteScalar<int>(countSql, new { Status = status.HasValue ? (short?)status.Value : null, Type = type.HasValue ? (short?)type.Value : null });
         var offset = (page - 1) * pageSize;
         var dataSql = $@"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
-            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, depreciation_end_date AS DepreciationEndDate, created_at AS CreatedAt
             {baseSql} ORDER BY name LIMIT @PageSize OFFSET @Offset";
         var items = conn.Query<Asset>(dataSql, new { Status = status.HasValue ? (short?)status.Value : null, Type = type.HasValue ? (short?)type.Value : null, PageSize = pageSize, Offset = offset }).ToList();
         return (items, totalCount);
@@ -67,7 +67,7 @@ public class AssetRepository : IAssetRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_type AS AssetType, name AS Name, serial_number AS SerialNumber, brand_model AS BrandModel,
-            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, created_at AS CreatedAt FROM assets WHERE id = @Id";
+            status AS Status, notes AS Notes, purchase_date AS PurchaseDate, depreciation_end_date AS DepreciationEndDate, created_at AS CreatedAt FROM assets WHERE id = @Id";
         return conn.QuerySingleOrDefault<Asset>(sql, new { Id = id });
     }
 
@@ -75,11 +75,11 @@ public class AssetRepository : IAssetRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO assets (asset_type, name, serial_number, brand_model, status, notes, purchase_date)
-            VALUES (@AssetType, @Name, @SerialNumber, @BrandModel, @Status, @Notes, @PurchaseDate) RETURNING id";
+        const string sql = @"INSERT INTO assets (asset_type, name, serial_number, brand_model, status, notes, purchase_date, depreciation_end_date)
+            VALUES (@AssetType, @Name, @SerialNumber, @BrandModel, @Status, @Notes, @PurchaseDate, @DepreciationEndDate) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new {
             AssetType = (short)asset.AssetType, asset.Name, asset.SerialNumber, asset.BrandModel, Status = (short)asset.Status,
-            asset.Notes, asset.PurchaseDate
+            asset.Notes, asset.PurchaseDate, asset.DepreciationEndDate
         });
     }
 
@@ -87,10 +87,10 @@ public class AssetRepository : IAssetRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"UPDATE assets SET asset_type=@AssetType, name=@Name, serial_number=@SerialNumber, brand_model=@BrandModel, status=@Status, notes=@Notes, purchase_date=@PurchaseDate, updated_at=now() WHERE id=@Id";
+        const string sql = @"UPDATE assets SET asset_type=@AssetType, name=@Name, serial_number=@SerialNumber, brand_model=@BrandModel, status=@Status, notes=@Notes, purchase_date=@PurchaseDate, depreciation_end_date=@DepreciationEndDate, updated_at=now() WHERE id=@Id";
         conn.Execute(sql, new {
             asset.Id, AssetType = (short)asset.AssetType, asset.Name, asset.SerialNumber, asset.BrandModel, Status = (short)asset.Status,
-            asset.Notes, asset.PurchaseDate
+            asset.Notes, asset.PurchaseDate, asset.DepreciationEndDate
         });
     }
 

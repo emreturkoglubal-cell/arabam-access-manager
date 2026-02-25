@@ -17,33 +17,70 @@ public class RolesController : Controller
 {
     private readonly IRoleService _roleService;
     private readonly ISystemService _systemService;
+    private readonly IPersonnelService _personnelService;
+    private readonly IDepartmentService _departmentService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
 
-    public RolesController(IRoleService roleService, ISystemService systemService, IAuditService auditService, ICurrentUserService currentUser)
+    public RolesController(IRoleService roleService, ISystemService systemService, IPersonnelService personnelService, IDepartmentService departmentService, IAuditService auditService, ICurrentUserService currentUser)
     {
         _roleService = roleService;
         _systemService = systemService;
+        _personnelService = personnelService;
+        _departmentService = departmentService;
         _auditService = auditService;
         _currentUser = currentUser;
     }
 
-    /// <summary>GET /Roles/Index — Tüm rolleri ve her rolün sistem bazlı yetkilerini listeler.</summary>
+    /// <summary>GET /Roles/Detail/{id} — Rol detayı: bilgiler, yetkiler, bu roldeki personel listesi (sayfalı).</summary>
+    [HttpGet]
+    public IActionResult Detail(int id, int page = 1)
+    {
+        var role = _roleService.GetById(id);
+        if (role == null) return NotFound();
+
+        var permissions = _roleService.GetPermissionsByRole(id);
+        var systems = _systemService.GetAll();
+        var systemNames = systems.ToDictionary(s => s.Id, s => s.Name ?? s.Code ?? s.Id.ToString());
+
+        var pageSize = 10;
+        if (page < 1) page = 1;
+        var paged = _personnelService.GetPaged(departmentId: null, roleId: id, statusFilter: null, search: null, page, pageSize);
+        var personnelList = paged.Items;
+        var personnelTotalCount = paged.TotalCount;
+        var personnelTotalPages = (personnelTotalCount + pageSize - 1) / pageSize;
+
+        var departmentIds = personnelList.Select(p => p.DepartmentId).Distinct().ToList();
+        var departments = departmentIds.Count > 0 ? _departmentService.GetAll().Where(d => departmentIds.Contains(d.Id)).ToDictionary(d => d.Id, d => d.Name ?? "—") : new Dictionary<int, string>();
+        var departmentNames = _departmentService.GetAll().ToDictionary(d => d.Id, d => d.Name ?? "—");
+        var managerIds = personnelList.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct().ToList();
+        var managers = managerIds.Count > 0 ? _personnelService.GetByIds(managerIds) : new List<Personnel>();
+        var managerNames = managers.ToDictionary(m => m.Id, m => $"{m.FirstName} {m.LastName}");
+        var roles = _roleService.GetAll();
+        var roleNames = roles.ToDictionary(r => r.Id, r => r.Name ?? "—");
+
+        ViewBag.Role = role;
+        ViewBag.Permissions = permissions;
+        ViewBag.SystemNames = systemNames;
+        ViewBag.PersonnelList = personnelList;
+        ViewBag.PersonnelTotalCount = personnelTotalCount;
+        ViewBag.PersonnelPageNumber = page;
+        ViewBag.PersonnelTotalPages = personnelTotalPages;
+        ViewBag.PersonnelPageSize = pageSize;
+        ViewBag.DepartmentNames = departmentNames;
+        ViewBag.ManagerNames = managerNames;
+        ViewBag.RoleNames = roleNames;
+        return View();
+    }
+
+    /// <summary>GET /Roles/Index — Tüm rolleri listeler (tablo; tıklanınca detay).</summary>
     [HttpGet]
     public IActionResult Index()
     {
         var roles = _roleService.GetAll();
-        var systems = _systemService.GetAll().ToDictionary(s => s.Id, s => s.Name ?? s.Code ?? s.Id.ToString());
-        var allPerms = _roleService.GetAllRolePermissions();
-        var details = allPerms
-            .GroupBy(p => p.RoleId)
-            .ToDictionary(g => g.Key, g => g.Select(p => (systems.GetValueOrDefault(p.ResourceSystemId, p.ResourceSystemId.ToString()), Helpers.StatusLabels.PermissionTypeLabel(p.PermissionType))).ToList());
-        foreach (var role in roles)
-            if (!details.ContainsKey(role.Id))
-                details[role.Id] = new List<(string, string)>();
-
+        var personnelCountByRole = _personnelService.GetPersonnelCountByRole();
         ViewBag.Roles = roles;
-        ViewBag.RolePermissionDetails = details;
+        ViewBag.PersonnelCountByRole = personnelCountByRole;
         return View();
     }
 
@@ -69,10 +106,11 @@ public class RolesController : Controller
             Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim(),
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim()
         };
-        _roleService.CreateRole(role);
+        var created = _roleService.CreateRole(role);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
-        _auditService.Log(AuditAction.RoleCreated, _currentUser.UserId, actorName, "Role", role.Id.ToString(), $"Rol: {role.Name}");
-        return RedirectToAction(nameof(Index));
+        _auditService.Log(AuditAction.RoleCreated, _currentUser.UserId, actorName, "Role", created.Id.ToString(), $"Rol: {created.Name}");
+        TempData["RoleEditSuccess"] = "Rol oluşturuldu.";
+        return RedirectToAction(nameof(Detail), new { id = created.Id });
     }
 
     /// <summary>GET /Roles/Edit/{id} — Rol düzenleme formu (Admin).</summary>
@@ -106,7 +144,8 @@ public class RolesController : Controller
         _roleService.UpdateRole(role);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
         _auditService.Log(AuditAction.RoleUpdated, _currentUser.UserId, actorName, "Role", role.Id.ToString(), $"Rol: {role.Name}");
-        return RedirectToAction(nameof(Index));
+        TempData["RoleEditSuccess"] = "Rol bilgileri güncellendi.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>GET /Roles/EditPermissions/{id} — Rolün sistem bazlı yetkilerini (RolePermission) düzenleme sayfası (Admin).</summary>
@@ -135,7 +174,8 @@ public class RolesController : Controller
         var rp = _roleService.AddPermissionToRole(id, input.ResourceSystemId, input.PermissionType, input.IsDefault);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
         _auditService.Log(AuditAction.RolePermissionAdded, _currentUser.UserId, actorName, "RolePermission", rp.Id.ToString(), $"Rol: {role.Name}");
-        return RedirectToAction(nameof(EditPermissions), new { id });
+        TempData["RolePermissionSuccess"] = "Yetki eklendi.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>POST /Roles/RemovePermission — Rolün belirtilen RolePermission kaydını kaldırır (Admin).</summary>
@@ -151,7 +191,8 @@ public class RolesController : Controller
             var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
             _auditService.Log(AuditAction.RolePermissionRemoved, _currentUser.UserId, actorName, "RolePermission", permissionId.ToString(), $"Rol: {role.Name}");
         }
-        return RedirectToAction(nameof(EditPermissions), new { id });
+        TempData["RolePermissionSuccess"] = "Yetki kaldırıldı.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>GET /Roles/Delete/{id} — Rol silme onay sayfası (Admin).</summary>

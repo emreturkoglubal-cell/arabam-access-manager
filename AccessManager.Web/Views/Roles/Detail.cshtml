@@ -1,0 +1,174 @@
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Constants
+@using AccessManager.UI.Helpers
+@{
+    ViewData["Title"] = "Rol detay";
+    var role = ViewBag.Role as Role;
+    var permissions = ViewBag.Permissions as IReadOnlyList<RolePermission> ?? new List<RolePermission>();
+    var systemNames = ViewBag.SystemNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var personnelTotalCount = ViewBag.PersonnelTotalCount as int? ?? 0;
+    var personnelPageNumber = ViewBag.PersonnelPageNumber as int? ?? 1;
+    var personnelTotalPages = ViewBag.PersonnelTotalPages as int? ?? 1;
+    var personnelPageSize = ViewBag.PersonnelPageSize as int? ?? 10;
+    var departmentNames = ViewBag.DepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var roleNames = ViewBag.RoleNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+}
+@if (role == null)
+{
+    <p class="text-muted">Rol bulunamadı.</p>
+}
+else
+{
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Roles" asp-action="Index">Roller ve Yetkiler</a></li>
+        <li class="breadcrumb-item active">@role.Name</li>
+    </ol>
+</nav>
+
+@if (TempData["RoleEditSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["RoleEditSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["RolePermissionSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["RolePermissionSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<div class="am-card mb-3">
+    <div class="am-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>Rol bilgileri</span>
+        @if (User.IsInRole(AppRoleNames.Admin))
+        {
+            <div class="d-flex flex-nowrap gap-2">
+                <a asp-controller="Roles" asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-am-outline">Düzenle</a>
+                <a asp-controller="Roles" asp-action="EditPermissions" asp-route-id="@role.Id" class="btn btn-sm btn-am-outline btn-am-outline-solid">Yetkileri düzenle</a>
+                <a asp-controller="Roles" asp-action="Delete" asp-route-id="@role.Id" class="btn btn-sm btn-am-outline-danger">Sil</a>
+            </div>
+        }
+    </div>
+    <div class="am-card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">ID</dt>
+            <dd class="col-sm-8">@role.Id</dd>
+            <dt class="col-sm-4">Kod</dt>
+            <dd class="col-sm-8">@(role.Code ?? "—")</dd>
+            <dt class="col-sm-4">Rol adı</dt>
+            <dd class="col-sm-8">@role.Name</dd>
+            <dt class="col-sm-4">Açıklama</dt>
+            <dd class="col-sm-8">@(role.Description ?? "—")</dd>
+            <dt class="col-sm-4">Bu roldeki personel sayısı</dt>
+            <dd class="col-sm-8">@personnelTotalCount</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="am-card mb-3">
+    <div class="am-card-header d-flex justify-content-between align-items-center">
+        <span>Varsayılan yetkiler (işe girişte atanır)</span>
+        @if (User.IsInRole(AppRoleNames.Admin))
+        {
+            <a asp-controller="Roles" asp-action="EditPermissions" asp-route-id="@role.Id" class="btn btn-sm btn-am-outline">Yetkileri düzenle</a>
+        }
+    </div>
+    <div class="am-card-body">
+        @if (permissions.Any())
+        {
+            <ul class="list-unstyled mb-0">
+                @foreach (var p in permissions)
+                {
+                    var sysName = systemNames.TryGetValue(p.ResourceSystemId, out var sn) ? sn : p.ResourceSystemId.ToString();
+                    <li class="py-1">@sysName — @StatusLabels.PermissionTypeLabel(p.PermissionType) @(p.IsDefault ? "(varsayılan)" : "")</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Tanımlı yetki yok.</p>
+        }
+    </div>
+</div>
+
+<div class="am-card mb-3">
+    <div class="am-card-header">Bu roldeki personeller</div>
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table am-table-rows-clickable">
+                <thead>
+                    <tr>
+                        <th class="am-table-col-avatar"></th>
+                        <th class="am-table-th-normal">ID</th>
+                        <th class="am-table-th-normal">Ad Soyad</th>
+                        <th class="am-table-th-normal">E-posta</th>
+                        <th class="am-table-th-normal">Departman</th>
+                        <th class="am-table-th-normal">Yönetici</th>
+                        <th class="am-table-th-normal">Giriş</th>
+                        <th class="am-table-th-normal">Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in personnelList)
+                    {
+                        var deptName = departmentNames.TryGetValue(p.DepartmentId, out var dName) ? dName : "—";
+                        var managerName = p.ManagerId.HasValue && managerNames.TryGetValue(p.ManagerId.Value, out var mName) ? mName : "—";
+                        var detailUrl = Url.Action("Detail", "Personnel", new { id = p.Id }) ?? "#";
+                        <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
+                            <td class="am-table-cell-avatar">
+                                @if (!string.IsNullOrWhiteSpace(p.ImageUrl))
+                                {
+                                    <img src="@p.ImageUrl" alt="" class="am-avatar am-avatar-sm" />
+                                }
+                                else
+                                {
+                                    <span class="am-avatar am-avatar-sm am-avatar-default" aria-hidden="true"><i class="bi bi-person-circle"></i></span>
+                                }
+                            </td>
+                            <td>@p.Id</td>
+                            <td>@p.FirstName @p.LastName</td>
+                            <td>@p.Email</td>
+                            <td>
+                                <a class="am-link" asp-controller="Departments" asp-action="Detail" asp-route-id="@p.DepartmentId">@deptName</a>
+                            </td>
+                            <td>@managerName</td>
+                            <td>@p.StartDate.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <span class="am-badge @(p.Status == PersonnelStatus.Active ? "success" : p.Status == PersonnelStatus.Offboarded ? "secondary" : "warning")">@StatusLabels.PersonnelStatus(p.Status)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!personnelList.Any())
+        {
+            <p class="text-muted mb-0 p-3">Bu role atanmış personel yok.</p>
+        }
+        else if (personnelTotalPages > 1)
+        {
+            <div class="p-3">
+                @await Html.PartialAsync("_Pagination", new AccessManager.UI.ViewModels.PaginationViewModel
+                {
+                    Controller = "Roles",
+                    Action = "Detail",
+                    PageNumber = personnelPageNumber,
+                    TotalPages = personnelTotalPages,
+                    TotalCount = personnelTotalCount,
+                    PageSize = personnelPageSize,
+                    RouteValues = new Microsoft.AspNetCore.Routing.RouteValueDictionary { ["id"] = role.Id }
+                })
+            </div>
+        }
+    </div>
+</div>
+
+<a asp-controller="Roles" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}

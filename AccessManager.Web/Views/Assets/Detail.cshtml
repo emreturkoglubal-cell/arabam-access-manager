@@ -87,6 +87,8 @@ else
             <dd class="col-sm-8"><span class="am-badge @(asset.Status == AssetStatus.Assigned ? "info" : asset.Status == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(asset.Status)</span></dd>
             <dt class="col-sm-4">Satın alma tarihi</dt>
             <dd class="col-sm-8">@(asset.PurchaseDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
+            <dt class="col-sm-4">Amortisman tarihi</dt>
+            <dd class="col-sm-8">@(asset.DepreciationEndDate?.ToString("dd.MM.yyyy") ?? (asset.PurchaseDate.HasValue ? asset.PurchaseDate.Value.AddYears(5).ToString("dd.MM.yyyy") + " (varsayılan 5 yıl)" : "—"))</dd>
             <dt class="col-sm-4">Not</dt>
             <dd class="col-sm-8">@(asset.Notes ?? "—")</dd>
         </dl>

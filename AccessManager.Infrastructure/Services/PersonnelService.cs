@@ -22,9 +22,9 @@ public class PersonnelService : IPersonnelService
 
     public IReadOnlyList<Personnel> GetActive() => _repo.GetActive();
 
-    public PagedResult<Personnel> GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize)
+    public PagedResult<Personnel> GetPaged(int? departmentId, int? roleId, string? statusFilter, string? search, int page, int pageSize)
     {
-        var (items, totalCount) = _repo.GetPaged(departmentId, statusFilter, search, page, pageSize);
+        var (items, totalCount) = _repo.GetPaged(departmentId, roleId, statusFilter, search, page, pageSize);
         return new PagedResult<Personnel>
         {
             Items = items,
@@ -43,6 +43,7 @@ public class PersonnelService : IPersonnelService
     public IReadOnlyList<Personnel> GetByDepartmentId(int departmentId) => _repo.GetByDepartmentId(departmentId);
 
     public IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment() => _repo.GetPersonnelCountByDepartment();
+    public IReadOnlyDictionary<int, int> GetPersonnelCountByRole() => _repo.GetPersonnelCountByRole();
 
     public (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId)
     {

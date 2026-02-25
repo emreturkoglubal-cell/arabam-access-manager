@@ -99,6 +99,7 @@ public class AssetsController : Controller
             ModelState.AddModelError(nameof(input.Name), "Ad gerekli.");
             return View(input);
         }
+        var depreciationEnd = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
         var asset = new Asset
         {
             AssetType = input.AssetType,
@@ -107,7 +108,8 @@ public class AssetsController : Controller
             BrandModel = string.IsNullOrWhiteSpace(input.BrandModel) ? null : input.BrandModel.Trim(),
             Status = input.Status,
             Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
-            PurchaseDate = input.PurchaseDate
+            PurchaseDate = input.PurchaseDate,
+            DepreciationEndDate = depreciationEnd
         };
         _assetService.Create(asset);
         return RedirectToAction(nameof(Index));
@@ -129,7 +131,8 @@ public class AssetsController : Controller
             BrandModel = asset.BrandModel,
             Status = asset.Status,
             Notes = asset.Notes,
-            PurchaseDate = asset.PurchaseDate
+            PurchaseDate = asset.PurchaseDate,
+            DepreciationEndDate = asset.DepreciationEndDate
         });
     }
 
@@ -154,6 +157,7 @@ public class AssetsController : Controller
         asset.Status = input.Status;
         asset.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
         asset.PurchaseDate = input.PurchaseDate;
+        asset.DepreciationEndDate = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
         _assetService.Update(asset);
         TempData["AssetEditSuccess"] = "Donanım bilgileri güncellendi.";
         return RedirectToAction(nameof(Detail), new { id });

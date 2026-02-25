@@ -6,12 +6,13 @@ public interface IPersonnelRepository
 {
     IReadOnlyList<Personnel> GetAll();
     IReadOnlyList<Personnel> GetActive();
-    (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize);
+    (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, int? roleId, string? statusFilter, string? search, int page, int pageSize);
     Personnel? GetById(int id);
     IReadOnlyList<Personnel> GetByIds(IReadOnlyList<int> ids);
     IReadOnlyList<Personnel> GetByManagerId(int managerId);
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
     IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment();
+    IReadOnlyDictionary<int, int> GetPersonnelCountByRole();
     int Insert(Personnel personnel);
     void Update(Personnel personnel);
     void SetOffboarded(int personnelId, DateTime endDate);

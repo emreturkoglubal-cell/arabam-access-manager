@@ -14,4 +14,6 @@ public class AssetEditInputModel
     public string? Notes { get; set; }
     [DataType(DataType.Date)]
     public DateTime? PurchaseDate { get; set; }
+    [DataType(DataType.Date)]
+    public DateTime? DepreciationEndDate { get; set; }
 }

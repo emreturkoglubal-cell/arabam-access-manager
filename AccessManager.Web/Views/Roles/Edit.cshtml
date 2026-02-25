@@ -25,7 +25,7 @@
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-am-primary">Kaydet</button>
                 <a asp-controller="Roles" asp-action="EditPermissions" asp-route-id="@role?.Id" class="btn btn-am-outline btn-am-outline-solid">Yetkileri düzenle</a>
-                <a asp-controller="Roles" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+                <a asp-controller="Roles" asp-action="Detail" asp-route-id="@role?.Id" class="btn btn-am-ghost">İptal</a>
             </div>
         </form>
     </div>

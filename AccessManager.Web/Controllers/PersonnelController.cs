@@ -55,7 +55,7 @@ public class PersonnelController : Controller
         if (pageSize < 1 || pageSize > 100) pageSize = 10;
         if (string.IsNullOrEmpty(statusFilter) || (statusFilter != "active" && statusFilter != "offboarded")) statusFilter = null;
 
-        var paged = _personnelService.GetPaged(departmentId, statusFilter, search, page, pageSize);
+        var paged = _personnelService.GetPaged(departmentId, roleId: null, statusFilter, search, page, pageSize);
 
         var departments = _departmentService.GetAll();
         var roles = _roleService.GetAll();

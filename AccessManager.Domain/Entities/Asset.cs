@@ -13,5 +13,7 @@ public class Asset
     public AssetStatus Status { get; set; }
     public string? Notes { get; set; }
     public DateTime? PurchaseDate { get; set; }
+    /// <summary>Amortisman bitiş tarihi; boşsa satın alma + 5 yıl kabul edilir.</summary>
+    public DateTime? DepreciationEndDate { get; set; }
     public DateTime CreatedAt { get; set; }
 }

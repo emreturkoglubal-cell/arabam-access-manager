@@ -12,8 +12,8 @@ public interface IPersonnelService
     IReadOnlyList<Personnel> GetAll();
     /// <summary>Durumu Active olan personelleri döner.</summary>
     IReadOnlyList<Personnel> GetActive();
-    /// <summary>Departman, durum filtresi (all/active/offboarded) ve arama metni ile sayfalı personel listesi.</summary>
-    PagedResult<Personnel> GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize);
+    /// <summary>Departman, rol, durum filtresi (all/active/offboarded) ve arama metni ile sayfalı personel listesi.</summary>
+    PagedResult<Personnel> GetPaged(int? departmentId, int? roleId, string? statusFilter, string? search, int page, int pageSize);
     /// <summary>ID ile tek personel; yoksa null.</summary>
     Personnel? GetById(int id);
     /// <summary>Birden fazla ID için personel listesi (sözlük benzeri kullanım için).</summary>
@@ -24,6 +24,8 @@ public interface IPersonnelService
     IReadOnlyList<Personnel> GetByDepartmentId(int departmentId);
     /// <summary>Her departman ID'si için personel sayısı (raporlama için).</summary>
     IReadOnlyDictionary<int, int> GetPersonnelCountByDepartment();
+    /// <summary>Her rol ID'si için personel sayısı (rol sayfaları için).</summary>
+    IReadOnlyDictionary<int, int> GetPersonnelCountByRole();
     /// <summary>Personel ve o personelin tüm erişim kayıtlarını (PersonnelAccess) birlikte döner.</summary>
     (Personnel? personnel, List<PersonnelAccess> accesses) GetWithAccesses(int personnelId);
     /// <summary>Yeni personel ekler; eklenen entity döner.</summary>

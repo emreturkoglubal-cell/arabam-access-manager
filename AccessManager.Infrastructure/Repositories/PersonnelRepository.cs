@@ -35,7 +35,7 @@ public class PersonnelRepository : IPersonnelRepository
         return conn.Query<Personnel>(sql).ToList();
     }
 
-    public (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize)
+    public (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, int? roleId, string? statusFilter, string? search, int page, int pageSize)
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
@@ -43,6 +43,7 @@ public class PersonnelRepository : IPersonnelRepository
         if (statusFilter == "active") conditions.Add("status = 0");
         else if (statusFilter == "offboarded") conditions.Add("status = 2");
         if (departmentId.HasValue) conditions.Add("department_id = @DepartmentId");
+        if (roleId.HasValue) conditions.Add("role_id = @RoleId");
         int? searchId = null;
         string? namePattern = null;
         if (!string.IsNullOrWhiteSpace(search))
@@ -62,7 +63,7 @@ public class PersonnelRepository : IPersonnelRepository
         var where = string.Join(" AND ", conditions);
         var baseSql = $"FROM personnel WHERE {where}";
         var offset = (page - 1) * pageSize;
-        var pars = new { DepartmentId = departmentId, SearchId = searchId, NamePattern = namePattern, PageSize = pageSize, Offset = offset };
+        var pars = new { DepartmentId = departmentId, RoleId = roleId, SearchId = searchId, NamePattern = namePattern, PageSize = pageSize, Offset = offset };
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         var countSql = $"SELECT COUNT(*) {baseSql}";
@@ -128,6 +129,15 @@ public class PersonnelRepository : IPersonnelRepository
         const string sql = "SELECT department_id AS DepartmentId, COUNT(*) AS Cnt FROM personnel GROUP BY department_id";
         var rows = conn.Query<(int DepartmentId, int Cnt)>(sql);
         return rows.ToDictionary(r => r.DepartmentId, r => r.Cnt);
+    }
+
+    public IReadOnlyDictionary<int, int> GetPersonnelCountByRole()
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = "SELECT role_id AS RoleId, COUNT(*) AS Cnt FROM personnel WHERE role_id IS NOT NULL GROUP BY role_id";
+        var rows = conn.Query<(int RoleId, int Cnt)>(sql);
+        return rows.ToDictionary(r => r.RoleId, r => r.Cnt);
     }
 
     public int Insert(Personnel personnel)
