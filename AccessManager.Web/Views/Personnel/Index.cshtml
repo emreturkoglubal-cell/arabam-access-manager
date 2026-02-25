@@ -15,9 +15,10 @@
                 <option value="@d.Id">@d.Name</option>
             }
         </select>
-        <select name="activeOnly" class="form-select form-select-sm am-toolbar-select" asp-for="FilterActiveOnly">
-            <option value="False">Tümü</option>
-            <option value="True">Sadece aktif</option>
+        <select name="statusFilter" class="form-select form-select-sm am-toolbar-select" asp-for="FilterStatusFilter">
+            <option value="all">Tümü</option>
+            <option value="active">Sadece aktif</option>
+            <option value="offboarded">İşten çıkanlar</option>
         </select>
         <button type="submit" class="btn btn-am-outline btn-am-outline-solid">Filtrele</button>
     </form>
@@ -95,7 +96,7 @@ else
         {
             { "search", Model.SearchTerm },
             { "departmentId", Model.FilterDepartmentId },
-            { "activeOnly", Model.FilterActiveOnly },
+            { "statusFilter", Model.FilterStatusFilter },
             { "pageSize", Model.PageSize }
         }
     })

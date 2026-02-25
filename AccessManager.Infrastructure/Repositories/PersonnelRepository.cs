@@ -35,12 +35,13 @@ public class PersonnelRepository : IPersonnelRepository
         return conn.Query<Personnel>(sql).ToList();
     }
 
-    public (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, bool activeOnly, string? search, int page, int pageSize)
+    public (IReadOnlyList<Personnel> Items, int TotalCount) GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize)
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         var conditions = new List<string> { "1=1" };
-        if (activeOnly) conditions.Add("status = 0");
+        if (statusFilter == "active") conditions.Add("status = 0");
+        else if (statusFilter == "offboarded") conditions.Add("status = 2");
         if (departmentId.HasValue) conditions.Add("department_id = @DepartmentId");
         int? searchId = null;
         string? namePattern = null;

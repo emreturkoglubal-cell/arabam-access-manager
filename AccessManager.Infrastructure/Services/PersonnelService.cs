@@ -22,9 +22,9 @@ public class PersonnelService : IPersonnelService
 
     public IReadOnlyList<Personnel> GetActive() => _repo.GetActive();
 
-    public PagedResult<Personnel> GetPaged(int? departmentId, bool activeOnly, string? search, int page, int pageSize)
+    public PagedResult<Personnel> GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize)
     {
-        var (items, totalCount) = _repo.GetPaged(departmentId, activeOnly, search, page, pageSize);
+        var (items, totalCount) = _repo.GetPaged(departmentId, statusFilter, search, page, pageSize);
         return new PagedResult<Personnel>
         {
             Items = items,

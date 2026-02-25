@@ -47,14 +47,15 @@ public class PersonnelController : Controller
         _personnelAccessService = personnelAccessService;
     }
 
-    /// <summary>GET /Personnel/Index — Personel listesi; departman, sadece aktif ve arama metni ile filtrelenebilir, sayfalı.</summary>
+    /// <summary>GET /Personnel/Index — Personel listesi; departman, durum (tümü/aktif/işten çıkan) ve arama ile filtrelenebilir, sayfalı.</summary>
     [HttpGet]
-    public IActionResult Index(int? departmentId, bool? activeOnly, string? search, int page = 1, int pageSize = 10)
+    public IActionResult Index(int? departmentId, string? statusFilter, string? search, int page = 1, int pageSize = 10)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 10;
+        if (string.IsNullOrEmpty(statusFilter) || (statusFilter != "active" && statusFilter != "offboarded")) statusFilter = null;
 
-        var paged = _personnelService.GetPaged(departmentId, activeOnly ?? false, search, page, pageSize);
+        var paged = _personnelService.GetPaged(departmentId, statusFilter, search, page, pageSize);
 
         var departments = _departmentService.GetAll();
         var roles = _roleService.GetAll();
@@ -62,7 +63,7 @@ public class PersonnelController : Controller
         {
             SearchTerm = search,
             FilterDepartmentId = departmentId,
-            FilterActiveOnly = activeOnly ?? false,
+            FilterStatusFilter = statusFilter ?? "all",
             Departments = departments,
             Roles = roles,
             DepartmentNames = departments.ToDictionary(d => d.Id, d => d.Name ?? "—"),

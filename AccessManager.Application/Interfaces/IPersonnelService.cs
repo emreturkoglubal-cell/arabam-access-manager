@@ -12,8 +12,8 @@ public interface IPersonnelService
     IReadOnlyList<Personnel> GetAll();
     /// <summary>Durumu Active olan personelleri döner.</summary>
     IReadOnlyList<Personnel> GetActive();
-    /// <summary>Departman, aktiflik ve arama metni ile sayfalı personel listesi.</summary>
-    PagedResult<Personnel> GetPaged(int? departmentId, bool activeOnly, string? search, int page, int pageSize);
+    /// <summary>Departman, durum filtresi (all/active/offboarded) ve arama metni ile sayfalı personel listesi.</summary>
+    PagedResult<Personnel> GetPaged(int? departmentId, string? statusFilter, string? search, int page, int pageSize);
     /// <summary>ID ile tek personel; yoksa null.</summary>
     Personnel? GetById(int id);
     /// <summary>Birden fazla ID için personel listesi (sözlük benzeri kullanım için).</summary>

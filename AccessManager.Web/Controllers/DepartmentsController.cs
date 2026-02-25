@@ -55,7 +55,7 @@ public class DepartmentsController : Controller
 
         var pageSize = 10;
         if (page < 1) page = 1;
-        var paged = _personnelService.GetPaged(departmentId: id, activeOnly: true, search: null, page, pageSize);
+        var paged = _personnelService.GetPaged(departmentId: id, statusFilter: "active", search: null, page, pageSize);
         ViewBag.PersonnelList = paged.Items;
         ViewBag.PersonnelTotalCount = paged.TotalCount;
         ViewBag.PersonnelPageNumber = paged.PageNumber;
