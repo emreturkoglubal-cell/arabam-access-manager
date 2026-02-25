@@ -67,6 +67,7 @@ else
             }
             else if (assignment != null)
             {
+                <a asp-controller="Assets" asp-action="ZimmetPdf" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-am-outline" target="_blank">PDF belge oluştur</a>
                 <a asp-controller="Assets" asp-action="Return" asp-route-id="@assignment.Id" class="btn btn-sm btn-am-outline btn-am-outline-solid">İade al</a>
             }
         </div>

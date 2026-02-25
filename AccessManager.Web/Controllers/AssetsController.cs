@@ -3,6 +3,7 @@ using AccessManager.Domain.Constants;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 using AccessManager.UI.Constants;
+using AccessManager.UI.Services;
 using AccessManager.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,14 @@ public class AssetsController : Controller
     private readonly IAssetService _assetService;
     private readonly IPersonnelService _personnelService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ZimmetPdfService _zimmetPdfService;
 
-    public AssetsController(IAssetService assetService, IPersonnelService personnelService, ICurrentUserService currentUser)
+    public AssetsController(IAssetService assetService, IPersonnelService personnelService, ICurrentUserService currentUser, ZimmetPdfService zimmetPdfService)
     {
         _assetService = assetService;
         _personnelService = personnelService;
         _currentUser = currentUser;
+        _zimmetPdfService = zimmetPdfService;
     }
 
     /// <summary>GET /Assets/Detail/{id} — Donanım detay sayfası; düzenle / zimmet / iade / sil buradan yapılır.</summary>
@@ -276,5 +279,34 @@ public class AssetsController : Controller
             TempData["Error"] = ex.Message;
             return RedirectToAction(nameof(Return), new { id = input.AssignmentId });
         }
+    }
+
+    /// <summary>GET /Assets/ZimmetPdf — Zimmet belgesi PDF oluşturur; donanım/zimmet bilgileri ve imza alanları ile indirilir.</summary>
+    [HttpGet]
+    public IActionResult ZimmetPdf(int assignmentId)
+    {
+        var assignment = _assetService.GetAssignmentById(assignmentId);
+        if (assignment == null) return NotFound();
+        if (assignment.ReturnedAt.HasValue)
+        {
+            TempData["Error"] = "İade edilmiş zimmet için belge oluşturulamaz.";
+            return RedirectToAction(nameof(Detail), new { id = assignment.AssetId });
+        }
+
+        var asset = _assetService.GetById(assignment.AssetId);
+        if (asset == null) return NotFound();
+
+        var personnel = _personnelService.GetById(assignment.PersonnelId);
+        var personName = personnel != null ? $"{personnel.FirstName} {personnel.LastName}" : null;
+        string? managerName = null;
+        if (personnel?.ManagerId != null)
+        {
+            var manager = _personnelService.GetById(personnel.ManagerId.Value);
+            managerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null;
+        }
+
+        var pdfBytes = _zimmetPdfService.GeneratePdf(asset, assignment, personName, managerName);
+        var fileName = $"ZimmetBelgesi_{asset.Name?.Replace(" ", "_") ?? "Donanım"}_{assignment.AssignedAt:yyyyMMdd}.pdf";
+        return File(pdfBytes, "application/pdf", fileName);
     }
 }

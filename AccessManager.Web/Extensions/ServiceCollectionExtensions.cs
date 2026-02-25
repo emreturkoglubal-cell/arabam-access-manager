@@ -121,6 +121,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AccessManager.UI.Services.Agent.IAgentTools, AccessManager.UI.Services.Agent.AgentTools>();
         services.AddScoped<IAiChatService, AiChatService>();
         services.AddScoped<IAiConversationService, AiConversationService>();
+        services.AddScoped<ZimmetPdfService>();
         services.AddHttpClient();
         services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromSeconds(90));
 
