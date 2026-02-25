@@ -1,0 +1,116 @@
+@using AccessManager.Domain.Entities
+@using AccessManager.Domain.Enums
+@using AccessManager.Domain.Constants
+@{
+    ViewData["Title"] = "Donanım detay";
+    var asset = ViewBag.Asset as Asset;
+    var assignment = ViewBag.Assignment as AssetAssignment;
+    var personName = ViewBag.PersonName as string ?? "—";
+}
+@if (asset == null)
+{
+    <p class="text-muted">Donanım bulunamadı.</p>
+}
+else
+{
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Assets" asp-action="Index">Donanım & Zimmet</a></li>
+        <li class="breadcrumb-item active">@asset.Name</li>
+    </ol>
+</nav>
+
+@if (TempData["AssetEditSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["AssetEditSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["AssetAssignSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["AssetAssignSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["AssetReturnSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["AssetReturnSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<div class="am-card mb-3">
+    <div class="am-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>Donanım bilgileri</span>
+        <div class="d-flex flex-nowrap gap-2">
+            @if (User.IsInRole(AppRoleNames.Admin))
+            {
+                <a asp-controller="Assets" asp-action="Edit" asp-route-id="@asset.Id" class="btn btn-sm btn-am-outline">Düzenle</a>
+                @if (asset.Status != AssetStatus.Assigned)
+                {
+                    <a asp-controller="Assets" asp-action="Delete" asp-route-id="@asset.Id" class="btn btn-sm btn-am-outline-danger">Sil</a>
+                }
+            }
+            @if (asset.Status == AssetStatus.Available)
+            {
+                <a asp-controller="Assets" asp-action="Assign" asp-route-id="@asset.Id" class="btn btn-sm btn-am-primary">Zimmetle</a>
+            }
+            else if (assignment != null)
+            {
+                <a asp-controller="Assets" asp-action="Return" asp-route-id="@assignment.Id" class="btn btn-sm btn-am-outline btn-am-outline-solid">İade al</a>
+            }
+        </div>
+    </div>
+    <div class="am-card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">ID</dt>
+            <dd class="col-sm-8">@asset.Id</dd>
+            <dt class="col-sm-4">Tür</dt>
+            <dd class="col-sm-8">@StatusLabels.AssetTypeLabel(asset.AssetType)</dd>
+            <dt class="col-sm-4">Ad</dt>
+            <dd class="col-sm-8">@asset.Name</dd>
+            <dt class="col-sm-4">Seri no</dt>
+            <dd class="col-sm-8">@(asset.SerialNumber ?? "—")</dd>
+            <dt class="col-sm-4">Marka / model</dt>
+            <dd class="col-sm-8">@(asset.BrandModel ?? "—")</dd>
+            <dt class="col-sm-4">Durum</dt>
+            <dd class="col-sm-8"><span class="am-badge @(asset.Status == AssetStatus.Assigned ? "info" : asset.Status == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(asset.Status)</span></dd>
+            <dt class="col-sm-4">Satın alma tarihi</dt>
+            <dd class="col-sm-8">@(asset.PurchaseDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
+            <dt class="col-sm-4">Not</dt>
+            <dd class="col-sm-8">@(asset.Notes ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+@if (assignment != null)
+{
+<div class="am-card mb-3">
+    <div class="am-card-header">Zimmet bilgisi</div>
+    <div class="am-card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Zimmette (kişi)</dt>
+            <dd class="col-sm-8">@personName</dd>
+            <dt class="col-sm-4">Zimmet tarihi</dt>
+            <dd class="col-sm-8">@assignment.AssignedAt.ToString("dd.MM.yyyy")</dd>
+            <dt class="col-sm-4">Zimmetleyen</dt>
+            <dd class="col-sm-8">@(assignment.AssignedByUserName ?? "—")</dd>
+            <dt class="col-sm-4">Not</dt>
+            <dd class="col-sm-8">@(assignment.Notes ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+}
+
+<a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}

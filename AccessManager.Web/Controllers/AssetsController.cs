@@ -28,6 +28,27 @@ public class AssetsController : Controller
         _currentUser = currentUser;
     }
 
+    /// <summary>GET /Assets/Detail/{id} — Donanım detay sayfası; düzenle / zimmet / iade / sil buradan yapılır.</summary>
+    [HttpGet]
+    public IActionResult Detail(int id)
+    {
+        var asset = _assetService.GetById(id);
+        if (asset == null) return NotFound();
+
+        var assignment = _assetService.GetActiveAssignmentForAsset(id);
+        string? personName = null;
+        if (assignment != null)
+        {
+            var personnel = _personnelService.GetById(assignment.PersonnelId);
+            personName = personnel != null ? $"{personnel.FirstName} {personnel.LastName}" : "—";
+        }
+
+        ViewBag.Asset = asset;
+        ViewBag.Assignment = assignment;
+        ViewBag.PersonName = personName;
+        return View();
+    }
+
     /// <summary>GET /Assets/Index — Donanım listesi; durum (AssetStatus) ve tür (AssetType) ile filtrelenebilir, sayfalı.</summary>
     [HttpGet]
     public IActionResult Index(AssetStatus? status, AssetType? type, int page = 1, int pageSize = 10)
@@ -134,7 +155,8 @@ public class AssetsController : Controller
         asset.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
         asset.PurchaseDate = input.PurchaseDate;
         _assetService.Update(asset);
-        return RedirectToAction(nameof(Index));
+        TempData["AssetEditSuccess"] = "Donanım bilgileri güncellendi.";
+        return RedirectToAction(nameof(Detail), new { id });
     }
 
     /// <summary>GET /Assets/Delete/{id} — Donanım silme onay sayfası (Admin).</summary>
@@ -175,7 +197,7 @@ public class AssetsController : Controller
         if (asset.Status == AssetStatus.Assigned)
         {
             TempData["Error"] = "Bu donanım zaten zimmette.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Detail), new { id });
         }
         ViewBag.Asset = asset;
         ViewBag.PersonnelList = _personnelService.GetActive();
@@ -192,7 +214,8 @@ public class AssetsController : Controller
         try
         {
             _assetService.Assign(input.AssetId, input.PersonnelId, input.Notes, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName);
-            return RedirectToAction(nameof(Index));
+            TempData["AssetAssignSuccess"] = "Zimmet ataması yapıldı.";
+            return RedirectToAction(nameof(Detail), new { id = input.AssetId });
         }
         catch (InvalidOperationException ex)
         {
@@ -219,7 +242,7 @@ public class AssetsController : Controller
         if (assignment.ReturnedAt.HasValue)
         {
             TempData["Error"] = "Bu zimmet zaten iade edilmiş.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Detail), new { id = assignment.AssetId });
         }
         var asset = _assetService.GetById(assignment.AssetId);
         var personnel = _personnelService.GetById(assignment.PersonnelId);
@@ -234,10 +257,12 @@ public class AssetsController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Return(AssetReturnInputModel input)
     {
+        var assignment = _assetService.GetAssignmentById(input.AssignmentId);
         try
         {
             _assetService.Return(input.AssignmentId, input.ReturnCondition, input.Notes);
-            return RedirectToAction(nameof(Index));
+            TempData["AssetReturnSuccess"] = "Zimmet iadesi alındı.";
+            return RedirectToAction(nameof(Detail), new { id = assignment?.AssetId ?? 0 });
         }
         catch (Exception ex)
         {

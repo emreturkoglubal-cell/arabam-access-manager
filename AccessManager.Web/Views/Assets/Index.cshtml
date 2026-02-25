@@ -40,8 +40,8 @@
     }
 </div>
 
-<div class="am-table-wrap">
-    <table class="am-table am-table-rows-clickable">
+<div class="am-table-wrap am-table-rows-clickable">
+    <table class="am-table">
         <thead>
             <tr>
                 <th>Tür</th>
@@ -51,11 +51,6 @@
                 <th>Durum</th>
                 <th>Zimmette (kişi)</th>
                 <th>Zimmet tarihi</th>
-                @if (User.IsInRole(AppRoleNames.Admin))
-                {
-                    <th class="am-table-col-actions--wide"></th>
-                }
-                <th class="am-table-col-actions"></th>
             </tr>
         </thead>
         <tbody>
@@ -63,8 +58,8 @@
             {
                 var assign = Model.AssignmentByAsset.TryGetValue(a.Id, out var asn) ? asn : null;
                 var personName = assign != null && Model.PersonNames.TryGetValue(assign.PersonnelId, out var pn) ? pn : "—";
-                var editUrl = Url.Action("Edit", "Assets", new { id = a.Id }) ?? "#";
-                <tr class="am-table-row-clickable" data-href="@editUrl" role="button" tabindex="0">
+                var detailUrl = Url.Action("Detail", "Assets", new { id = a.Id }) ?? "#";
+                <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0">
                     <td>@StatusLabels.AssetTypeLabel(a.AssetType)</td>
                     <td><strong>@a.Name</strong></td>
                     <td>@(a.SerialNumber ?? "—")</td>
@@ -72,30 +67,6 @@
                     <td><span class="am-badge @(a.Status == AssetStatus.Assigned ? "info" : a.Status == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(a.Status)</span></td>
                     <td>@personName</td>
                     <td>@(assign != null ? assign.AssignedAt.ToString("dd.MM.yyyy") : "—")</td>
-                    @if (User.IsInRole(AppRoleNames.Admin))
-                    {
-                        <td class="am-table-col-actions" onclick="event.stopPropagation();">
-                            <div class="d-flex flex-nowrap gap-2">
-                                <a asp-controller="Assets" asp-action="Edit" asp-route-id="@a.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Düzenle</a>
-                                @if (a.Status != AssetStatus.Assigned)
-                                {
-                                    <a asp-controller="Assets" asp-action="Delete" asp-route-id="@a.Id" class="btn btn-am-outline-danger btn-sm">Sil</a>
-                                }
-                            </div>
-                        </td>
-                    }
-                    <td class="am-table-col-actions" onclick="event.stopPropagation();">
-                        <div class="d-flex flex-nowrap gap-2">
-                            @if (a.Status == AssetStatus.Available)
-                            {
-                                <a asp-controller="Assets" asp-action="Assign" asp-route-id="@a.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">Zimmetle</a>
-                            }
-                            else if (assign != null)
-                            {
-                                <a asp-controller="Assets" asp-action="Return" asp-route-id="@assign.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm">İade al</a>
-                            }
-                        </div>
-                    </td>
                 </tr>
             }
         </tbody>

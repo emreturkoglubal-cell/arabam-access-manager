@@ -59,6 +59,17 @@ body {
   padding: 1.25rem;
 }
 
+.am-card--chart .am-card-body { padding: 0.75rem 1rem; }
+.am-card-header--sm { padding: 0.5rem 1rem; font-size: 0.8125rem; }
+.am-card-body--chart {
+  height: 180px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.am-card-body--chart canvas { max-height: 100%; max-width: 100%; }
+
 .am-stat-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

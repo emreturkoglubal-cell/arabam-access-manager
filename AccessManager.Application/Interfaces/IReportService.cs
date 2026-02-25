@@ -11,6 +11,9 @@ public interface IReportService
     /// <param name="departmentId">Faz 1: Departman bazlı filtre (null = tümü).</param>
     /// <param name="periodMonths">Faz 1: Son N ay (1 veya 3; null = 1).</param>
     DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null);
+
+    /// <summary>Kontrol paneli grafikleri için veri (personel trendi, işten ayrılma, sistem/departman dağılımı).</summary>
+    DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12);
     /// <summary>Sistem bazlı aktif erişim sayıları (rapor satırları).</summary>
     IReadOnlyList<AccessBySystemReportRow> GetAccessReportBySystem();
     /// <summary>Belirtilen tarih aralığında işten çıkan personel raporu.</summary>

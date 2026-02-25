@@ -10,7 +10,7 @@
         <p class="mb-3"><strong>@asset.Name</strong> (@(asset.SerialNumber ?? "-")) donanımını silmek istediğinize emin misiniz? Zimmette olan donanım silinemez.</p>
         <form method="post" asp-controller="Assets" asp-action="DeleteConfirmed" asp-route-id="@asset.Id">
             <button type="submit" class="btn btn-am-danger">Sil</button>
-            <a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+            <a asp-controller="Assets" asp-action="Detail" asp-route-id="@asset.Id" class="btn btn-am-ghost">İptal</a>
         </form>
     </div>
 </div>

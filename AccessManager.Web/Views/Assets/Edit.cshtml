@@ -50,7 +50,7 @@
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-am-primary">Kaydet</button>
-                <a asp-controller="Assets" asp-action="Index" class="btn btn-am-ghost">İptal</a>
+                <a asp-controller="Assets" asp-action="Detail" asp-route-id="@asset?.Id" class="btn btn-am-ghost">İptal</a>
             </div>
         </form>
     </div>

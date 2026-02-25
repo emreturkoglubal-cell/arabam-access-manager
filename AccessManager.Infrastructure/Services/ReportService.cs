@@ -64,6 +64,72 @@ public class ReportService : IReportService
         };
     }
 
+    public DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12)
+    {
+        var now = SystemTime.Now;
+        var personnelInScope = departmentId.HasValue
+            ? _personnelRepo.GetByDepartmentId(departmentId.Value).Select(p => p.Id).ToHashSet()
+            : null;
+        bool InScope(int pid) => personnelInScope == null || personnelInScope.Contains(pid);
+
+        var allPersonnel = _personnelRepo.GetAll().Where(p => InScope(p.Id)).ToList();
+        var months = Math.Clamp(periodMonths, 1, 24);
+        var personnelTrend = new List<MonthCountPair>();
+        var offboardedByMonth = new List<MonthCountPair>();
+
+        var culture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+        for (var i = months - 1; i >= 0; i--)
+        {
+            var monthEnd = now.AddMonths(-i);
+            var monthStart = new DateTime(monthEnd.Year, monthEnd.Month, 1, 0, 0, 0, DateTimeKind.Local);
+            var monthEndDate = monthStart.AddMonths(1).AddDays(-1);
+
+            var activeAtMonthEnd = allPersonnel.Count(p =>
+                p.StartDate <= monthEndDate &&
+                (!p.EndDate.HasValue || p.EndDate.Value > monthEndDate));
+
+            personnelTrend.Add(new MonthCountPair
+            {
+                Label = monthStart.ToString("MMM yyyy", culture),
+                Count = activeAtMonthEnd
+            });
+
+            var offboardedInThisMonth = allPersonnel.Count(p =>
+                p.EndDate.HasValue &&
+                p.EndDate.Value.Year == monthEnd.Year &&
+                p.EndDate.Value.Month == monthEnd.Month);
+            offboardedByMonth.Add(new MonthCountPair
+            {
+                Label = monthStart.ToString("MMM yyyy", culture),
+                Count = offboardedInThisMonth
+            });
+        }
+
+        var accessBySystem = GetAccessReportBySystem()
+            .OrderByDescending(r => r.ActiveAccessCount)
+            .Take(10)
+            .Select(r => new LabelCountPair { Label = string.IsNullOrEmpty(r.SystemName) ? r.SystemCode : r.SystemName, Count = r.ActiveAccessCount })
+            .ToList();
+
+        var deptCounts = _personnelRepo.GetPersonnelCountByDepartment();
+        var departments = _departmentRepo.GetAll().ToDictionary(d => d.Id, d => d.Name ?? "—");
+        var personnelByDepartment = (departmentId.HasValue
+            ? new Dictionary<int, int> { { departmentId.Value, deptCounts.GetValueOrDefault(departmentId.Value) } }
+            : deptCounts)
+            .Select(kv => new LabelCountPair { Label = departments.GetValueOrDefault(kv.Key) ?? "—", Count = kv.Value })
+            .Where(x => x.Count > 0)
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        return new DashboardChartData
+        {
+            PersonnelTrend = personnelTrend,
+            OffboardedByMonth = offboardedByMonth,
+            AccessBySystem = accessBySystem,
+            PersonnelByDepartment = personnelByDepartment
+        };
+    }
+
     public IReadOnlyList<AccessBySystemReportRow> GetAccessReportBySystem()
     {
         var systems = _systemRepo.GetAll();
