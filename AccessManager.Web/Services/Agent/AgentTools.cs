@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AccessManager.UI.Services.CodeModification;
 using AccessManager.UI.Services.Git;
 
@@ -129,17 +130,74 @@ public sealed class AgentTools : IAgentTools
         return "OK: Diff uygulandı. Değiştirilen dosya: " + pathForGit + ". Kullanıcıya aşağıdaki diff'i kod bloğunda gösterip onay iste. Onay gelince confirm_and_push çağır. ASLA bu yanıtta git_commit_and_push çağırma.\n\nDiff:\n```diff\n" + (unifiedDiff.Length > 8000 ? unifiedDiff[..8000] + "\n... (kesildi)" : unifiedDiff) + "\n```";
     }
 
+    public async Task<string> RunBuildAsync(CancellationToken cancellationToken = default)
+    {
+        var repo = RepoPath;
+        if (string.IsNullOrEmpty(repo))
+            return "HATA: Git:RepoPath yapılandırılmamış; build alınamıyor.";
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "build --no-restore",
+                WorkingDirectory = repo,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            if (process == null)
+                return "HATA: dotnet build başlatılamadı.";
+            var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            var output = (stdout + "\n" + stderr).Trim();
+            if (process.ExitCode != 0)
+                return "BUILD_HATA: Derleme başarısız (exit code " + process.ExitCode + "). Kullanıcıya bu çıktıyı göster, pushlama; düzeltmesini veya PR açmasını öner.\n\n" + (output.Length > 6000 ? output.AsSpan(0, 6000).ToString() + "\n... (kesildi)" : output);
+            return "OK: Build başarılı.\n" + (output.Length > 2000 ? output.Substring(output.Length - 2000) : output);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AgentTools.RunBuildAsync: dotnet build hatası.");
+            return "HATA: Build çalıştırılamadı: " + ex.Message;
+        }
+    }
+
     public async Task<string> ConfirmPushAsync(int conversationId, CancellationToken cancellationToken = default)
     {
         var pending = _pendingPush.Get(conversationId);
         if (pending == null)
             return "HATA: Bu konuşma için onay bekleyen değişiklik yok. Önce apply_diff veya write_file ile değişiklik yapıp kullanıcı onayı alın.";
         var (paths, commitMessage, _) = pending.Value;
+
+        var buildResult = await RunBuildAsync(cancellationToken);
+        if (buildResult.StartsWith("BUILD_HATA:") || buildResult.StartsWith("HATA:"))
+        {
+            return buildResult + "\n\nDeğişiklikler pushlanmadı. Hatayı düzelttikten sonra tekrar 'Evet, pushla' diyebilir veya 'PR aç' diyerek sadece branch oluşturup PR açabilirsiniz.";
+        }
+
         _pendingPush.Clear(conversationId);
         var result = await _gitService.CommitAndPushAsync(paths, commitMessage, cancellationToken);
         if (result.Success)
-            return "OK: Değişiklikler commit edilip main'e pushlandı: " + result.Message;
+            return "OK: Build başarılı, değişiklikler commit edilip main'e pushlandı: " + result.Message;
         return "HATA: Push başarısız: " + result.Message;
+    }
+
+    public async Task<string> CreatePrAsync(int conversationId, CancellationToken cancellationToken = default)
+    {
+        var pending = _pendingPush.Get(conversationId);
+        if (pending == null)
+            return "HATA: Bu konuşma için onay bekleyen değişiklik yok. Önce apply_diff veya write_file ile değişiklik yapıp kullanıcıya 'PR aç' dedirt.";
+        var (paths, commitMessage, _) = pending.Value;
+
+        var branchName = "feature/arabam-ai-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmm");
+        _pendingPush.Clear(conversationId);
+        var result = await _gitService.CreateBranchAndPushAsync(branchName, paths, commitMessage, cancellationToken);
+        if (result.Success)
+            return "OK: " + result.Message + " Branch: " + branchName;
+        return "HATA: " + result.Message;
     }
 
     public async Task<string> GitCommitAndPushAsync(string commitMessage, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken = default)

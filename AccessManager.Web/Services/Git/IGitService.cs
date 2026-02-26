@@ -10,4 +10,13 @@ public interface IGitService
         IReadOnlyList<string> relativePaths,
         string commitMessage,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Yeni branch oluşturur, değişiklikleri commit edip bu branch'i remote'a push eder (main'e değil). PR açmak için kullanılır.
+    /// </summary>
+    Task<GitResult> CreateBranchAndPushAsync(
+        string branchName,
+        IReadOnlyList<string> relativePaths,
+        string commitMessage,
+        CancellationToken cancellationToken = default);
 }

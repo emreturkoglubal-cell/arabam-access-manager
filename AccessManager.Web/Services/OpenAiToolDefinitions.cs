@@ -91,8 +91,38 @@ public static class OpenAiToolDefinitions
                 ["type"] = "function",
                 ["function"] = new JsonObject
                 {
+                    ["name"] = "run_build",
+                    ["description"] = "Projeyi derler (dotnet build). confirm_and_push öncesi mutlaka çağır. Build hata verirse kullanıcıya çıktıyı göster, pushlama. Parametre yok.",
+                    ["parameters"] = new JsonObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JsonObject { },
+                        ["required"] = new JsonArray { }
+                    }
+                }
+            },
+            new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
                     ["name"] = "confirm_and_push",
-                    ["description"] = "Kullanıcı değişiklikleri onayladığında (örn. 'Evet, pushla' dediğinde) çağır. apply_diff/write_file sonrası bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.",
+                    ["description"] = "Kullanıcı 'Evet, pushla' / 'Onayla' dediğinde çağır. Önce build alır (başarısızsa push etmez), sonra bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.",
+                    ["parameters"] = new JsonObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JsonObject { },
+                        ["required"] = new JsonArray { }
+                    }
+                }
+            },
+            new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = "create_pr",
+                    ["description"] = "Kullanıcı 'PR aç', 'pull request aç', 'pushlama PR aç' veya doğrudan main'e push etmek yerine PR istediğinde çağır. Bekleyen değişiklikleri yeni branch'e commit edip push eder; kullanıcı GitHub/GitLab'da PR açar. Parametre yok.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",

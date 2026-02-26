@@ -187,6 +187,77 @@ public sealed class GitService : IGitService
         return GitResult.Ok();
     }
 
+    public async Task<GitResult> CreateBranchAndPushAsync(
+        string branchName,
+        IReadOnlyList<string> relativePaths,
+        string commitMessage,
+        CancellationToken cancellationToken = default)
+    {
+        if (relativePaths.Count == 0)
+            return GitResult.Fail("Commit için en az bir dosya gerekli.");
+        if (string.IsNullOrWhiteSpace(branchName) || branchName.Contains("..") || branchName.Length > 200)
+            return GitResult.Fail("Geçersiz branch adı.");
+
+        var repo = RepoPath;
+        var token = _config["Git:Token"]?.Trim();
+        var userName = _config["Git:UserName"]?.Trim() ?? "Access Manager";
+        var userEmail = _config["Git:UserEmail"]?.Trim() ?? "ai@local";
+        var env = new Dictionary<string, string> { ["GIT_TERMINAL_PROMPT"] = "0" };
+
+        foreach (var rel in relativePaths)
+        {
+            if (string.IsNullOrWhiteSpace(rel) || rel.Contains(".."))
+                return GitResult.Fail($"Geçersiz dosya yolu: {rel}");
+        }
+
+        var currentBranch = await GetCurrentBranchAsync(repo, cancellationToken);
+        if (!string.Equals(currentBranch, MainBranch, StringComparison.OrdinalIgnoreCase))
+        {
+            var coMain = await RunGitWithEnvAsync(repo, "checkout " + MainBranch, env, cancellationToken);
+            if (!coMain.Success)
+                return GitResult.Fail("main branch'a geçilemedi: " + (coMain.Output ?? "?"));
+        }
+
+        var addArgs = "add -f -- " + string.Join(" ", relativePaths.Select(p => $"\"{p.Replace("\"", "\\\"")}\""));
+        var safeMessage = commitMessage.Replace("\"", "\\\"");
+        var commitArgs = $"-c user.name=\"{userName}\" -c user.email=\"{userEmail}\" commit -m \"{safeMessage}\"";
+
+        var coResult = await RunGitWithEnvAsync(repo, "checkout -b \"" + branchName.Replace("\"", "\\\"") + "\"", env, cancellationToken);
+        if (!coResult.Success)
+            return GitResult.Fail("Branch oluşturulamadı: " + (coResult.Output ?? "?"));
+
+        var addResult = await RunGitAsync(repo, addArgs, cancellationToken);
+        if (!addResult.Success)
+            return GitResult.Fail("git add hatası: " + addResult.Output);
+
+        var commitResult = await RunGitAsync(repo, commitArgs, cancellationToken);
+        var nothingToCommit = commitResult.Output != null &&
+            (commitResult.Output.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase) ||
+             commitResult.Output.Contains("working tree clean", StringComparison.OrdinalIgnoreCase));
+        if (!commitResult.Success && !nothingToCommit)
+            return GitResult.Fail("git commit hatası: " + (commitResult.Output ?? "?"));
+
+        var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
+        if (string.IsNullOrEmpty(remoteUrl))
+            return GitResult.Fail("Remote origin URL alınamadı.");
+        var authUrl = !string.IsNullOrEmpty(token) ? InjectTokenIntoUrl(remoteUrl, token) : null;
+        var pushTarget = authUrl ?? "origin";
+
+        var pushResult = await RunGitWithEnvAsync(repo, "push \"" + pushTarget + "\" " + branchName, env, cancellationToken);
+        if (!pushResult.Success)
+            return GitResult.Fail("Branch push başarısız: " + (pushResult.Output ?? "?"));
+
+        var branchNow = await GetCurrentBranchAsync(repo, cancellationToken);
+        if (!string.Equals(branchNow, MainBranch, StringComparison.OrdinalIgnoreCase))
+        {
+            var backToMain = await RunGitWithEnvAsync(repo, "checkout " + MainBranch, env, cancellationToken);
+            if (!backToMain.Success)
+                _logger.LogWarning("CreateBranchAndPush: main'e geri dönülemedi. Output: {Output}", backToMain.Output);
+        }
+
+        return GitResult.Ok($"Branch '{branchName}' oluşturuldu ve pushlandı. GitHub/GitLab'da 'Compare & pull request' ile PR açabilirsiniz.");
+    }
+
     private static string InjectTokenIntoUrl(string url, string token)
     {
         if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))

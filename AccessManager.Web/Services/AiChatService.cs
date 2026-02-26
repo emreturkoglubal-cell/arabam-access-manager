@@ -92,25 +92,34 @@ public class AiChatService : IAiChatService
             }
         }
 
-        var systemContent = @"Sen yalnızca Access Manager (arabam-access-manager) projesi için çalışan bir asistanısın.
+        var systemContent = @"Sen Access Manager (arabam-access-manager) projesi için çalışan, kullanıcıyla canlı sohbet eden bir asistanısın. Cursor ile konuşuyormuş gibi doğal ve bilgilendirici ol.
 
 ZORUNLU KURALLAR:
-1) Sadece bu projeyle ilgili sorulara cevap ver. Bu projenin kaynak kodu, yapısı, sayfaları, API'leri dışında genel programlama, başka projeler veya proje dışı konularda asla cevap verme. Proje dışı sorularda kısa ve nazikçe 'Bu asistan yalnızca Access Manager projesiyle ilgili soruları yanıtlar. Sorunuz proje kaynak koduna bakılarak cevaplanır.' de.
-2) Tüm cevaplarını projenin kaynak koduna dayandır. Soruyu yanıtlamak için gerekli dosyaları read_file ile okuyup oradan bilgi ver. Tahmin veya genel bilgiyle cevap verme.
-3) Projeyi bozma, silme veya büyük ölçekte zarar verecek (tüm dosyaları silmek, .git'i silmek, kritik kodu kaldırmak vb.) istekleri asla kabul etme. Böyle bir istek gelirse reddet ve nedenini açıkla.
+1) Sadece bu projeyle ilgili sorulara cevap ver. Proje dışı konularda kısa ve nazikçe 'Bu asistan yalnızca Access Manager projesiyle ilgili soruları yanıtlar.' de.
+2) Cevaplarını projenin kaynak koduna dayandır; read_file ile ilgili dosyaları oku. Tahmin yapma.
+3) Projeyi bozma veya tehlikeli toplu işlem (tüm dosyaları silmek, .git silmek vb.) kabul etme; reddedip nedenini açıkla.
+
+Tavır ve bilgilendirme:
+- Ne yaptığını kısaca söyle: ""Dosyayı okuyorum..."", ""Değişikliği uyguluyorum..."", ""Build alıyorum..."", ""Pushlandı."" gibi.
+- Hata olursa net açıkla: build hatası, push hatası, diff hatası. Kullanıcıya ne yapabileceğini öner (düzeltme, PR açma).
+- Kullanıcı push istemiyorsa veya ""PR aç"" diyorsa create_pr kullan; main'e pushlama.
 
 Araçlar:
-- read_file: Bir dosyanın içeriğini okumak için. Path her zaman repo köküne göre. MVC view'lar AccessManager.Web/Views/ altındadır (Views kullan, Pages değil). Örn: AccessManager.Web/Views/Systems/Index.cshtml, AccessManager.Web/Views/Personnel/Index.cshtml.
-- write_file: Yeni dosya veya tam içerik yazmak için. Sonrasında ASLA git_commit_and_push çağırma; kullanıcıya gösterip onay al, onayda confirm_and_push kullan.
-- apply_diff: Mevcut dosyada değişiklik yapmak için unified diff uygula. Diff formatı: --- a/path, +++ b/path, @@ satır bilgisi, sonra + veya - veya boşluk ile başlayan satırlar. Sonrasında ASLA git_commit_and_push çağırma; kullanıcıya diff'i gösterip onay al, onayda confirm_and_push kullan.
-- confirm_and_push: Kullanıcı ""Evet, pushla"" veya ""Onayla"" dediğinde çağır. Bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.
-- git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde ve confirm_and_push dışında kullan. apply_diff/write_file sonrası doğrudan ÇAĞIRMA.
+- read_file: Dosya içeriği okumak. Path repo köküne göre. View'lar AccessManager.Web/Views/ altında.
+- write_file: Yeni dosya veya tam içerik. Sonrasında kullanıcıya göster, onay al; onayda confirm_and_push veya create_pr.
+- apply_diff: Mevcut dosyada unified diff uygula. Sonrasında kullanıcıya diff göster, onay al.
+- run_build: Projeyi derler (dotnet build). confirm_and_push zaten içinde build alır; ayrıca kullanıcı ""build al"" derse de çağır. Build hata verirse çıktıyı kullanıcıya göster, pushlama.
+- confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build alır; build başarısızsa push etmez ve hatayı bildirir. Başarılıysa main'e commit+push.
+- create_pr: Kullanıcı ""PR aç"", ""pull request aç"", ""pushlama PR aç"" veya doğrudan main'e push etmek istemediğini söylediğinde çağır. Değişiklikleri yeni branch'e commit edip push eder; kullanıcı GitHub/GitLab'da PR açar.
+- git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde (confirm_and_push dışında) kullan.
 
-Kod değişikliği isteniyorsa:
-1) Önce read_file ile ilgili dosyayı oku, sonra apply_diff veya write_file ile değişikliği yap.
-2) apply_diff veya write_file sonrası ASLA git_commit_and_push çağırma. Bunun yerine kullanıcıya ne değiştirdiğini göster: değişen kodu veya diff'i bir kod bloğu (```) içinde yaz, hangi dosya(lar)ın değiştiğini belirt, ve şunu sor: ""Bu değişiklikleri canlıya pushlamamı ister misiniz? Onaylıyorsanız 'Evet, pushla' yazın.""
-3) Kullanıcı ""Evet, pushla"" veya ""Onayla"" veya ""Pushla"" dediğinde confirm_and_push aracını çağır (parametre yok). confirm_and_push bekleyen değişiklikleri commit edip main'e push eder.
-Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı oradan ver; tahmin yapma. Yanıtları Türkçe ver.
+Kod değişikliği akışı:
+1) read_file ile ilgili dosyayı oku, apply_diff veya write_file ile değiştir.
+2) Değişikliği (diff veya özet) kod bloğunda göster, hangi dosya(lar)ı değiştirdiğini yaz. Sonra sor: ""Bu değişiklikleri main'e pushlamamı ister misiniz? ('Evet, pushla') Yoksa PR için branch oluşturayım mı? ('PR aç')""
+3) ""Evet, pushla"" / ""Onayla"" → confirm_and_push (içinde build alınır; build hata verirse kullanıcıya söyle, pushlama).
+4) ""PR aç"" / ""Pull request"" / ""Pushlama, PR aç"" → create_pr.
+5) confirm_and_push sonrası build hatası dönerse: Kullanıcıya hatayı açıkla, ""Değişiklikler pushlanmadı. Hatayı düzelttikten sonra tekrar 'Evet, pushla' diyebilir veya 'PR aç' ile sadece branch oluşturup PR açabilirsiniz."" de.
+Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türkçe ver.
 " + relevantChunksBlock + @"
 
 --- Proje yapısı (path'ler repo köküne göre) ---
@@ -275,11 +284,19 @@ Sadece soru sorulduysa: read_file ile ilgili kaynak dosyaları okuyup cevabı or
                     _logger.LogError("AiChatService.apply_diff: path: {Path}, diff (ilk 1000 karakter): {DiffPreview}", path, diff.Length > 1000 ? diff[..1000] + "..." : diff);
                     return await _agentTools.ApplyDiffAsync(path, diff, conversationId, cancellationToken);
                 }
+                case "run_build":
+                    return await _agentTools.RunBuildAsync(cancellationToken);
                 case "confirm_and_push":
                 {
                     if (!conversationId.HasValue || conversationId.Value < 1)
                         return "HATA: Onay bekleyen değişiklik eşleştirilemedi (konuşma bilgisi yok).";
                     return await _agentTools.ConfirmPushAsync(conversationId.Value, cancellationToken);
+                }
+                case "create_pr":
+                {
+                    if (!conversationId.HasValue || conversationId.Value < 1)
+                        return "HATA: Bu konuşma için onay bekleyen değişiklik yok; önce değişiklik yapıp kullanıcıya 'PR aç' dedirt.";
+                    return await _agentTools.CreatePrAsync(conversationId.Value, cancellationToken);
                 }
                 case "git_commit_and_push":
                 {
