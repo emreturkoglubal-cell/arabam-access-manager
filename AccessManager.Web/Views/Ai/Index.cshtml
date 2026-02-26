@@ -417,8 +417,12 @@
     function isPushOrPrPrompt(text) {
         if (!text || typeof text !== 'string') return false;
         var t = text.toLowerCase();
-        return (t.indexOf('pushlamamı') !== -1 || t.indexOf('pushla') !== -1) &&
-               (t.indexOf('pr aç') !== -1 || t.indexOf('pr için') !== -1 || t.indexOf('pull request') !== -1);
+        var hasPushPr = (t.indexOf('pushlamamı') !== -1 || t.indexOf('pushla') !== -1) &&
+                        (t.indexOf('pr aç') !== -1 || t.indexOf('pr için') !== -1 || t.indexOf('pull request') !== -1);
+        if (!hasPushPr) return false;
+        // Sadece kullanıcıya soru sorulduğunda bar göster; "branch oluşturuldu, PR açabilirsiniz" gibi cevaplarda gösterme
+        var isQuestion = t.indexOf('ister misiniz') !== -1 || t.indexOf('onaylıyorsanız') !== -1 || t.indexOf('yazın') !== -1;
+        return isQuestion;
     }
 
     function addMessage(role, text) {

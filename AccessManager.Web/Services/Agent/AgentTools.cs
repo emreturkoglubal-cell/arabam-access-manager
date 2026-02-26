@@ -195,9 +195,13 @@ public sealed class AgentTools : IAgentTools
         var branchName = "feature/arabam-ai-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmm");
         _pendingPush.Clear(conversationId);
         var result = await _gitService.CreateBranchAndPushAsync(branchName, paths, commitMessage, cancellationToken);
-        if (result.Success)
-            return "OK: " + result.Message + " Branch: " + branchName;
-        return "HATA: " + result.Message;
+        if (!result.Success)
+            return "HATA: " + result.Message;
+
+        var prResult = await _gitService.CreateGitHubPullRequestAsync(branchName, commitMessage, null, cancellationToken);
+        if (prResult.Success)
+            return "OK: PR oluşturuldu: " + prResult.Message + " Branch: " + branchName;
+        return "OK: " + result.Message + " Branch: " + branchName + ". (GitHub PR otomatik açılamadı: " + prResult.Message + ")";
     }
 
     public async Task<string> GitCommitAndPushAsync(string commitMessage, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken = default)

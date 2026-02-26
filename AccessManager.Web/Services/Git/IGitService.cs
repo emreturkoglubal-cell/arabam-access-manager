@@ -19,4 +19,13 @@ public interface IGitService
         IReadOnlyList<string> relativePaths,
         string commitMessage,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// GitHub API ile pull request oluşturur. Başarıda Message'da PR URL (html_url) döner.
+    /// </summary>
+    Task<GitResult> CreateGitHubPullRequestAsync(
+        string branchName,
+        string title,
+        string? body,
+        CancellationToken cancellationToken = default);
 }

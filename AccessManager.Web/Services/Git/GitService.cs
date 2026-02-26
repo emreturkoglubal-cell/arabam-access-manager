@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace AccessManager.UI.Services.Git;
@@ -7,11 +9,13 @@ namespace AccessManager.UI.Services.Git;
 public sealed class GitService : IGitService
 {
     private readonly IConfiguration _config;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GitService> _logger;
 
-    public GitService(IConfiguration config, ILogger<GitService> logger)
+    public GitService(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<GitService> logger)
     {
         _config = config;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -256,6 +260,82 @@ public sealed class GitService : IGitService
         }
 
         return GitResult.Ok($"Branch '{branchName}' oluşturuldu ve pushlandı. GitHub/GitLab'da 'Compare & pull request' ile PR açabilirsiniz.");
+    }
+
+    public async Task<GitResult> CreateGitHubPullRequestAsync(
+        string branchName,
+        string title,
+        string? body,
+        CancellationToken cancellationToken = default)
+    {
+        var repo = RepoPath;
+        var remoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
+        if (string.IsNullOrEmpty(remoteUrl))
+            return GitResult.Fail("Remote origin URL alınamadı.");
+
+        if (!TryParseGitHubOwnerRepo(remoteUrl, out var owner, out var repoName))
+            return GitResult.Fail("Sadece GitHub remote destekleniyor. URL: " + remoteUrl);
+
+        var token = _config["Git:GitHubToken"]?.Trim() ?? _config["Git:Token"]?.Trim();
+        if (string.IsNullOrEmpty(token))
+        {
+            _logger.LogWarning("CreateGitHubPullRequest: Git:GitHubToken veya Git:Token yok; PR API çağrısı atlanır.");
+            return GitResult.Fail("GitHub token yapılandırılmamış (Git:GitHubToken veya Git:Token). PR'ı GitHub'da 'Compare & pull request' ile açabilirsiniz.");
+        }
+
+        using var http = _httpClientFactory.CreateClient();
+        http.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+        http.DefaultRequestHeaders.Add("User-Agent", "Arabam-AccessManager");
+        http.DefaultRequestHeaders.Add("Authorization", "Bearer " + token);
+
+        var payload = new { title, head = branchName, @base = MainBranch, body = body ?? "" };
+        var response = await http.PostAsJsonAsync(
+            $"https://api.github.com/repos/{owner}/{repoName}/pulls",
+            payload,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("CreateGitHubPullRequest: API hatası {StatusCode}. Body: {Body}", response.StatusCode, err);
+            return GitResult.Fail("GitHub PR oluşturulamadı: " + response.StatusCode + ". " + (err.Length > 200 ? err.AsSpan(0, 200).ToString() + "..." : err));
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var doc = JsonDocument.Parse(json);
+        var htmlUrl = doc.RootElement.TryGetProperty("html_url", out var urlProp) ? urlProp.GetString() : null;
+        if (string.IsNullOrEmpty(htmlUrl))
+            return GitResult.Fail("GitHub yanıtında PR linki bulunamadı.");
+        return GitResult.Ok(htmlUrl);
+    }
+
+    private static bool TryParseGitHubOwnerRepo(string remoteUrl, out string owner, out string repoName)
+    {
+        owner = "";
+        repoName = "";
+        if (string.IsNullOrWhiteSpace(remoteUrl)) return false;
+        var span = remoteUrl.AsSpan().Trim();
+        if (span.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            span = span.Slice("https://github.com/".Length);
+        }
+        else if (span.StartsWith("http://github.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            span = span.Slice("http://github.com/".Length);
+        }
+        else if (span.StartsWith("git@github.com:", StringComparison.OrdinalIgnoreCase))
+        {
+            span = span.Slice("git@github.com:".Length);
+        }
+        else
+            return false;
+        var slash = span.IndexOf('/');
+        if (slash < 0) return false;
+        owner = span.Slice(0, slash).ToString();
+        repoName = span.Slice(slash + 1).ToString().TrimEnd('/');
+        if (repoName.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+            repoName = repoName.Substring(0, repoName.Length - 4);
+        return !string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(repoName);
     }
 
     private static string InjectTokenIntoUrl(string url, string token)
