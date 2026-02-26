@@ -11,7 +11,7 @@
     var personnelPageSize = ViewBag.PersonnelPageSize as int? ?? 10;
     var roleNames = ViewBag.RoleNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
-    var ownerName = ViewBag.OwnerName as string;
+    var ownerNames = ViewBag.OwnerNames as List<(int Id, string Name)> ?? new List<(int Id, string Name)>();
     var responsibleDepartmentName = ViewBag.ResponsibleDepartmentName as string ?? "—";
 }
 @if (system == null)
@@ -56,11 +56,16 @@ else
                     @:—
                 }
             </dd>
-            <dt class="col-sm-4">Sorumlu Kişi</dt>
+            <dt class="col-sm-4">Sorumlu Kişiler</dt>
             <dd class="col-sm-8">
-                @if (system.OwnerId.HasValue)
+                @if (ownerNames.Any())
                 {
-                    <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@system.OwnerId.Value">@ownerName</a>
+                    @for (var i = 0; i < ownerNames.Count; i++)
+                    {
+                        var owner = ownerNames[i];
+                        if (i > 0) { <text>, </text> }
+                        <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@owner.Id">@owner.Name</a>
+                    }
                 }
                 else
                 {

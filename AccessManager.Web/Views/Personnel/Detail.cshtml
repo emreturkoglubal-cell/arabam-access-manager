@@ -88,7 +88,7 @@ else
                     <dt class="col-sm-4">E-posta</dt>
                     <dd class="col-sm-8">@Model.Personnel.Email</dd>
                     <dt class="col-sm-4">Telefon</dt>
-                    <dd class="col-sm-8">@(Model.Personnel.PhoneNumber ?? "—")</dd>
+                    <dd class="col-sm-8">@(ViewBag.FormattedPhone ?? "—")</dd>
                     <dt class="col-sm-4">Departman</dt>
                     <dd class="col-sm-8">@Model.DepartmentName</dd>
                     <dt class="col-sm-4">Pozisyon</dt>
@@ -276,11 +276,20 @@ else
                                     var isOffboardedWithOpen = Model.Personnel != null && Model.Personnel.EndDate.HasValue && isActive;
                                     var rowWarningClass = isOffboardedWithOpen ? "am-row-warning" : "";
                                     <tr class="@rowWarningClass">
-                                        <td>@sysName @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")</td>
                                         <td>
-                                            @if (sys.OwnerId.HasValue && Model.SystemOwnerNames.TryGetValue(sys.Id, out var ownerName))
+                                            <a class="am-link" asp-controller="Systems" asp-action="Detail" asp-route-id="@sys.Id">@sysName</a>
+                                            @(access?.ExpiresAt.HasValue == true ? $" — Bitiş: {access.ExpiresAt!.Value:dd.MM.yyyy}" : "")
+                                        </td>
+                                        <td>
+                                            @{ var sysOwners = Model.SystemOwnersList.TryGetValue(sys.Id, out var so) ? so : new List<(int PersonnelId, string Name)>(); }
+                                            @if (sysOwners.Any())
                                             {
-                                                <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@sys.OwnerId.Value">@ownerName</a>
+                                                @for (var idx = 0; idx < sysOwners.Count; idx++)
+                                                {
+                                                    var owner = sysOwners[idx];
+                                                    if (idx > 0) { <text>, </text> }
+                                                    <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@owner.PersonnelId">@owner.Name</a>
+                                                }
                                             }
                                             else
                                             {
@@ -421,7 +430,7 @@ else
                         </div>
                         <div class="col-12">
                             <label for="editPhoneNumber" class="form-label">Telefon</label>
-                            <input type="tel" name="PhoneNumber" id="editPhoneNumber" class="form-control" value="@Model.Personnel.PhoneNumber" maxlength="50" />
+                            <input type="tel" name="PhoneNumber" id="editPhoneNumber" class="form-control am-phone-input" value="@ViewBag.FormattedPhone" placeholder="+90 (5XX) XXX XX XX" maxlength="22" autocomplete="off" />
                         </div>
                         <div class="col-md-6">
                             <label for="editDepartmentId" class="form-label">Departman</label>

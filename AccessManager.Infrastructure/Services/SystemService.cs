@@ -43,4 +43,6 @@ public class SystemService : ISystemService
             return false;
         return _repo.Delete(id);
     }
+
+    public IReadOnlyList<int> GetOwnerIds(int resourceSystemId) => _repo.GetOwnerIds(resourceSystemId);
 }

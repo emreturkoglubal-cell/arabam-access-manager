@@ -2,6 +2,7 @@ using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 using AccessManager.UI.Constants;
+using AccessManager.UI.Helpers;
 using AccessManager.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -108,13 +109,22 @@ public class PersonnelController : Controller
             ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
             return View(input);
         }
+        var (phoneValid, phoneError) = PhoneFormatHelper.Validate(input.PhoneNumber);
+        if (!phoneValid)
+        {
+            ModelState.AddModelError(nameof(input.PhoneNumber), phoneError!);
+            ViewBag.Departments = _departmentService.GetAll();
+            ViewBag.Roles = _roleService.GetAll();
+            ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
+            return View(input);
+        }
 
         var p = new Personnel
         {
             FirstName = input.FirstName.Trim(),
             LastName = input.LastName.Trim(),
             Email = input.Email.Trim(),
-            PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim(),
+            PhoneNumber = PhoneFormatHelper.NormalizeForSave(input.PhoneNumber),
             DepartmentId = input.DepartmentId,
             Position = input.Position?.Trim(),
             ManagerId = input.ManagerId,
@@ -164,13 +174,24 @@ public class PersonnelController : Controller
         vm.AllSystems = allSystems;
         foreach (var sys in allSystems)
             vm.SystemNames[sys.Id] = sys.Name ?? sys.Code ?? sys.Id.ToString();
-        var systemOwnerIds = allSystems.Where(s => s.OwnerId.HasValue).Select(s => s.OwnerId!.Value).Distinct().ToList();
-        var systemOwners = systemOwnerIds.Count > 0 ? _personnelService.GetByIds(systemOwnerIds) : new List<Personnel>();
+        var allOwnerIds = allSystems.SelectMany(s => s.OwnerIds).Distinct().ToList();
+        var systemOwners = allOwnerIds.Count > 0 ? _personnelService.GetByIds(allOwnerIds) : new List<Personnel>();
         var systemOwnerNameByPersonnelId = systemOwners.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
         foreach (var sys in allSystems)
         {
-            if (sys.OwnerId.HasValue && systemOwnerNameByPersonnelId.TryGetValue(sys.OwnerId.Value, out var ownerName))
-                vm.SystemOwnerNames[sys.Id] = ownerName;
+            var owners = new List<(int PersonnelId, string Name)>();
+            foreach (var pid in sys.OwnerIds)
+            {
+                if (systemOwnerNameByPersonnelId.TryGetValue(pid, out var ownerName))
+                {
+                    owners.Add((pid, ownerName));
+                    if (!vm.SystemOwnerNames.ContainsKey(sys.Id))
+                        vm.SystemOwnerNames[sys.Id] = ownerName;
+                    else
+                        vm.SystemOwnerNames[sys.Id] += ", " + ownerName;
+                }
+            }
+            vm.SystemOwnersList[sys.Id] = owners;
         }
         var systemDeptIds = allSystems.Where(s => s.ResponsibleDepartmentId.HasValue).Select(s => s.ResponsibleDepartmentId!.Value).Distinct().ToList();
         var allDepts = _departmentService.GetAll();
@@ -203,6 +224,7 @@ public class PersonnelController : Controller
         ViewBag.IsManager = _managerService.IsPersonManagerActive(id);
         ViewBag.Departments = _departmentService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
+        ViewBag.FormattedPhone = PhoneFormatHelper.Format(personnel.PhoneNumber);
         return View(vm);
     }
 
@@ -223,10 +245,16 @@ public class PersonnelController : Controller
             TempData["PersonnelEditError"] = "Kişi kendisinin yöneticisi olamaz.";
             return RedirectToAction(nameof(Detail), new { id });
         }
+        var (phoneValid, phoneError) = PhoneFormatHelper.Validate(input.PhoneNumber);
+        if (!phoneValid)
+        {
+            TempData["PersonnelEditError"] = phoneError;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
         personnel.FirstName = input.FirstName.Trim();
         personnel.LastName = input.LastName.Trim();
         personnel.Email = input.Email.Trim();
-        personnel.PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim();
+        personnel.PhoneNumber = PhoneFormatHelper.NormalizeForSave(input.PhoneNumber);
         personnel.DepartmentId = input.DepartmentId;
         personnel.Position = string.IsNullOrWhiteSpace(input.Position) ? null : input.Position.Trim();
         personnel.ManagerId = input.ManagerId;

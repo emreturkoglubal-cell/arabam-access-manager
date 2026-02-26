@@ -14,8 +14,10 @@ public class PersonnelDetailViewModel
     public string? RoleName { get; set; }
     public string? ManagerName { get; set; }
     public Dictionary<int, string> SystemNames { get; set; } = new();
-    /// <summary>Sistem id -> sorumlu kişi adı (yetkiler listesinde link için).</summary>
+    /// <summary>Sistem id -> sorumlu kişi adı (yetkiler listesinde link için). Tekil kullanım için geriye uyumluluk; çoklu için SystemOwnersList kullanın.</summary>
     public Dictionary<int, string> SystemOwnerNames { get; set; } = new();
+    /// <summary>Sistem id -> sorumlu kişiler listesi (PersonnelId, Name); yetkiler tablosunda birden fazla link için.</summary>
+    public Dictionary<int, List<(int PersonnelId, string Name)>> SystemOwnersList { get; set; } = new();
     /// <summary>Sistem id -> sorumlu departman adı (yetkiler listesinde link için).</summary>
     public Dictionary<int, string> SystemResponsibleDepartmentNames { get; set; } = new();
     /// <summary>Tüm uygulamalar (yetkisi olan ve olmayan görünsün).</summary>

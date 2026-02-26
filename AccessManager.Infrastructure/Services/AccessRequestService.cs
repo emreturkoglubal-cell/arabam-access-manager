@@ -37,7 +37,7 @@ public class AccessRequestService : IAccessRequestService
     public IReadOnlyList<AccessRequest> GetPendingForApprover(int approverId)
     {
         var managedIds = _personnelRepo.GetByManagerId(approverId).Select(p => p.Id).ToHashSet();
-        var systemOwnerIds = _systemRepo.GetAll().Where(s => s.OwnerId == approverId).Select(s => s.Id).ToHashSet();
+        var systemOwnerIds = _systemRepo.GetAll().Where(s => s.OwnerIds.Contains(approverId)).Select(s => s.Id).ToHashSet();
         var all = _requestRepo.GetAll();
         return all
             .Where(r => r.Status == AccessRequestStatus.PendingManager && managedIds.Contains(r.PersonnelId)
@@ -93,7 +93,9 @@ public class AccessRequestService : IAccessRequestService
         if (stepName == ApprovalStepNames.Manager)
         {
             var sys = _systemRepo.GetById(request.ResourceSystemId);
-            if (sys?.OwnerId != null && sys.OwnerId != approverId)
+            var hasOwners = sys?.OwnerIds?.Count > 0;
+            var approverIsOwner = hasOwners && sys!.OwnerIds.Contains(approverId);
+            if (hasOwners && !approverIsOwner)
             {
                 _requestRepo.UpdateStatus(requestId, AccessRequestStatus.PendingSystemOwner);
                 _stepRepo.Insert(new ApprovalStep { AccessRequestId = requestId, StepName = ApprovalStepNames.SystemOwner, Order = 2 });

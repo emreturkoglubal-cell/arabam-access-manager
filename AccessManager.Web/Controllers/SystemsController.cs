@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AccessManager.UI.Controllers;
 
 /// <summary>
-/// Kaynak sistemler (ResourceSystem): liste, oluşturma, düzenleme, silme. Her sistemin adı, kodu, türü (Application/Infrastructure/License), kritiklik seviyesi ve isteğe bağlı sistem sahibi (OwnerId) vardır.
+/// Kaynak sistemler (ResourceSystem): liste, oluşturma, düzenleme, silme. Her sistemin adı, kodu, türü (Application/Infrastructure/License), kritiklik seviyesi ve birden fazla sorumlu kişi (OwnerIds) atanabilir.
 /// Yetki: Liste/Edit için Admin veya Manager; Create/Delete sadece Admin.
 /// </summary>
 [Authorize(Roles = AuthorizationRolePolicies.AdminAndManager)]
@@ -51,17 +52,18 @@ public class SystemsController : Controller
         var activeAccesses = _accessService.GetActive();
         var accessCounts = systems.ToDictionary(s => s.Id, s => activeAccesses.Count(a => a.ResourceSystemId == s.Id));
 
-        // Sorumlu kişi isimleri
-        var ownerIds = systems.Where(s => s.OwnerId.HasValue).Select(s => s.OwnerId!.Value).Distinct().ToList();
-        var owners = ownerIds.Count > 0 ? _personnelService.GetByIds(ownerIds) : new List<Personnel>();
+        // Sorumlu kişi isimleri (uygulama bazında birden fazla)
+        var allOwnerIds = systems.SelectMany(s => s.OwnerIds).Distinct().ToList();
+        var owners = allOwnerIds.Count > 0 ? _personnelService.GetByIds(allOwnerIds) : new List<Personnel>();
         var ownerNameByPersonnelId = owners.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
-        var ownerNames = new Dictionary<int, string>();
+        var ownerNamesBySystem = new Dictionary<int, List<(int PersonnelId, string Name)>>();
         foreach (var s in systems)
         {
-            if (s.OwnerId.HasValue && ownerNameByPersonnelId.TryGetValue(s.OwnerId.Value, out var name))
-                ownerNames[s.Id] = name;
-            else if (s.OwnerId.HasValue)
-                ownerNames[s.Id] = "-";
+            var list = new List<(int, string)>();
+            foreach (var pid in s.OwnerIds)
+                if (ownerNameByPersonnelId.TryGetValue(pid, out var name))
+                    list.Add((pid, name));
+            ownerNamesBySystem[s.Id] = list;
         }
 
         // Sorumlu departman isimleri
@@ -76,7 +78,7 @@ public class SystemsController : Controller
         }
 
         ViewBag.Systems = systems;
-        ViewBag.OwnerNames = ownerNames;
+        ViewBag.OwnerNamesBySystem = ownerNamesBySystem;
         ViewBag.ResponsibleDepartmentNames = responsibleDepartmentNames;
         ViewBag.AccessCounts = accessCounts;
         return View();
@@ -115,8 +117,10 @@ public class SystemsController : Controller
         var managers = managerIds.Count > 0 ? _personnelService.GetByIds(managerIds) : new List<Personnel>();
         ViewBag.ManagerNames = managers.ToDictionary(m => m.Id, m => $"{m.FirstName} {m.LastName}");
 
-        var ownerName = system.OwnerId.HasValue ? _personnelService.GetById(system.OwnerId.Value) : null;
-        ViewBag.OwnerName = ownerName != null ? $"{ownerName.FirstName} {ownerName.LastName}" : null;
+        var ownerNames = system.OwnerIds.Count > 0
+            ? _personnelService.GetByIds(system.OwnerIds).Select(p => (p.Id, Name: $"{p.FirstName} {p.LastName}")).ToList()
+            : new List<(int Id, string Name)>();
+        ViewBag.OwnerNames = ownerNames;
         ViewBag.ResponsibleDepartmentName = system.ResponsibleDepartmentId.HasValue
             ? _departmentService.GetById(system.ResponsibleDepartmentId.Value)?.Name ?? "—"
             : "—";
@@ -129,7 +133,9 @@ public class SystemsController : Controller
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]
     public IActionResult Create()
     {
-        ViewBag.PersonnelList = _personnelService.GetActive();
+        var personnelList = _personnelService.GetActive();
+        ViewBag.PersonnelList = personnelList;
+        ViewBag.PersonnelJson = JsonSerializer.Serialize(personnelList.Select(p => new { id = p.Id, firstName = p.FirstName ?? "", lastName = p.LastName ?? "", fullName = $"{p.FirstName ?? ""} {p.LastName ?? ""}".Trim() }).ToList());
         ViewBag.Departments = _departmentService.GetAll();
         return View(new SystemEditInputModel());
     }
@@ -154,7 +160,7 @@ public class SystemsController : Controller
             SystemType = input.SystemType,
             CriticalLevel = input.CriticalLevel,
             ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId,
-            OwnerId = input.OwnerId == 0 ? null : input.OwnerId,
+            OwnerIds = input.OwnerIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>(),
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim()
         };
         _systemService.Create(system);
@@ -170,8 +176,11 @@ public class SystemsController : Controller
     {
         var system = _systemService.GetById(id);
         if (system == null) return NotFound();
+        var personnelList = _personnelService.GetActive();
         ViewBag.System = system;
-        ViewBag.PersonnelList = _personnelService.GetActive();
+        ViewBag.PersonnelList = personnelList;
+        ViewBag.PersonnelJson = JsonSerializer.Serialize(personnelList.Select(p => new { id = p.Id, firstName = p.FirstName ?? "", lastName = p.LastName ?? "", fullName = $"{p.FirstName ?? ""} {p.LastName ?? ""}".Trim() }).ToList());
+        ViewBag.OwnerIdsJson = JsonSerializer.Serialize(system.OwnerIds ?? new List<int>());
         ViewBag.Departments = _departmentService.GetAll();
         return View(new SystemEditInputModel
         {
@@ -180,7 +189,7 @@ public class SystemsController : Controller
             SystemType = system.SystemType,
             CriticalLevel = system.CriticalLevel,
             ResponsibleDepartmentId = system.ResponsibleDepartmentId ?? 0,
-            OwnerId = system.OwnerId ?? 0,
+            OwnerIds = system.OwnerIds?.ToList() ?? new List<int>(),
             Description = system.Description
         });
     }
@@ -206,7 +215,7 @@ public class SystemsController : Controller
         system.SystemType = input.SystemType;
         system.CriticalLevel = input.CriticalLevel;
         system.ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId;
-        system.OwnerId = input.OwnerId == 0 ? null : input.OwnerId;
+        system.OwnerIds = input.OwnerIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>();
         system.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         _systemService.Update(system);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";

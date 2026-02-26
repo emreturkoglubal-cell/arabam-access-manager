@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = "Uygulamalar";
     var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
-    var ownerNames = ViewBag.OwnerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var ownerNamesBySystem = ViewBag.OwnerNamesBySystem as Dictionary<int, List<(int PersonnelId, string Name)>> ?? new Dictionary<int, List<(int PersonnelId, string Name)>>();
     var responsibleDepartmentNames = ViewBag.ResponsibleDepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var accessCounts = ViewBag.AccessCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
 }
@@ -54,10 +54,15 @@
                                 }
                             </td>
                             <td>
-                                @if (s.OwnerId.HasValue)
+                                @{ var ownersList = ownerNamesBySystem.TryGetValue(s.Id, out var oList) ? oList : new List<(int PersonnelId, string Name)>(); }
+                                @if (ownersList.Any())
                                 {
-                                    var ownerName = ownerNames.TryGetValue(s.Id, out var owner) ? owner : "—";
-                                    <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@s.OwnerId.Value">@ownerName</a>
+                                    @for (var i = 0; i < ownersList.Count; i++)
+                                    {
+                                        var owner = ownersList[i];
+                                        if (i > 0) { <text>, </text> }
+                                        <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@owner.PersonnelId">@owner.Name</a>
+                                    }
                                 }
                                 else
                                 {

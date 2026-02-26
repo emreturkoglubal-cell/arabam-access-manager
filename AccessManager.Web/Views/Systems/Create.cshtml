@@ -39,14 +39,14 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label asp-for="OwnerId" class="form-label">Sorumlu Kişi</label>
-                <select asp-for="OwnerId" class="form-select">
-                    <option value="0">— Seçin —</option>
-                    @foreach (var p in personnelList)
-                    {
-                        <option value="@p.Id">@p.FirstName @p.LastName</option>
-                    }
-                </select>
+                <label class="form-label">Sorumlu Kişiler</label>
+                <div class="am-owner-picker" id="ownerPicker">
+                    <input type="text" class="am-owner-picker__input form-control" id="ownerSearch" placeholder="İsim ile ara..." autocomplete="off" />
+                    <div class="am-owner-picker__dropdown" id="ownerDropdown" role="listbox"></div>
+                    <div class="am-owner-picker__chips" id="ownerChips"></div>
+                    <div id="ownerHiddenInputs"></div>
+                </div>
+                <small class="text-muted">Yazmaya başlayın, listeden kişiye tıklayarak ekleyin.</small>
             </div>
             <div class="mb-3">
                 <label asp-for="Description" class="form-label">Açıklama</label>
@@ -62,4 +62,88 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var personnel = @Html.Raw(ViewBag.PersonnelJson ?? "[]");
+            var initialIds = [];
+            var searchEl = document.getElementById('ownerSearch');
+            var dropdownEl = document.getElementById('ownerDropdown');
+            var chipsEl = document.getElementById('ownerChips');
+            var hiddenContainer = document.getElementById('ownerHiddenInputs');
+
+            function normalize(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+            function match(q, p) {
+                if (!q) return true;
+                var nq = normalize(q);
+                var full = normalize(p.fullName);
+                var first = normalize(p.firstName);
+                var last = normalize(p.lastName);
+                return full.indexOf(nq) !== -1 || first.indexOf(nq) !== -1 || last.indexOf(nq) !== -1;
+            }
+
+            function renderDropdown(query) {
+                var selectedIds = initialIds.slice();
+                hiddenContainer.querySelectorAll('input').forEach(function (inp) { selectedIds.push(parseInt(inp.value, 10)); });
+                var filtered = personnel.filter(function (p) { return match(query, p) && selectedIds.indexOf(p.id) === -1; });
+                dropdownEl.innerHTML = '';
+                dropdownEl.classList.remove('is-open');
+                if (!query || query.length < 1) return;
+                if (filtered.length === 0) {
+                    dropdownEl.innerHTML = '<div class="am-owner-picker__empty">Eşleşen personel yok</div>';
+                } else {
+                    filtered.forEach(function (p) {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'am-owner-picker__item';
+                        btn.textContent = p.fullName;
+                        btn.setAttribute('role', 'option');
+                        btn.dataset.id = p.id;
+                        btn.dataset.name = p.fullName;
+                        btn.addEventListener('click', function () { addOwner(p.id, p.fullName); searchEl.value = ''; renderDropdown(''); searchEl.focus(); });
+                        dropdownEl.appendChild(btn);
+                    });
+                }
+                dropdownEl.classList.add('is-open');
+            }
+
+            function addOwner(id, name) {
+                var selectedIds = [];
+                hiddenContainer.querySelectorAll('input').forEach(function (inp) { selectedIds.push(parseInt(inp.value, 10)); });
+                if (selectedIds.indexOf(id) !== -1) return;
+                var inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'OwnerIds';
+                inp.value = id;
+                hiddenContainer.appendChild(inp);
+                var chip = document.createElement('span');
+                chip.className = 'am-owner-picker__chip';
+                chip.dataset.ownerId = id;
+                chip.innerHTML = escapeHtml(name) + ' <button type="button" class="am-owner-picker__chip-remove" aria-label="Kaldır">&times;</button>';
+                chip.querySelector('button').addEventListener('click', function () { removeOwner(id); });
+                chipsEl.appendChild(chip);
+            }
+
+            function removeOwner(id) {
+                hiddenContainer.querySelectorAll('input').forEach(function (inp) {
+                    if (parseInt(inp.value, 10) === id) inp.remove();
+                });
+                var chip = chipsEl.querySelector('.am-owner-picker__chip[data-owner-id="' + id + '"]');
+                if (chip) chip.remove();
+            }
+
+            function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+            searchEl.addEventListener('input', function () { renderDropdown(this.value); });
+            searchEl.addEventListener('focus', function () { if (this.value) renderDropdown(this.value); });
+            searchEl.addEventListener('blur', function () { setTimeout(function () { dropdownEl.classList.remove('is-open'); }, 180); });
+            document.addEventListener('click', function (e) {
+                if (!document.getElementById('ownerPicker').contains(e.target)) dropdownEl.classList.remove('is-open');
+            });
+
+            initialIds.forEach(function (id) {
+                var p = personnel.find(function (x) { return x.id === id; });
+                if (p) addOwner(p.id, p.fullName);
+            });
+        })();
+    </script>
 }

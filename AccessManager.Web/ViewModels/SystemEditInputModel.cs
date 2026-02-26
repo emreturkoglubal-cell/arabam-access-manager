@@ -10,7 +10,7 @@ public class SystemEditInputModel
     public CriticalLevel CriticalLevel { get; set; } = CriticalLevel.Medium;
     /// <summary>0 = seçilmedi.</summary>
     public int ResponsibleDepartmentId { get; set; }
-    /// <summary>0 = seçilmedi.</summary>
-    public int OwnerId { get; set; }
+    /// <summary>Sorumlu kişiler (personel id listesi); birden fazla seçilebilir.</summary>
+    public List<int> OwnerIds { get; set; } = new();
     public string? Description { get; set; }
 }

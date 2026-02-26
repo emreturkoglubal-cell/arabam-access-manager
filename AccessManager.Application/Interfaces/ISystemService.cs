@@ -25,4 +25,7 @@ public interface ISystemService
     void Update(ResourceSystem system);
     /// <summary>Siler. Yetki talebi, rol yetkisi veya personel erişiminde kullanılıyorsa false döner.</summary>
     bool Delete(int id);
+
+    /// <summary>Belirtilen uygulama için sorumlu personel id listesi.</summary>
+    IReadOnlyList<int> GetOwnerIds(int resourceSystemId);
 }
