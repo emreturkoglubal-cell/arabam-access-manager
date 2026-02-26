@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "arabam AI";
+    ViewData["Title"] = "arabam-AI";
     var initialConversationId = ViewData["ConversationId"] as int?;
 }
 <div class="ai-chat-page-wrap" id="aiChatWrap">
@@ -208,12 +208,37 @@
     .ai-chat-push-pr-bar { background: var(--am-card-bg, #fff); }
     .ai-chat-push-pr-bar .ai-chat-input-bottom-inner { max-width: 640px; margin: 0 auto; }
     .am-ai-action-btn { flex-shrink: 0; }
-    .typing-indicator { display: inline-flex; align-items: center; gap: 4px; padding: 12px 16px; }
-    .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--am-accent, #e40030); animation: typing-blink 1.2s ease-in-out infinite both; }
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-    .typing-indicator span:nth-child(4) { animation-delay: 0.6s; }
-    @@keyframes typing-blink { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.9); } 40% { opacity: 1; transform: scale(1); } }
+    .am-ai-typing-wrap {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 200px;
+    }
+    .typing-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 0;
+    }
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--am-accent, #e40030);
+        animation: typing-blink 1.4s ease-in-out infinite both;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+    .typing-indicator span:nth-child(4) { animation-delay: 0.45s; }
+    @@keyframes typing-blink {
+        0%, 70%, 100% { opacity: 0.35; transform: scale(0.85); }
+        35% { opacity: 1; transform: scale(1.1); }
+    }
+    .am-ai-typing-status {
+        font-size: 0.9rem;
+        color: var(--am-text-muted, #6b7280);
+        min-height: 1.4em;
+    }
     /* AI cevabında kod blokları – beyaz arka plan, tema rengi vurgu (sol çizgi) */
     .am-ai-code-block {
         margin: 0.75rem 0;
@@ -450,19 +475,50 @@
         if (pushPrActionsBarEl) pushPrActionsBarEl.style.display = 'none';
     }
 
+    var typingStatusMessages = [
+        'Düşünüyor...',
+        'Dosyaları inceliyor...',
+        'Değişiklik hazırlanıyor...',
+        'Kod üzerinde çalışıyor...',
+        'Build kontrol ediliyor...',
+        'Neredeyse hazır...',
+        'Son kontroller yapılıyor...'
+    ];
+    var typingStatusIndex = 0;
+    var typingStatusIntervalId = null;
+
     function addTypingIndicator() {
         if (welcomeBlock.style.display !== 'none') switchToChatMode();
+        typingStatusIndex = 0;
+        if (typingStatusIntervalId) {
+            clearInterval(typingStatusIntervalId);
+            typingStatusIntervalId = null;
+        }
         var wrap = document.createElement('div');
         wrap.className = 'mb-3 text-start';
         wrap.id = 'typingIndicatorWrap';
         var bubble = document.createElement('div');
         bubble.className = 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
-        bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span><span></span></div>';
+        bubble.innerHTML = '<div class="am-ai-typing-wrap">' +
+            '<div class="typing-indicator"><span></span><span></span><span></span><span></span></div>' +
+            '<div class="am-ai-typing-status" id="typingStatusText">' + typingStatusMessages[0] + '</div>' +
+            '</div>';
         wrap.appendChild(bubble);
         messagesContainer.appendChild(wrap);
         scrollToBottom();
+
+        typingStatusIntervalId = setInterval(function () {
+            var el = document.getElementById('typingStatusText');
+            if (!el) return;
+            typingStatusIndex = (typingStatusIndex + 1) % typingStatusMessages.length;
+            el.textContent = typingStatusMessages[typingStatusIndex];
+        }, 4000);
     }
     function removeTypingIndicator() {
+        if (typingStatusIntervalId) {
+            clearInterval(typingStatusIntervalId);
+            typingStatusIntervalId = null;
+        }
         var el = document.getElementById('typingIndicatorWrap');
         if (el) el.remove();
     }
