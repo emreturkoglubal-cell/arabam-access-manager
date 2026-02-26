@@ -1,7 +1,9 @@
 @using AccessManager.Domain.Entities
 @using AccessManager.Domain.Enums
 @using AccessManager.Domain.Constants
+@using AccessManager.UI.Helpers
 @{
+    var ci = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
     ViewData["Title"] = "Uygulama Detay";
     var system = ViewBag.System as ResourceSystem;
     var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
@@ -56,7 +58,7 @@ else
                     @:—
                 }
             </dd>
-            <dt class="col-sm-4">Sorumlu Kişiler</dt>
+            <dt class="col-sm-4">@(ownerNames.Count == 1 ? "Sorumlu Kişi" : "Sorumlu Kişiler")</dt>
             <dd class="col-sm-8">
                 @if (ownerNames.Any())
                 {
@@ -74,8 +76,14 @@ else
             </dd>
             <dt class="col-sm-4">Açıklama</dt>
             <dd class="col-sm-8">@(system.Description ?? "—")</dd>
+            <dt class="col-sm-4">Birim maliyeti</dt>
+            <dd class="col-sm-8">@(system.UnitCost.HasValue ? system.UnitCost.Value.ToString("N2", ci) + " " + CurrencyHelper.GetSymbol(system.UnitCostCurrency) : "—")</dd>
             <dt class="col-sm-4">Aktif yetkili personel sayısı</dt>
             <dd class="col-sm-8">@personnelTotalCount</dd>
+            <dt class="col-sm-4">Toplam maliyet</dt>
+            <dd class="col-sm-8">@{
+                var totalCost = system.UnitCost.HasValue && personnelTotalCount > 0 ? system.UnitCost.Value * personnelTotalCount : (decimal?)null;
+            }@(totalCost.HasValue ? totalCost.Value.ToString("N2", ci) + " " + CurrencyHelper.GetSymbol(system.UnitCostCurrency) : "—")</dd>
         </dl>
     </div>
 </div>

@@ -248,8 +248,17 @@ else
     </div>
     <div class="col-md-6">
         <div class="am-card mb-3">
-            @{ var activeAccessCount = Model.AccessList.Count(a => a.IsActive); }
-            <div class="am-card-header">Aktif Yetkiler / @activeAccessCount</div>
+            @{
+                var activeAccessCount = Model.AccessList.Count(a => a.IsActive);
+                var ci = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+            }
+            <div class="am-card-header d-flex justify-content-between align-items-center flex-wrap gap-1">
+                <span>Aktif Yetkiler / @activeAccessCount</span>
+                @if (Model.ApplicationCostUsd.HasValue)
+                {
+                    <span>Uygulama Maliyeti: <span class="am-application-cost">@Model.ApplicationCostUsd.Value.ToString("N2", ci) $</span></span>
+                }
+            </div>
             <div class="am-card-body">
                 @if (Model.AllSystems.Any())
                 {

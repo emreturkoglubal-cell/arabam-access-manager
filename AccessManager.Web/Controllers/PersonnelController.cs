@@ -25,6 +25,7 @@ public class PersonnelController : Controller
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
     private readonly IPersonnelAccessService _personnelAccessService;
+    private readonly ICurrencyService _currencyService;
 
     public PersonnelController(
         IPersonnelService personnelService,
@@ -35,7 +36,8 @@ public class PersonnelController : Controller
         IAssetService assetService,
         IAuditService auditService,
         ICurrentUserService currentUser,
-        IPersonnelAccessService personnelAccessService)
+        IPersonnelAccessService personnelAccessService,
+        ICurrencyService currencyService)
     {
         _personnelService = personnelService;
         _managerService = managerService;
@@ -46,6 +48,7 @@ public class PersonnelController : Controller
         _auditService = auditService;
         _currentUser = currentUser;
         _personnelAccessService = personnelAccessService;
+        _currencyService = currencyService;
     }
 
     /// <summary>GET /Personnel/Index — Personel listesi; departman, durum (tümü/aktif/işten çıkan) ve arama ile filtrelenebilir, sayfalı.</summary>
@@ -201,6 +204,16 @@ public class PersonnelController : Controller
             if (sys.ResponsibleDepartmentId.HasValue && deptNameById.TryGetValue(sys.ResponsibleDepartmentId.Value, out var deptName))
                 vm.SystemResponsibleDepartmentNames[sys.Id] = deptName;
         }
+        var activeSystemIds = accesses.Where(a => a.IsActive).Select(a => a.ResourceSystemId).Distinct().ToHashSet();
+        var ratesToUsd = _currencyService.GetRatesToUsd();
+        decimal totalUsd = 0;
+        foreach (var sys in allSystems.Where(s => activeSystemIds.Contains(s.Id) && s.UnitCost.HasValue))
+        {
+            var currency = string.IsNullOrWhiteSpace(sys.UnitCostCurrency) ? "TRY" : sys.UnitCostCurrency.Trim().ToUpperInvariant();
+            if (ratesToUsd.TryGetValue(currency, out var rate))
+                totalUsd += sys.UnitCost!.Value * rate;
+        }
+        vm.ApplicationCostUsd = totalUsd > 0 ? totalUsd : (decimal?)null;
         vm.Notes = _personnelService.GetNotes(id).ToList();
         foreach (var assignment in assetAssignments)
             vm.AssignmentNotes[assignment.Id] = _assetService.GetNotesForAssignment(assignment.Id).ToList();

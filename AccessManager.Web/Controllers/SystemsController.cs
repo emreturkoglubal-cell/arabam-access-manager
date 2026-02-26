@@ -23,6 +23,7 @@ public class SystemsController : Controller
     private readonly IRoleService _roleService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ICurrencyService _currencyService;
 
     public SystemsController(
         ISystemService systemService,
@@ -31,7 +32,8 @@ public class SystemsController : Controller
         IPersonnelAccessService accessService,
         IRoleService roleService,
         IAuditService auditService,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ICurrencyService currencyService)
     {
         _systemService = systemService;
         _personnelService = personnelService;
@@ -40,6 +42,7 @@ public class SystemsController : Controller
         _roleService = roleService;
         _auditService = auditService;
         _currentUser = currentUser;
+        _currencyService = currencyService;
     }
 
     /// <summary>GET /Systems/Index — Tüm kaynak sistemleri listeler; erişim sayısı ve sistem sahibi adı gösterilir.</summary>
@@ -76,6 +79,20 @@ public class SystemsController : Controller
             if (s.ResponsibleDepartmentId.HasValue && deptNameById.TryGetValue(s.ResponsibleDepartmentId.Value, out var name))
                 responsibleDepartmentNames[s.Id] = name;
         }
+
+        // Tüm uygulamaların toplam maliyetinin USD karşılığı (birim maliyet * aktif erişim sayısı, kur ile USD)
+        var ratesToUsd = _currencyService.GetRatesToUsd();
+        decimal totalCostUsd = 0;
+        foreach (var s in systems)
+        {
+            if (!s.UnitCost.HasValue) continue;
+            var count = accessCounts.TryGetValue(s.Id, out var c) ? c : 0;
+            if (count == 0) continue;
+            var currency = string.IsNullOrWhiteSpace(s.UnitCostCurrency) ? "TRY" : s.UnitCostCurrency.Trim().ToUpperInvariant();
+            if (ratesToUsd.TryGetValue(currency, out var rate))
+                totalCostUsd += s.UnitCost!.Value * count * rate;
+        }
+        ViewBag.TotalCostUsd = totalCostUsd > 0 ? (decimal?)totalCostUsd : null;
 
         ViewBag.Systems = systems;
         ViewBag.OwnerNamesBySystem = ownerNamesBySystem;
@@ -161,7 +178,9 @@ public class SystemsController : Controller
             CriticalLevel = input.CriticalLevel,
             ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId,
             OwnerIds = input.OwnerIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>(),
-            Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim()
+            Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
+            UnitCost = input.UnitCost,
+            UnitCostCurrency = string.IsNullOrWhiteSpace(input.UnitCostCurrency) ? "TRY" : input.UnitCostCurrency.Trim().ToUpperInvariant()
         };
         _systemService.Create(system);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
@@ -190,7 +209,9 @@ public class SystemsController : Controller
             CriticalLevel = system.CriticalLevel,
             ResponsibleDepartmentId = system.ResponsibleDepartmentId ?? 0,
             OwnerIds = system.OwnerIds?.ToList() ?? new List<int>(),
-            Description = system.Description
+            Description = system.Description,
+            UnitCost = system.UnitCost,
+            UnitCostCurrency = system.UnitCostCurrency ?? "TRY"
         });
     }
 
@@ -217,6 +238,8 @@ public class SystemsController : Controller
         system.ResponsibleDepartmentId = input.ResponsibleDepartmentId == 0 ? null : input.ResponsibleDepartmentId;
         system.OwnerIds = input.OwnerIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>();
         system.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
+        system.UnitCost = input.UnitCost;
+        system.UnitCostCurrency = string.IsNullOrWhiteSpace(input.UnitCostCurrency) ? "TRY" : input.UnitCostCurrency.Trim().ToUpperInvariant();
         _systemService.Update(system);
         var actorName = _currentUser.DisplayName ?? _currentUser.UserName ?? "?";
         _auditService.Log(AuditAction.SystemUpdated, _currentUser.UserId, actorName, "ResourceSystem", system.Id.ToString(), $"Sistem: {system.Name}");

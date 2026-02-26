@@ -91,6 +91,11 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new ExtendedLogRepository(cs);
         });
+        services.AddScoped<ICurrencyRateRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new CurrencyRateRepository(cs);
+        });
         services.AddScoped<ICodeChunkRepository>(sp =>
         {
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")
@@ -110,6 +115,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IAccessRequestService, AccessRequestService>();
         services.AddScoped<IAssetService, AssetService>();
+        services.AddScoped<ICurrencyService, CurrencyService>();
         services.AddScoped<IReviseRequestService, ReviseRequestService>();
         services.AddScoped<ICodeContextService, CodeContextService>();
         services.AddScoped<IEmbeddingService, OpenAiEmbeddingService>();

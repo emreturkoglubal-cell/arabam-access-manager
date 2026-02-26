@@ -78,6 +78,16 @@ public class AiController : Controller
         }
     }
 
+    /// <summary>POST /Ai/DeleteConversation — Sohbeti soft delete yapar (is_active = false). Sadece kendi sohbeti silinebilir.</summary>
+    [HttpPost]
+    public IActionResult DeleteConversation([FromQuery] int conversationId)
+    {
+        if (conversationId <= 0)
+            return Json(new { success = false, message = "Geçersiz konuşma." });
+        var ok = _aiConversation.DeleteConversation(conversationId);
+        return Json(new { success = ok, message = ok ? "Sohbet silindi." : "Sohbet bulunamadı veya yetkiniz yok." });
+    }
+
     /// <summary>POST /Ai/Reindex — RAG vektör indexini yeniden oluşturur (repo tarama + embedding + pgvector). Sadece Admin.</summary>
     [HttpGet]
     [Authorize(Roles = AuthorizationRolePolicies.AdminOnly)]

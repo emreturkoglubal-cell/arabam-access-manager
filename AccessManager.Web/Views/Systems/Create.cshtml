@@ -1,6 +1,7 @@
 @model AccessManager.UI.ViewModels.SystemEditInputModel
 @using AccessManager.Domain.Enums
 @using AccessManager.Domain.Entities
+@using AccessManager.UI.Helpers
 @{
     ViewData["Title"] = "Yeni Sistem";
     var personnelList = ViewBag.PersonnelList as IReadOnlyList<Personnel> ?? new List<Personnel>();
@@ -51,6 +52,22 @@
             <div class="mb-3">
                 <label asp-for="Description" class="form-label">Açıklama</label>
                 <textarea asp-for="Description" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea>
+            </div>
+            <div class="mb-3">
+                <label asp-for="UnitCost" class="form-label">Birim maliyet (kişi başı)</label>
+                <div class="row g-2">
+                    <div class="col">
+                        <input asp-for="UnitCost" class="form-control" type="number" step="0.01" min="0" placeholder="Örn. 150,00" />
+                    </div>
+                    <div class="col-auto">
+                        <select asp-for="UnitCostCurrency" class="form-select" style="min-width: 7rem;">
+                            @foreach (var c in CurrencyHelper.GetCurrencies())
+                            {
+                                <option value="@c.Code">@c.Label</option>
+                            }
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-am-primary">Oluştur</button>

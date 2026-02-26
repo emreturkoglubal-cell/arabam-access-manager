@@ -1,12 +1,15 @@
 @using AccessManager.Domain.Constants
 @using AccessManager.Domain.Enums
 @using AccessManager.Domain.Entities
+@using AccessManager.UI.Helpers
 @{
+    var ci = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
     ViewData["Title"] = "Uygulamalar";
     var systems = ViewBag.Systems as IReadOnlyList<ResourceSystem> ?? new List<ResourceSystem>();
     var ownerNamesBySystem = ViewBag.OwnerNamesBySystem as Dictionary<int, List<(int PersonnelId, string Name)>> ?? new Dictionary<int, List<(int PersonnelId, string Name)>>();
     var responsibleDepartmentNames = ViewBag.ResponsibleDepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var accessCounts = ViewBag.AccessCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var totalCostUsd = ViewBag.TotalCostUsd as decimal?;
 }
 
 @if (User.IsInRole(AppRoleNames.Admin))
@@ -30,6 +33,13 @@
                         <th>Kritik seviye</th>
                         <th>Sorumlu Departman</th>
                         <th>Sorumlu Kişi</th>
+                        <th>
+                            Toplam Maliyet
+                            @if (totalCostUsd.HasValue)
+                            {
+                                <span class="am-application-cost ms-1">(@totalCostUsd.Value.ToString("N2", ci) $)</span>
+                            }
+                        </th>
                         <th>Aktif erişim sayısı</th>
                     </tr>
                 </thead>
@@ -37,6 +47,8 @@
                     @foreach (var s in systems)
                     {
                         var detailUrl = Url.Action("Detail", "Systems", new { id = s.Id }) ?? "#";
+                        var accessCnt = accessCounts.TryGetValue(s.Id, out var ac) ? ac : 0;
+                        var totalCost = s.UnitCost.HasValue ? s.UnitCost.Value * accessCnt : (decimal?)null;
                         <tr class="am-table-row-clickable" data-href="@detailUrl" role="button" tabindex="0" onclick="window.location.href=this.dataset.href">
                             <td>@(s.Code ?? "-")</td>
                             <td>@s.Name</td>
@@ -69,7 +81,8 @@
                                     @:—
                                 }
                             </td>
-                            <td>@(accessCounts.TryGetValue(s.Id, out var cnt) ? cnt : 0)</td>
+                            <td>@(totalCost.HasValue ? totalCost.Value.ToString("N2", ci) + " " + CurrencyHelper.GetSymbol(s.UnitCostCurrency) : "—")</td>
+                            <td>@accessCnt</td>
                         </tr>
                     }
                 </tbody>

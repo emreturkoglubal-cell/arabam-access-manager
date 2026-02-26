@@ -103,4 +103,11 @@ public class AiConversationService : IAiConversationService
         _repo.AddMessage(convId, "assistant", reply);
         return (convId, title, reply);
     }
+
+    public bool DeleteConversation(int conversationId)
+    {
+        var userId = _currentUser.UserId;
+        if (userId == null) return false;
+        return _repo.SetConversationInactive(conversationId, userId.Value);
+    }
 }

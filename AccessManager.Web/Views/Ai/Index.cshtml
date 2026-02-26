@@ -105,6 +105,37 @@
         border-left-color: var(--am-accent, #e40030);
     }
     .ai-chat-list-wrap { min-height: 0; }
+    .ai-chat-conv-item { position: relative; }
+    .ai-chat-conv-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--am-text-muted, #6b7280);
+        font-size: 1.1rem;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+    .ai-chat-conv-item:hover .ai-chat-conv-remove {
+        opacity: 1;
+    }
+    .ai-chat-conv-remove:hover {
+        background: rgba(0,0,0,0.08);
+        color: var(--am-accent, #e40030);
+    }
+    .ai-chat-conv-item.list-group-item { padding-right: 2rem; }
+    .ai-chat-conv-item .ai-chat-conv-link { flex: 1; min-width: 0; text-align: left; padding: 0.5rem 0.25rem 0.5rem 0.75rem; }
     .ai-chat-main { min-height: 0; }
     .ai-chat-has-messages .ai-chat-welcome-block {
         display: none !important;
@@ -529,11 +560,39 @@
     function appendConversationItems(items) {
         if (!items || items.length === 0) return;
         items.forEach(function (c) {
+            var wrap = document.createElement('div');
+            wrap.className = 'list-group-item list-group-item-action ai-chat-conv-item d-flex align-items-center' + (currentConversationId === c.id ? ' active' : '');
+            wrap.setAttribute('data-conversation-id', c.id);
             var a = document.createElement('a');
             a.href = '/Ai/Index?conversationId=' + c.id;
-            a.className = 'list-group-item list-group-item-action' + (currentConversationId === c.id ? ' active' : '');
+            a.className = 'ai-chat-conv-link text-decoration-none' + (currentConversationId === c.id ? ' text-white' : ' text-dark');
             a.textContent = (c.title || '(Sohbet)').substring(0, 50) + (c.title && c.title.length > 50 ? '…' : '');
-            listEl.appendChild(a);
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ai-chat-conv-remove';
+            btn.title = 'Sohbeti sil';
+            btn.setAttribute('aria-label', 'Sohbeti sil');
+            btn.innerHTML = '&times;';
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = c.id;
+                fetch('/Ai/DeleteConversation?conversationId=' + id, { method: 'POST', headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.success) {
+                            var row = listEl.querySelector('.ai-chat-conv-item[data-conversation-id="' + id + '"]');
+                            if (row) row.remove();
+                            if (currentConversationId === id) {
+                                currentConversationId = null;
+                                window.location.href = '/Ai/Index';
+                            }
+                        }
+                    });
+            });
+            wrap.appendChild(a);
+            wrap.appendChild(btn);
+            listEl.appendChild(wrap);
         });
     }
 

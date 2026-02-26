@@ -14,9 +14,10 @@ public class AssetEditInputModel
     public string? Notes { get; set; }
     [DataType(DataType.Date)]
     public DateTime? PurchaseDate { get; set; }
-    /// <summary>Satın alınma ücreti (TL).</summary>
-    [Display(Name = "Satın alma ücreti (TL)")]
+    [Display(Name = "Satın alma ücreti")]
     public decimal? PurchasePrice { get; set; }
+    [Display(Name = "Para birimi")]
+    public string PurchaseCurrency { get; set; } = "TRY";
     [DataType(DataType.Date)]
     public DateTime? DepreciationEndDate { get; set; }
 }

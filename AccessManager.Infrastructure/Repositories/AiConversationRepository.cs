@@ -17,8 +17,8 @@ public class AiConversationRepository : IAiConversationRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO ai_conversations (user_id, title, created_at, updated_at)
-            VALUES (@UserId, @Title, now(), now()) RETURNING id";
+        const string sql = @"INSERT INTO ai_conversations (user_id, title, created_at, updated_at, is_active)
+            VALUES (@UserId, @Title, now(), now(), true) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new { UserId = userId, Title = title });
     }
 
@@ -43,8 +43,8 @@ public class AiConversationRepository : IAiConversationRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM ai_conversations WHERE user_id = @UserId ORDER BY updated_at DESC";
+        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt, is_active AS IsActive
+            FROM ai_conversations WHERE user_id = @UserId AND COALESCE(is_active, true) = true ORDER BY updated_at DESC";
         return conn.Query<AiConversation>(sql, new { UserId = userId }).ToList();
     }
 
@@ -52,9 +52,9 @@ public class AiConversationRepository : IAiConversationRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        var total = conn.ExecuteScalar<int>("SELECT COUNT(*) FROM ai_conversations WHERE user_id = @UserId", new { UserId = userId });
-        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM ai_conversations WHERE user_id = @UserId ORDER BY updated_at DESC LIMIT @Take OFFSET @Skip";
+        var total = conn.ExecuteScalar<int>("SELECT COUNT(*) FROM ai_conversations WHERE user_id = @UserId AND COALESCE(is_active, true) = true", new { UserId = userId });
+        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt, COALESCE(is_active, true) AS IsActive
+            FROM ai_conversations WHERE user_id = @UserId AND COALESCE(is_active, true) = true ORDER BY updated_at DESC LIMIT @Take OFFSET @Skip";
         var items = conn.Query<AiConversation>(sql, new { UserId = userId, Skip = skip, Take = take }).ToList();
         return (items, total);
     }
@@ -72,8 +72,18 @@ public class AiConversationRepository : IAiConversationRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt
-            FROM ai_conversations WHERE id = @Id AND user_id = @UserId";
+        const string sql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt, COALESCE(is_active, true) AS IsActive
+            FROM ai_conversations WHERE id = @Id AND user_id = @UserId AND COALESCE(is_active, true) = true";
         return conn.QueryFirstOrDefault<AiConversation>(sql, new { Id = conversationId, UserId = userId });
+    }
+
+    public bool SetConversationInactive(int conversationId, int userId)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var rows = conn.Execute(
+            "UPDATE ai_conversations SET is_active = false WHERE id = @Id AND user_id = @UserId",
+            new { Id = conversationId, UserId = userId });
+        return rows > 0;
     }
 }

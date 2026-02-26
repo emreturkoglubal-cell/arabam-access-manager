@@ -22,6 +22,8 @@ public class PersonnelDetailViewModel
     public Dictionary<int, string> SystemResponsibleDepartmentNames { get; set; } = new();
     /// <summary>Tüm uygulamalar (yetkisi olan ve olmayan görünsün).</summary>
     public List<ResourceSystem> AllSystems { get; set; } = new();
+    /// <summary>Bu personelin aktif uygulamalarının toplam maliyeti (USD cinsinden; diğer para birimleri kur ile çevrilir).</summary>
+    public decimal? ApplicationCostUsd { get; set; }
     /// <summary>Faz 1: Birden fazla not, kim yazdığı görünsün.</summary>
     public List<PersonnelNote> Notes { get; set; } = new();
     /// <summary>Zimmet kaydına göre notlar (AssignmentId -> not listesi).</summary>

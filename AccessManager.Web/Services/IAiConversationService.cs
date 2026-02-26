@@ -9,4 +9,6 @@ public interface IAiConversationService
     AiConversation? GetConversation(int conversationId);
     IReadOnlyList<AiConversationMessage> GetMessages(int conversationId);
     Task<(int ConversationId, string Title, string Reply)> SendMessageAsync(int? conversationId, string userMessage, CancellationToken cancellationToken = default);
+    /// <summary>Sohbeti soft delete yapar (is_active = false). Sadece kendi sohbeti için true döner.</summary>
+    bool DeleteConversation(int conversationId);
 }

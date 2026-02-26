@@ -13,4 +13,8 @@ public class SystemEditInputModel
     /// <summary>Sorumlu kişiler (personel id listesi); birden fazla seçilebilir.</summary>
     public List<int> OwnerIds { get; set; } = new();
     public string? Description { get; set; }
+    /// <summary>Birim maliyet (kişi başı).</summary>
+    public decimal? UnitCost { get; set; }
+    /// <summary>Birim maliyet para birimi: TRY, USD, EUR.</summary>
+    public string UnitCostCurrency { get; set; } = "TRY";
 }

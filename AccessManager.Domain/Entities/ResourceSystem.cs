@@ -17,6 +17,10 @@ public class ResourceSystem
     /// <summary>Sorumlu kişiler (personel id listesi). Veritabanında resource_system_owners tablosunda tutulur; yükleme sonrası doldurulur.</summary>
     public List<int> OwnerIds { get; set; } = new();
     public string? Description { get; set; }
+    /// <summary>Birim maliyet (kişi başı).</summary>
+    public decimal? UnitCost { get; set; }
+    /// <summary>Birim maliyet para birimi: TRY, USD, EUR.</summary>
+    public string? UnitCostCurrency { get; set; }
 
     public Department? ResponsibleDepartment { get; set; }
 }

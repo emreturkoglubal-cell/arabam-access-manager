@@ -109,6 +109,7 @@ body {
 }
 
 .am-stat-card .value.accent { color: var(--am-accent); }
+.am-application-cost { color: var(--am-accent); font-weight: 600; }
 .am-stat-card .value.success { color: var(--am-success); }
 .am-stat-card .value.warning { color: var(--am-warning); }
 .am-stat-card .value.info { color: var(--am-info); }
