@@ -24,9 +24,9 @@ public class AssetService : IAssetService
 
     public IReadOnlyList<Asset> GetAll() => _assetRepo.GetAll();
 
-    public PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize)
+    public PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, string? search, int page, int pageSize)
     {
-        var (items, totalCount) = _assetRepo.GetPaged(status, type, page, pageSize);
+        var (items, totalCount) = _assetRepo.GetPaged(status, type, search, page, pageSize);
         return new PagedResult<Asset>
         {
             Items = items,
@@ -35,6 +35,10 @@ public class AssetService : IAssetService
             PageSize = pageSize
         };
     }
+
+    public IReadOnlyDictionary<AssetStatus, int> GetCountByStatus() => _assetRepo.GetCountByStatus();
+
+    public int GetCountDepreciationEndingSoon(int withinDays = 30) => _assetRepo.GetCountDepreciationEndingSoon(withinDays);
 
     public IReadOnlyList<Asset> GetByStatus(AssetStatus status) => _assetRepo.GetByStatus(status);
 
@@ -45,6 +49,11 @@ public class AssetService : IAssetService
     public IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(int personnelId)
     {
         return _assignmentRepo.GetByPersonnelId(personnelId).Where(x => x.ReturnedAt == null).OrderByDescending(x => x.AssignedAt).ToList();
+    }
+
+    public IReadOnlyList<AssetAssignment> GetAssignmentsByPersonnel(int personnelId)
+    {
+        return _assignmentRepo.GetByPersonnelId(personnelId).OrderByDescending(x => x.AssignedAt).ToList();
     }
 
     public IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(int assetId) =>
@@ -131,7 +140,7 @@ public class AssetService : IAssetService
         return assignment;
     }
 
-    public void Return(int assignmentId, string? returnCondition, string? notes)
+    public void Return(int assignmentId, string? returnCondition, string? notes, int? returnedByUserId, string? returnedByUserName)
     {
         var assignment = _assignmentRepo.GetById(assignmentId);
         if (assignment == null) throw new ArgumentException("Zimmet kaydı bulunamadı.", nameof(assignmentId));
@@ -139,7 +148,7 @@ public class AssetService : IAssetService
             throw new InvalidOperationException("Bu zimmet zaten iade edilmiş.");
 
         var now = SystemTime.Now;
-        _assignmentRepo.SetReturned(assignmentId, now, returnCondition, notes);
+        _assignmentRepo.SetReturned(assignmentId, now, returnCondition, notes, returnedByUserId, returnedByUserName);
 
         var asset = _assetRepo.GetById(assignment.AssetId);
         if (asset != null)

@@ -27,8 +27,13 @@ public class Personnel
     public decimal? Rating { get; set; }
     /// <summary>Yönetici yorumu.</summary>
     public string? ManagerComment { get; set; }
+    /// <summary>Seviye: Jr, Mid, Sr, Lead vb.</summary>
+    public string? SeniorityLevel { get; set; }
+    /// <summary>Alt ekip (teams tablosu).</summary>
+    public int? TeamId { get; set; }
 
     public Department? Department { get; set; }
+    public Team? Team { get; set; }
     public Personnel? Manager { get; set; }
     public Role? Role { get; set; }
 }

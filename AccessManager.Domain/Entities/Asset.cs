@@ -19,5 +19,17 @@ public class Asset
     public string? PurchaseCurrency { get; set; }
     /// <summary>Amortisman bitiş tarihi; boşsa satın alma + 5 yıl kabul edilir.</summary>
     public DateTime? DepreciationEndDate { get; set; }
+    /// <summary>Amortisman süresi (yıl); 1-5.</summary>
+    public short? DepreciationYears { get; set; }
+    /// <summary>RAM (GB) - Laptop/Phone/Tablet.</summary>
+    public int? SpecRamGb { get; set; }
+    /// <summary>Depolama (GB) - Laptop/Phone/Tablet.</summary>
+    public int? SpecStorageGb { get; set; }
+    /// <summary>İşlemci - Laptop.</summary>
+    public string? SpecCpu { get; set; }
+    /// <summary>Ekran boyutu (inç).</summary>
+    public decimal? SpecScreenInches { get; set; }
+    /// <summary>Pivot (döndürülebilir) - Monitör.</summary>
+    public bool? SpecIsPivot { get; set; }
     public DateTime CreatedAt { get; set; }
 }

@@ -21,6 +21,7 @@ public class OnboardingController : Controller
     private readonly IRoleService _roleService;
     private readonly IPersonnelAccessService _accessService;
     private readonly IAuditService _auditService;
+    private readonly ITeamService _teamService;
 
     public OnboardingController(
         IPersonnelService personnelService,
@@ -28,7 +29,8 @@ public class OnboardingController : Controller
         IDepartmentService departmentService,
         IRoleService roleService,
         IPersonnelAccessService accessService,
-        IAuditService auditService)
+        IAuditService auditService,
+        ITeamService teamService)
     {
         _personnelService = personnelService;
         _managerService = managerService;
@@ -36,15 +38,19 @@ public class OnboardingController : Controller
         _roleService = roleService;
         _accessService = accessService;
         _auditService = auditService;
+        _teamService = teamService;
     }
 
-    /// <summary>GET /Onboarding/Index — İşe giriş formu (departman, rol, yönetici listeleri).</summary>
+    /// <summary>GET /Onboarding/Index — İşe giriş formu (departman, ekip, rol, yönetici listeleri).</summary>
     [HttpGet]
     public IActionResult Index()
     {
         ViewBag.Departments = _departmentService.GetAll();
+        ViewBag.Teams = _teamService.GetAll();
         ViewBag.Roles = _roleService.GetAll();
         ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
+        var oneMonthAgo = DateTime.Today.AddMonths(-1);
+        ViewBag.RecentHires = _personnelService.GetActive().Where(p => p.StartDate >= oneMonthAgo).OrderByDescending(p => p.StartDate).Take(100).ToList();
         return View(new PersonnelCreateInputModel());
     }
 
@@ -57,6 +63,7 @@ public class OnboardingController : Controller
         {
             ModelState.AddModelError(string.Empty, "Ad, soyad ve e-posta zorunludur.");
             ViewBag.Departments = _departmentService.GetAll();
+            ViewBag.Teams = _teamService.GetAll();
             ViewBag.Roles = _roleService.GetAll();
             ViewBag.Managers = _managerService.GetActiveManagerPersonnel();
             return View(input);
@@ -68,7 +75,9 @@ public class OnboardingController : Controller
             LastName = input.LastName.Trim(),
             Email = input.Email.Trim(),
             DepartmentId = input.DepartmentId,
+            TeamId = input.TeamId,
             Position = input.Position?.Trim(),
+            SeniorityLevel = string.IsNullOrWhiteSpace(input.SeniorityLevel) ? null : input.SeniorityLevel.Trim(),
             ManagerId = input.ManagerId,
             StartDate = input.StartDate,
             RoleId = input.RoleId,

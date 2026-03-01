@@ -10,7 +10,9 @@ public class PersonnelEditInputModel
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public int DepartmentId { get; set; }
+    public int? TeamId { get; set; }
     public string? Position { get; set; }
+    public string? SeniorityLevel { get; set; }
     public int? ManagerId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }

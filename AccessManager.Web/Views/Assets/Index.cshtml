@@ -16,12 +16,15 @@
 <div class="am-toolbar">
     <form method="get" asp-controller="Assets" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <input type="text" name="search" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Kişi, marka, model, barkod..." value="@Model.SearchTerm" />
         <select name="status" class="form-select form-select-sm am-toolbar-select">
             <option value="">Tüm durumlar</option>
             <option value="Available" selected="@(Model.FilterStatus == AssetStatus.Available)">@StatusLabels.AssetStatusLabel(AssetStatus.Available)</option>
             <option value="Assigned" selected="@(Model.FilterStatus == AssetStatus.Assigned)">@StatusLabels.AssetStatusLabel(AssetStatus.Assigned)</option>
             <option value="InRepair" selected="@(Model.FilterStatus == AssetStatus.InRepair)">@StatusLabels.AssetStatusLabel(AssetStatus.InRepair)</option>
             <option value="Retired" selected="@(Model.FilterStatus == AssetStatus.Retired)">@StatusLabels.AssetStatusLabel(AssetStatus.Retired)</option>
+            <option value="ForSale" selected="@(Model.FilterStatus == AssetStatus.ForSale)">@StatusLabels.AssetStatusLabel(AssetStatus.ForSale)</option>
+            <option value="Test" selected="@(Model.FilterStatus == AssetStatus.Test)">@StatusLabels.AssetStatusLabel(AssetStatus.Test)</option>
         </select>
         <select name="type" class="form-select form-select-sm am-toolbar-select">
             <option value="">Tüm türler</option>
@@ -45,10 +48,11 @@
         <thead>
             <tr>
                 <th>Tür</th>
-                <th>Ad</th>
+                <th>Barkod</th>
                 <th>Seri No</th>
                 <th>Marka/Model</th>
                 <th>Durum</th>
+                <th>Amortisman bitiş</th>
                 <th>Zimmette (kişi)</th>
                 <th>Zimmet tarihi</th>
             </tr>
@@ -64,7 +68,8 @@
                     <td><strong>@a.Name</strong></td>
                     <td>@(a.SerialNumber ?? "—")</td>
                     <td>@(a.BrandModel ?? "—")</td>
-                    <td><span class="am-badge @(a.Status == AssetStatus.Assigned ? "info" : a.Status == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(a.Status)</span></td>
+                    <td><span class="am-badge @(a.Status == AssetStatus.Assigned ? "info" : a.Status == AssetStatus.Available ? "success" : a.Status == AssetStatus.ForSale ? "warning" : "secondary")">@StatusLabels.AssetStatusLabel(a.Status)</span></td>
+                    <td>@(a.DepreciationEndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>@personName</td>
                     <td>@(assign != null ? assign.AssignedAt.ToString("dd.MM.yyyy") : "—")</td>
                 </tr>
@@ -82,6 +87,7 @@ else
     var assetsPaginationRv = new Microsoft.AspNetCore.Routing.RouteValueDictionary { { "pageSize", Model.PageSize } };
     if (Model.FilterStatus.HasValue) assetsPaginationRv["status"] = Model.FilterStatus.Value.ToString();
     if (Model.FilterType.HasValue) assetsPaginationRv["type"] = Model.FilterType.Value.ToString();
+    if (!string.IsNullOrWhiteSpace(Model.SearchTerm)) assetsPaginationRv["search"] = Model.SearchTerm;
     @await Html.PartialAsync("_Pagination", new AccessManager.UI.ViewModels.PaginationViewModel
     {
         Controller = "Assets",
@@ -92,4 +98,24 @@ else
         PageSize = Model.PageSize,
         RouteValues = assetsPaginationRv
     })
+}
+
+@if (Model.CountByStatus != null && Model.CountByStatus.Any())
+{
+<div class="am-card mt-4">
+    <div class="am-card-header">Envanter özeti</div>
+    <div class="am-card-body">
+        <div class="row g-2">
+            <div class="col-auto"><span class="am-badge success">Toplam: @Model.CountByStatus.Values.Sum()</span></div>
+            @foreach (var kv in Model.CountByStatus.OrderBy(x => (int)x.Key))
+            {
+                <div class="col-auto"><span class="am-badge @(kv.Key == AssetStatus.Assigned ? "info" : kv.Key == AssetStatus.Available ? "success" : "secondary")">@StatusLabels.AssetStatusLabel(kv.Key): @kv.Value</span></div>
+            }
+            @if (Model.DepreciationEndingSoonCount > 0)
+            {
+                <div class="col-auto"><span class="am-badge warning">Amortismanı 30 gün içinde bitecek: @Model.DepreciationEndingSoonCount</span></div>
+            }
+        </div>
+    </div>
+</div>
 }

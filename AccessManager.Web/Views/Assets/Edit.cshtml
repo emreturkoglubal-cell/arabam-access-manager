@@ -61,9 +61,43 @@
                 </div>
             </div>
             <div class="mb-3">
-                <label asp-for="DepreciationEndDate" class="form-label">Amortisman tarihi</label>
+                <label asp-for="DepreciationYears" class="form-label">Amortisman süresi (yıl)</label>
+                <select asp-for="DepreciationYears" class="form-select" style="max-width: 8rem;">
+                    <option value="">—</option>
+                    <option value="1">1 yıl</option>
+                    <option value="2">2 yıl</option>
+                    <option value="3">3 yıl</option>
+                    <option value="4">4 yıl</option>
+                    <option value="5">5 yıl</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="DepreciationEndDate" class="form-label">Amortisman bitiş tarihi</label>
                 <input asp-for="DepreciationEndDate" class="form-control" type="date" />
-                <span class="form-text">Boş bırakılırsa satın alma tarihi + 5 yıl kullanılır.</span>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SpecRamGb" class="form-label">RAM (GB)</label>
+                    <input asp-for="SpecRamGb" class="form-control" type="number" min="0" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SpecStorageGb" class="form-label">Depolama (GB)</label>
+                    <input asp-for="SpecStorageGb" class="form-control" type="number" min="0" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SpecCpu" class="form-label">İşlemci</label>
+                    <input asp-for="SpecCpu" class="form-control" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="SpecScreenInches" class="form-label">Ekran (inç)</label>
+                    <input asp-for="SpecScreenInches" class="form-control" type="number" step="0.1" min="0" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="SpecIsPivot" class="form-check-input" />
+                        <label asp-for="SpecIsPivot" class="form-check-label">Pivot (monitör)</label>
+                    </div>
+                </div>
             </div>
             <div class="mb-3">
                 <label asp-for="Notes" class="form-label">Not</label>

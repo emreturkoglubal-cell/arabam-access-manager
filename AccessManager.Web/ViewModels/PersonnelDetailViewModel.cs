@@ -10,9 +10,13 @@ public class PersonnelDetailViewModel
     public List<AssetAssignment> AssetAssignments { get; set; } = new();
     public Dictionary<int, string> AssetNames { get; set; } = new();
     public Dictionary<int, AssetType> AssetTypes { get; set; } = new();
+    public Dictionary<int, string> AssetBrandModels { get; set; } = new();
+    public Dictionary<int, string> AssetSerialNumbers { get; set; } = new();
     public string? DepartmentName { get; set; }
     public string? RoleName { get; set; }
     public string? ManagerName { get; set; }
+    public string? TeamName { get; set; }
+    public IReadOnlyList<PersonnelReminder> Reminders { get; set; } = new List<PersonnelReminder>();
     public Dictionary<int, string> SystemNames { get; set; } = new();
     /// <summary>Sistem id -> sorumlu kişi adı (yetkiler listesinde link için). Tekil kullanım için geriye uyumluluk; çoklu için SystemOwnersList kullanın.</summary>
     public Dictionary<int, string> SystemOwnerNames { get; set; } = new();

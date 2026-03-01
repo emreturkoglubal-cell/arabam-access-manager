@@ -11,8 +11,12 @@ public interface IAssetService
 {
     /// <summary>Tüm donanım kayıtlarını döner.</summary>
     IReadOnlyList<Asset> GetAll();
-    /// <summary>Durum ve tür filtresi ile sayfalı donanım listesi.</summary>
-    PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, int page, int pageSize);
+    /// <summary>Durum, tür ve arama ile sayfalı donanım listesi.</summary>
+    PagedResult<Asset> GetPaged(AssetStatus? status, AssetType? type, string? search, int page, int pageSize);
+    /// <summary>Durum bazlı sayılar (grafik için).</summary>
+    IReadOnlyDictionary<AssetStatus, int> GetCountByStatus();
+    /// <summary>Amortismanı 30 gün içinde bitecek sayı.</summary>
+    int GetCountDepreciationEndingSoon(int withinDays = 30);
     /// <summary>Belirtilen duruma (Available, Assigned, InRepair, Retired) göre donanımlar.</summary>
     IReadOnlyList<Asset> GetByStatus(AssetStatus status);
     /// <summary>Belirtilen türe (Laptop, Desktop, vb.) göre donanımlar.</summary>
@@ -21,6 +25,8 @@ public interface IAssetService
     Asset? GetById(int id);
     /// <summary>Personelin zimmetinde olan (iade edilmemiş) atamalar.</summary>
     IReadOnlyList<AssetAssignment> GetActiveAssignmentsByPersonnel(int personnelId);
+    /// <summary>Personelin tüm zimmet kayıtları (aktif + iade edilen, geçmişe dönük).</summary>
+    IReadOnlyList<AssetAssignment> GetAssignmentsByPersonnel(int personnelId);
     /// <summary>Donanımın geçmiş zimmet kayıtları (iade edilenler dahil).</summary>
     IReadOnlyList<AssetAssignment> GetAssignmentHistoryByAsset(int assetId);
     /// <summary>Donanımın şu anki aktif zimmeti; yoksa null.</summary>
@@ -43,6 +49,6 @@ public interface IAssetService
 
     /// <summary>Donanımı personele zimmetler; Asset durumu Assigned olur, AssetAssignment oluşturulur.</summary>
     AssetAssignment Assign(int assetId, int personnelId, string? notes, int? assignedByUserId, string? assignedByUserName);
-    /// <summary>Zimmet iadesini kaydeder; ReturnedAt ve isteğe bağlı iade koşulu/not.</summary>
-    void Return(int assignmentId, string? returnCondition, string? notes);
+    /// <summary>Zimmet iadesini kaydeder; ReturnedAt, teslim alan kişi ve isteğe bağlı iade koşulu/not.</summary>
+    void Return(int assignmentId, string? returnCondition, string? notes, int? returnedByUserId, string? returnedByUserName);
 }

@@ -26,6 +26,8 @@ public class PersonnelController : Controller
     private readonly ICurrentUserService _currentUser;
     private readonly IPersonnelAccessService _personnelAccessService;
     private readonly ICurrencyService _currencyService;
+    private readonly ITeamService _teamService;
+    private readonly IPersonnelReminderService _reminderService;
 
     public PersonnelController(
         IPersonnelService personnelService,
@@ -37,7 +39,9 @@ public class PersonnelController : Controller
         IAuditService auditService,
         ICurrentUserService currentUser,
         IPersonnelAccessService personnelAccessService,
-        ICurrencyService currencyService)
+        ICurrencyService currencyService,
+        ITeamService teamService,
+        IPersonnelReminderService reminderService)
     {
         _personnelService = personnelService;
         _managerService = managerService;
@@ -49,6 +53,8 @@ public class PersonnelController : Controller
         _currentUser = currentUser;
         _personnelAccessService = personnelAccessService;
         _currencyService = currencyService;
+        _teamService = teamService;
+        _reminderService = reminderService;
     }
 
     /// <summary>GET /Personnel/Index — Personel listesi; departman, durum (tümü/aktif/işten çıkan) ve arama ile filtrelenebilir, sayfalı.</summary>
@@ -149,9 +155,11 @@ public class PersonnelController : Controller
         var (personnel, accesses) = _personnelService.GetWithAccesses(id);
         if (personnel == null) return NotFound();
 
-        var assetAssignments = _assetService.GetActiveAssignmentsByPersonnel(id).ToList();
+        var assetAssignments = _assetService.GetAssignmentsByPersonnel(id).ToList();
         var assetNames = new Dictionary<int, string>();
         var assetTypes = new Dictionary<int, Domain.Enums.AssetType>();
+        var assetBrandModels = new Dictionary<int, string>();
+        var assetSerialNumbers = new Dictionary<int, string>();
         foreach (var a in assetAssignments)
         {
             var asset = _assetService.GetById(a.AssetId);
@@ -159,6 +167,8 @@ public class PersonnelController : Controller
             {
                 assetNames[a.AssetId] = asset.Name;
                 assetTypes[a.AssetId] = asset.AssetType;
+                assetBrandModels[a.AssetId] = asset.BrandModel ?? "—";
+                assetSerialNumbers[a.AssetId] = asset.SerialNumber ?? "—";
             }
         }
 
@@ -169,9 +179,13 @@ public class PersonnelController : Controller
             AssetAssignments = assetAssignments,
             AssetNames = assetNames,
             AssetTypes = assetTypes,
+            AssetBrandModels = assetBrandModels,
+            AssetSerialNumbers = assetSerialNumbers,
             DepartmentName = _departmentService.GetById(personnel.DepartmentId)?.Name,
             RoleName = personnel.RoleId.HasValue ? _roleService.GetById(personnel.RoleId.Value)?.Name : null,
-            ManagerName = personnel.ManagerId.HasValue ? _personnelService.GetById(personnel.ManagerId.Value) is { } m ? $"{m.FirstName} {m.LastName}" : null : null
+            ManagerName = personnel.ManagerId.HasValue ? _personnelService.GetById(personnel.ManagerId.Value) is { } m ? $"{m.FirstName} {m.LastName}" : null : null,
+            TeamName = personnel.TeamId.HasValue ? _teamService.GetById(personnel.TeamId.Value)?.Name : null,
+            Reminders = _reminderService.GetByPersonnelId(id)
         };
         var allSystems = _systemService.GetAll().ToList();
         vm.AllSystems = allSystems;
@@ -233,6 +247,7 @@ public class PersonnelController : Controller
                 managersForEditList.Add(currentManager);
         }
         ViewBag.ManagersForEdit = managersForEditList;
+        ViewBag.TeamsForEdit = _teamService.GetByDepartmentId(personnel.DepartmentId);
         ViewBag.CurrentManagerLevel = personnel.ManagerId.HasValue ? _managerService.GetManagerLevelByPersonnelId(personnel.ManagerId.Value) : (short?)null;
         ViewBag.IsManager = _managerService.IsPersonManagerActive(id);
         ViewBag.Departments = _departmentService.GetAll();
@@ -269,7 +284,9 @@ public class PersonnelController : Controller
         personnel.Email = input.Email.Trim();
         personnel.PhoneNumber = PhoneFormatHelper.NormalizeForSave(input.PhoneNumber);
         personnel.DepartmentId = input.DepartmentId;
+        personnel.TeamId = input.TeamId;
         personnel.Position = string.IsNullOrWhiteSpace(input.Position) ? null : input.Position.Trim();
+        personnel.SeniorityLevel = string.IsNullOrWhiteSpace(input.SeniorityLevel) ? null : input.SeniorityLevel.Trim();
         personnel.ManagerId = input.ManagerId;
         personnel.StartDate = input.StartDate;
         personnel.EndDate = input.EndDate;
@@ -330,6 +347,23 @@ public class PersonnelController : Controller
             assignmentId.ToString(),
             $"Zimmet notu: {asset?.Name ?? "?"} — {personnel.FirstName} {personnel.LastName}");
         TempData["ZimmetNoteSuccess"] = "Zimmet notu eklendi.";
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    /// <summary>POST /Personnel/AddReminder — Personel için hatırlatma ekler (tarih + açıklama; ileride mail ile uyarı).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddReminder(int id, DateTime ReminderDate, string Description)
+    {
+        var personnel = _personnelService.GetById(id);
+        if (personnel == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(Description))
+        {
+            TempData["NoteError"] = "Açıklama boş olamaz.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        _reminderService.Create(id, ReminderDate, Description.Trim(), _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName);
+        TempData["NoteSuccess"] = "Hatırlatma eklendi.";
         return RedirectToAction(nameof(Detail), new { id });
     }
 

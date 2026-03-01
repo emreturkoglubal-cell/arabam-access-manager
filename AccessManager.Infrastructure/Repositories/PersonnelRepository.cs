@@ -19,7 +19,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel ORDER BY status, id";
         return conn.Query<Personnel>(sql).ToList();
     }
@@ -30,7 +30,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel WHERE status = 0 ORDER BY id";
         return conn.Query<Personnel>(sql).ToList();
     }
@@ -70,7 +70,7 @@ public class PersonnelRepository : IPersonnelRepository
         var totalCount = Convert.ToInt32(conn.ExecuteScalar(countSql, pars));
         var dataSql = $@"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             {baseSql} ORDER BY status, id LIMIT @PageSize OFFSET @Offset";
         var items = conn.Query<Personnel>(dataSql, pars).ToList();
         return (items, totalCount);
@@ -82,7 +82,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel WHERE id = @Id";
         return conn.QuerySingleOrDefault<Personnel>(sql, new { Id = id });
     }
@@ -95,7 +95,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel WHERE id = ANY(@Ids)";
         return conn.Query<Personnel>(sql, new { Ids = ids.Distinct().ToList() }).ToList();
     }
@@ -106,7 +106,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel WHERE manager_id = @ManagerId ORDER BY id";
         return conn.Query<Personnel>(sql, new { ManagerId = managerId }).ToList();
     }
@@ -117,7 +117,7 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
             department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
-            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
             FROM personnel WHERE department_id = @DepartmentId ORDER BY id";
         return conn.Query<Personnel>(sql, new { DepartmentId = departmentId }).ToList();
     }
@@ -144,12 +144,12 @@ public class PersonnelRepository : IPersonnelRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO personnel (first_name, last_name, email, phone, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment)
-            VALUES (@FirstName, @LastName, @Email, @PhoneNumber, @DepartmentId, @Position, @ManagerId, @StartDate, @EndDate, @Status, @RoleId, @Location, @ImageUrl, @Rating, @ManagerComment) RETURNING id";
+        const string sql = @"INSERT INTO personnel (first_name, last_name, email, phone, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment, seniority_level, team_id)
+            VALUES (@FirstName, @LastName, @Email, @PhoneNumber, @DepartmentId, @Position, @ManagerId, @StartDate, @EndDate, @Status, @RoleId, @Location, @ImageUrl, @Rating, @ManagerComment, @SeniorityLevel, @TeamId) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new {
             personnel.FirstName, personnel.LastName, personnel.Email, personnel.PhoneNumber, personnel.DepartmentId, personnel.Position,
             personnel.ManagerId, personnel.StartDate, personnel.EndDate, Status = (short)personnel.Status, personnel.RoleId,
-            personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment
+            personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment, personnel.SeniorityLevel, personnel.TeamId
         });
     }
 
@@ -159,12 +159,12 @@ public class PersonnelRepository : IPersonnelRepository
         conn.Open();
         const string sql = @"UPDATE personnel SET first_name=@FirstName, last_name=@LastName, email=@Email, phone=@PhoneNumber,
             department_id=@DepartmentId, position=@Position, manager_id=@ManagerId, start_date=@StartDate, end_date=@EndDate,
-            status=@Status, role_id=@RoleId, location=@Location, image_url=@ImageUrl, rating=@Rating, manager_comment=@ManagerComment, updated_at=now()
+            status=@Status, role_id=@RoleId, location=@Location, image_url=@ImageUrl, rating=@Rating, manager_comment=@ManagerComment, seniority_level=@SeniorityLevel, team_id=@TeamId, updated_at=now()
             WHERE id=@Id";
         conn.Execute(sql, new {
             personnel.Id, personnel.FirstName, personnel.LastName, personnel.Email, personnel.PhoneNumber, personnel.DepartmentId, personnel.Position,
             personnel.ManagerId, personnel.StartDate, personnel.EndDate, Status = (short)personnel.Status, personnel.RoleId,
-            personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment
+            personnel.Location, personnel.ImageUrl, personnel.Rating, personnel.ManagerComment, personnel.SeniorityLevel, personnel.TeamId
         });
     }
 

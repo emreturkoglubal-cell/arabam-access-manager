@@ -76,7 +76,7 @@ public class ZimmetPdfService
                     {
                         c.Item().Row(r =>
                         {
-                            r.RelativeItem().Text("Zimmette (kişi):");
+                            r.RelativeItem().Text("Teslim alan:");
                             r.RelativeItem(2).Text(zimmetteKisi);
                         });
                         c.Item().Row(r =>
@@ -86,7 +86,7 @@ public class ZimmetPdfService
                         });
                         c.Item().Row(r =>
                         {
-                            r.RelativeItem().Text("Zimmetleyen:");
+                            r.RelativeItem().Text("Teslim eden:");
                             r.RelativeItem(2).Text(assignedBy);
                         });
                         c.Item().Row(r =>
@@ -100,14 +100,14 @@ public class ZimmetPdfService
                     {
                         row.RelativeItem().Column(col =>
                         {
-                            col.Item().Text("Yönetici").Bold().FontSize(11);
+                            col.Item().Text("Teslim eden (Yönetici)").Bold().FontSize(11);
                             col.Item().Text(managerName ?? "—").FontSize(10);
                             col.Item().PaddingTop(8).LineHorizontal(1).LineColor(Colors.Grey.Medium);
                             col.Item().PaddingTop(4).Text("İmza").FontSize(8).Italic();
                         });
                         row.RelativeItem().Column(col =>
                         {
-                            col.Item().Text("Zimmete alan kişi").Bold().FontSize(11);
+                            col.Item().Text("Teslim alan").Bold().FontSize(11);
                             col.Item().Text(zimmetteKisi).FontSize(10);
                             col.Item().PaddingTop(8).LineHorizontal(1).LineColor(Colors.Grey.Medium);
                             col.Item().PaddingTop(4).Text("İmza").FontSize(8).Italic();

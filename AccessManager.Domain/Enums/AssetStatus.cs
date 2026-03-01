@@ -12,5 +12,9 @@ public enum AssetStatus
     /// <summary>Bakımda / onarımda.</summary>
     InRepair,
     /// <summary>Hurdaya çıkarıldı; artık kullanılmıyor.</summary>
-    Retired
+    Retired,
+    /// <summary>Satılacak.</summary>
+    ForSale,
+    /// <summary>Test ortamında.</summary>
+    Test
 }

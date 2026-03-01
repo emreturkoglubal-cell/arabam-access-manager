@@ -18,7 +18,7 @@ public class DepartmentRepository : IDepartmentRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, name AS Name, code AS Code, description AS Description
+        const string sql = @"SELECT id AS Id, name AS Name, code AS Code, description AS Description, parent_id AS ParentId, top_manager_personnel_id AS TopManagerPersonnelId
             FROM departments ORDER BY name";
         return conn.Query<Department>(sql).ToList();
     }
@@ -27,7 +27,7 @@ public class DepartmentRepository : IDepartmentRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"SELECT id AS Id, name AS Name, code AS Code, description AS Description
+        const string sql = @"SELECT id AS Id, name AS Name, code AS Code, description AS Description, parent_id AS ParentId, top_manager_personnel_id AS TopManagerPersonnelId
             FROM departments WHERE id = @Id";
         return conn.QuerySingleOrDefault<Department>(sql, new { Id = id });
     }
@@ -36,15 +36,15 @@ public class DepartmentRepository : IDepartmentRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO departments (name, code, description) VALUES (@Name, @Code, @Description) RETURNING id";
-        return conn.ExecuteScalar<int>(sql, new { department.Name, department.Code, department.Description });
+        const string sql = @"INSERT INTO departments (name, code, description, parent_id, top_manager_personnel_id) VALUES (@Name, @Code, @Description, @ParentId, @TopManagerPersonnelId) RETURNING id";
+        return conn.ExecuteScalar<int>(sql, new { department.Name, department.Code, department.Description, department.ParentId, department.TopManagerPersonnelId });
     }
 
     public void Update(Department department)
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"UPDATE departments SET name = @Name, code = @Code, description = @Description WHERE id = @Id";
-        conn.Execute(sql, new { department.Id, department.Name, department.Code, department.Description });
+        const string sql = @"UPDATE departments SET name = @Name, code = @Code, description = @Description, parent_id = @ParentId, top_manager_personnel_id = @TopManagerPersonnelId WHERE id = @Id";
+        conn.Execute(sql, new { department.Id, department.Name, department.Code, department.Description, department.ParentId, department.TopManagerPersonnelId });
     }
 }

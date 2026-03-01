@@ -7,10 +7,12 @@ namespace AccessManager.Infrastructure.Services;
 public class DepartmentService : IDepartmentService
 {
     private readonly IDepartmentRepository _repo;
+    private readonly IDepartmentManagerRepository _managerRepo;
 
-    public DepartmentService(IDepartmentRepository repo)
+    public DepartmentService(IDepartmentRepository repo, IDepartmentManagerRepository managerRepo)
     {
         _repo = repo;
+        _managerRepo = managerRepo;
     }
 
     public IReadOnlyList<Department> GetAll() => _repo.GetAll();
@@ -34,4 +36,8 @@ public class DepartmentService : IDepartmentService
         ArgumentNullException.ThrowIfNull(department);
         _repo.Update(department);
     }
+
+    public IReadOnlyList<DepartmentManager> GetDepartmentManagers(int departmentId) => _managerRepo.GetByDepartmentId(departmentId);
+
+    public void SetDepartmentManagers(int departmentId, IReadOnlyList<(int PersonnelId, short Level)> managers) => _managerRepo.SetForDepartment(departmentId, managers ?? Array.Empty<(int, short)>());
 }

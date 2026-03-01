@@ -15,4 +15,8 @@ public interface IDepartmentService
     Department Add(string name, string? code, string? description);
     /// <summary>Mevcut departman bilgilerini günceller.</summary>
     void Update(Department department);
+    /// <summary>Departman 1./2./3. yöneticileri.</summary>
+    IReadOnlyList<DepartmentManager> GetDepartmentManagers(int departmentId);
+    /// <summary>Departman yöneticilerini kaydeder (mevcut listeyi değiştirir).</summary>
+    void SetDepartmentManagers(int departmentId, IReadOnlyList<(int PersonnelId, short Level)> managers);
 }

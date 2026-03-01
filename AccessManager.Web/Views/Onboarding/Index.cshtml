@@ -3,8 +3,10 @@
 @{
     ViewData["Title"] = "İşe Giriş";
     var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var teams = ViewBag.Teams as IReadOnlyList<Team> ?? new List<Team>();
     var roles = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
     var managers = ViewBag.Managers as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var recentHires = ViewBag.RecentHires as IReadOnlyList<Personnel> ?? new List<Personnel>();
 }
 
 <p class="text-muted">Yeni personel ekleyin.</p>
@@ -27,7 +29,27 @@
             </div>
             <div class="col-md-4">
                 <label asp-for="DepartmentId" class="form-label">Departman</label>
-                <select asp-for="DepartmentId" class="form-select" asp-items="@(new SelectList(departments, "Id", "Name"))"></select>
+                <select asp-for="DepartmentId" id="DepartmentId" class="form-select" asp-items="@(new SelectList(departments, "Id", "Name"))"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TeamId" class="form-label">Ekip</label>
+                <select asp-for="TeamId" id="TeamId" class="form-select">
+                    <option value="">— Seçiniz —</option>
+                    @foreach (var t in teams)
+                    {
+                        <option value="@t.Id" data-department-id="@t.DepartmentId">@t.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="SeniorityLevel" class="form-label">Seviye</label>
+                <select asp-for="SeniorityLevel" class="form-select">
+                    <option value="">— Seçiniz —</option>
+                    <option value="Jr">Jr</option>
+                    <option value="Mid">Mid</option>
+                    <option value="Sr">Sr</option>
+                    <option value="Lead">Lead</option>
+                </select>
             </div>
             <div class="col-md-4">
                 <label asp-for="RoleId" class="form-label">Rol (varsayılan yetkiler atanır)</label>
@@ -50,7 +72,7 @@
                 </select>
             </div>
             <div class="col-md-6">
-                <label asp-for="Position" class="form-label">Pozisyon</label>
+                <label asp-for="Position" class="form-label">Ünvan</label>
                 <input asp-for="Position" class="form-control" />
             </div>
             <div class="col-md-6">
@@ -71,6 +93,47 @@
     </div>
 </div>
 
+@if (recentHires.Any())
+{
+<div class="am-card mt-4">
+    <div class="am-card-header">Son 1 ay içinde işe girenler</div>
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table am-table-rows-clickable mb-0">
+                <thead>
+                    <tr>
+                        <th class="am-table-th-normal">Ad Soyad</th>
+                        <th class="am-table-th-normal">E-posta</th>
+                        <th class="am-table-th-normal">İşe giriş</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in recentHires)
+                    {
+                        <tr role="button" tabindex="0" data-href="@Url.Action("Detail", "Personnel", new { id = p.Id })" onclick="window.location.href=this.dataset.href">
+                            <td>@p.FirstName @p.LastName</td>
+                            <td>@p.Email</td>
+                            <td>@p.StartDate.ToString("dd.MM.yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('DepartmentId').addEventListener('change', function() {
+            var deptId = this.value;
+            var teamSelect = document.getElementById('TeamId');
+            Array.from(teamSelect.options).forEach(function(opt) {
+                if (opt.value === '') { opt.style.display = 'block'; return; }
+                opt.style.display = opt.getAttribute('data-department-id') === deptId ? 'block' : 'none';
+            });
+            teamSelect.value = '';
+        });
+    </script>
 }

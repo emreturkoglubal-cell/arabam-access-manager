@@ -130,6 +130,8 @@ public static class StatusLabels
             AssetStatus.Assigned => "Zimmette",
             AssetStatus.InRepair => "Bakımda",
             AssetStatus.Retired => "Hurdaya çıkarıldı",
+            AssetStatus.ForSale => "Satılacak",
+            AssetStatus.Test => "Test",
             _ => status.ToString()
         };
     }

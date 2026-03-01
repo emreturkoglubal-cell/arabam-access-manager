@@ -3,6 +3,7 @@
     ViewData["Title"] = "Departmanlar";
     var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
     var countByDept = ViewBag.PersonnelCountByDepartment as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var topManagerNames = ViewBag.TopManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 
 <div class="am-toolbar mb-3">
@@ -19,17 +20,18 @@
                     <tr>
                         <th class="am-table-th-normal">Kod</th>
                         <th class="am-table-th-normal">Departman Adı</th>
-                        <th class="am-table-th-normal">Açıklama Metni</th>
+                        <th class="am-table-th-normal">Departman Yöneticisi (GMY)</th>
                         <th class="am-table-th-normal">Personel sayısı</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var d in departments)
                     {
+                        var gmyName = d.TopManagerPersonnelId.HasValue && topManagerNames.TryGetValue(d.TopManagerPersonnelId.Value, out var gmy) ? gmy : "—";
                         <tr role="button" tabindex="0" class="am-table-row-clickable" data-href="@Url.Action("Detail", "Departments", new { id = d.Id })" onclick="window.location.href=this.dataset.href">
                             <td>@(d.Code ?? "—")</td>
                             <td>@d.Name</td>
-                            <td>@(d.Description ?? "—")</td>
+                            <td>@gmyName</td>
                             <td>@(countByDept.TryGetValue(d.Id, out var c) ? c : 0)</td>
                         </tr>
                     }

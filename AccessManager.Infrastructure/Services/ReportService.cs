@@ -150,12 +150,16 @@ public class ReportService : IReportService
         if (from.HasValue) list = list.Where(p => p.EndDate >= from);
         if (to.HasValue) list = list.Where(p => p.EndDate <= to);
         var departments = _departmentRepo.GetAll().ToDictionary(d => d.Id);
+        var activeAccessPersonnelIds = _accessRepo.GetActive().Select(a => a.PersonnelId).ToHashSet();
         return list.Select(p => new OffboardedReportRow
         {
             PersonnelId = p.Id,
             FullName = $"{p.FirstName} {p.LastName}".Trim(),
+            Email = p.Email,
+            StartDate = p.StartDate,
             EndDate = p.EndDate,
-            Department = departments.GetValueOrDefault(p.DepartmentId)?.Name
+            Department = departments.GetValueOrDefault(p.DepartmentId)?.Name,
+            HasOpenAccess = activeAccessPersonnelIds.Contains(p.Id)
         }).ToList();
     }
 
@@ -219,12 +223,16 @@ public class ReportService : IReportService
         var offboardedList = allPersonnel.Where(p => p.EndDate.HasValue).AsEnumerable();
         if (from.HasValue) offboardedList = offboardedList.Where(p => p.EndDate >= from);
         if (to.HasValue) offboardedList = offboardedList.Where(p => p.EndDate <= to);
+        var activeAccessPersonnelIds = activeAccesses.Where(a => a.IsActive).Select(a => a.PersonnelId).ToHashSet();
         var offboardedReport = offboardedList.Select(p => new OffboardedReportRow
         {
             PersonnelId = p.Id,
             FullName = $"{p.FirstName} {p.LastName}".Trim(),
+            Email = p.Email,
+            StartDate = p.StartDate,
             EndDate = p.EndDate,
-            Department = departments.GetValueOrDefault(p.DepartmentId)?.Name
+            Department = departments.GetValueOrDefault(p.DepartmentId)?.Name,
+            HasOpenAccess = activeAccessPersonnelIds.Contains(p.Id)
         }).ToList();
 
         var personnelDict = allPersonnel.ToDictionary(p => p.Id);

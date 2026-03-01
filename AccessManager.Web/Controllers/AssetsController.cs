@@ -40,26 +40,32 @@ public class AssetsController : Controller
 
         var assignment = _assetService.GetActiveAssignmentForAsset(id);
         string? personName = null;
+        string? managerName = null;
         if (assignment != null)
         {
             var personnel = _personnelService.GetById(assignment.PersonnelId);
             personName = personnel != null ? $"{personnel.FirstName} {personnel.LastName}" : "—";
+            if (personnel?.ManagerId != null)
+            {
+                var manager = _personnelService.GetById(personnel.ManagerId.Value);
+                managerName = manager != null ? $"{manager.FirstName} {manager.LastName}" : null;
+            }
         }
-
         ViewBag.Asset = asset;
         ViewBag.Assignment = assignment;
         ViewBag.PersonName = personName;
+        ViewBag.ManagerName = managerName;
         return View();
     }
 
     /// <summary>GET /Assets/Index — Donanım listesi; durum (AssetStatus) ve tür (AssetType) ile filtrelenebilir, sayfalı.</summary>
     [HttpGet]
-    public IActionResult Index(AssetStatus? status, AssetType? type, int page = 1, int pageSize = 10)
+    public IActionResult Index(AssetStatus? status, AssetType? type, string? search, int page = 1, int pageSize = 10)
     {
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-        var paged = _assetService.GetPaged(status, type, page, pageSize);
+        var paged = _assetService.GetPaged(status, type, search, page, pageSize);
         var assets = paged.Items.ToList();
 
         var assignedAssetIds = assets.Where(x => x.Status == AssetStatus.Assigned).Select(a => a.Id).ToList();
@@ -70,6 +76,8 @@ public class AssetsController : Controller
         var personnelList = personnelIds.Count > 0 ? _personnelService.GetByIds(personnelIds) : new List<Personnel>();
         var personNames = personnelList.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
 
+        var countByStatus = _assetService.GetCountByStatus();
+        var depreciationEndingSoon = _assetService.GetCountDepreciationEndingSoon(30);
         var model = new AssetsIndexViewModel
         {
             Assets = assets,
@@ -77,9 +85,12 @@ public class AssetsController : Controller
             PersonNames = personNames,
             FilterStatus = status,
             FilterType = type,
+            SearchTerm = search,
             PageNumber = paged.PageNumber,
             PageSize = paged.PageSize,
-            TotalCount = paged.TotalCount
+            TotalCount = paged.TotalCount,
+            CountByStatus = countByStatus,
+            DepreciationEndingSoonCount = depreciationEndingSoon
         };
         return View(model);
     }
@@ -102,7 +113,7 @@ public class AssetsController : Controller
             ModelState.AddModelError(nameof(input.Name), "Ad gerekli.");
             return View(input);
         }
-        var depreciationEnd = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
+        var depreciationEnd = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue && input.DepreciationYears.HasValue ? input.PurchaseDate.Value.AddYears(input.DepreciationYears.Value) : input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
         var asset = new Asset
         {
             AssetType = input.AssetType,
@@ -114,7 +125,13 @@ public class AssetsController : Controller
             PurchaseDate = input.PurchaseDate,
             PurchasePrice = input.PurchasePrice,
             PurchaseCurrency = string.IsNullOrWhiteSpace(input.PurchaseCurrency) ? "TRY" : input.PurchaseCurrency.Trim().ToUpperInvariant(),
-            DepreciationEndDate = depreciationEnd
+            DepreciationEndDate = depreciationEnd,
+            DepreciationYears = input.DepreciationYears,
+            SpecRamGb = input.SpecRamGb,
+            SpecStorageGb = input.SpecStorageGb,
+            SpecCpu = string.IsNullOrWhiteSpace(input.SpecCpu) ? null : input.SpecCpu.Trim(),
+            SpecScreenInches = input.SpecScreenInches,
+            SpecIsPivot = input.SpecIsPivot
         };
         _assetService.Create(asset);
         return RedirectToAction(nameof(Index));
@@ -139,7 +156,13 @@ public class AssetsController : Controller
             PurchaseDate = asset.PurchaseDate,
             PurchasePrice = asset.PurchasePrice,
             PurchaseCurrency = asset.PurchaseCurrency ?? "TRY",
-            DepreciationEndDate = asset.DepreciationEndDate
+            DepreciationEndDate = asset.DepreciationEndDate,
+            DepreciationYears = asset.DepreciationYears,
+            SpecRamGb = asset.SpecRamGb,
+            SpecStorageGb = asset.SpecStorageGb,
+            SpecCpu = asset.SpecCpu,
+            SpecScreenInches = asset.SpecScreenInches,
+            SpecIsPivot = asset.SpecIsPivot ?? false
         });
     }
 
@@ -166,7 +189,13 @@ public class AssetsController : Controller
         asset.PurchaseDate = input.PurchaseDate;
         asset.PurchasePrice = input.PurchasePrice;
         asset.PurchaseCurrency = string.IsNullOrWhiteSpace(input.PurchaseCurrency) ? "TRY" : input.PurchaseCurrency.Trim().ToUpperInvariant();
-        asset.DepreciationEndDate = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
+        asset.DepreciationEndDate = input.DepreciationEndDate ?? (input.PurchaseDate.HasValue && input.DepreciationYears.HasValue ? input.PurchaseDate.Value.AddYears(input.DepreciationYears.Value) : input.PurchaseDate.HasValue ? input.PurchaseDate.Value.AddYears(5) : (DateTime?)null);
+        asset.DepreciationYears = input.DepreciationYears;
+        asset.SpecRamGb = input.SpecRamGb;
+        asset.SpecStorageGb = input.SpecStorageGb;
+        asset.SpecCpu = string.IsNullOrWhiteSpace(input.SpecCpu) ? null : input.SpecCpu.Trim();
+        asset.SpecScreenInches = input.SpecScreenInches;
+        asset.SpecIsPivot = input.SpecIsPivot;
         _assetService.Update(asset);
         TempData["AssetEditSuccess"] = "Donanım bilgileri güncellendi.";
         return RedirectToAction(nameof(Detail), new { id });
@@ -273,7 +302,7 @@ public class AssetsController : Controller
         var assignment = _assetService.GetAssignmentById(input.AssignmentId);
         try
         {
-            _assetService.Return(input.AssignmentId, input.ReturnCondition, input.Notes);
+            _assetService.Return(input.AssignmentId, input.ReturnCondition, input.Notes, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName);
             TempData["AssetReturnSuccess"] = "Zimmet iadesi alındı.";
             return RedirectToAction(nameof(Detail), new { id = assignment?.AssetId ?? 0 });
         }

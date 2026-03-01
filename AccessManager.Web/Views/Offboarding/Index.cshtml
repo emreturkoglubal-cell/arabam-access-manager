@@ -1,8 +1,10 @@
 @model AccessManager.UI.Controllers.OffboardingInputModel
 @using AccessManager.Domain.Entities
+@using AccessManager.Application.Dtos
 @{
     ViewData["Title"] = "İşten Çıkış";
     var activePersonnel = ViewBag.ActivePersonnel as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var recentOffboarded = ViewBag.RecentOffboarded as IReadOnlyList<OffboardedReportRow> ?? new List<OffboardedReportRow>();
 }
 
 <p class="text-muted">Personel için çıkış tarihi girerek tüm yetkileri kapatın.</p>
@@ -32,3 +34,38 @@
         </form>
     </div>
 </div>
+
+@if (recentOffboarded.Any())
+{
+<div class="am-card mt-4">
+    <div class="am-card-header">Son 1 ay içinde işten çıkanlar</div>
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="am-table-th-normal">Ad Soyad</th>
+                        <th class="am-table-th-normal">İşe giriş</th>
+                        <th class="am-table-th-normal">İşten çıkış</th>
+                        <th class="am-table-th-normal">E-posta</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in recentOffboarded)
+                    {
+                        var rowClass = r.HasOpenAccess ? "table-danger" : "table-success";
+                        <tr class="@rowClass">
+                            <td><a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId">@(r.FullName ?? "—")</a></td>
+                            <td>@(r.StartDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                            <td>@(r.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                            <td>@(r.Email ?? "—")</td>
+                            <td><a asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId" class="btn btn-am-outline btn-sm" target="_blank">Zimmet / PDF</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+}

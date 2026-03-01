@@ -20,4 +20,16 @@ public class AssetEditInputModel
     public string PurchaseCurrency { get; set; } = "TRY";
     [DataType(DataType.Date)]
     public DateTime? DepreciationEndDate { get; set; }
+    [Display(Name = "Amortisman süresi (yıl)")]
+    public short? DepreciationYears { get; set; }
+    [Display(Name = "RAM (GB)")]
+    public int? SpecRamGb { get; set; }
+    [Display(Name = "Depolama (GB)")]
+    public int? SpecStorageGb { get; set; }
+    [Display(Name = "İşlemci")]
+    public string? SpecCpu { get; set; }
+    [Display(Name = "Ekran (inç)")]
+    public decimal? SpecScreenInches { get; set; }
+    [Display(Name = "Pivot (monitör)")]
+    public bool SpecIsPivot { get; set; }
 }

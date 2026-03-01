@@ -11,7 +11,10 @@ public class AssetsIndexViewModel
     public Dictionary<int, string> PersonNames { get; set; } = new();
     public AssetStatus? FilterStatus { get; set; }
     public AssetType? FilterType { get; set; }
+    public string? SearchTerm { get; set; }
     public int PageNumber { get; set; } = 1;
+    public IReadOnlyDictionary<AssetStatus, int>? CountByStatus { get; set; }
+    public int DepreciationEndingSoonCount { get; set; }
     public int PageSize { get; set; } = 10;
     public int TotalCount { get; set; }
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);

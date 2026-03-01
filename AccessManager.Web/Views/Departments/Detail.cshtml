@@ -12,6 +12,9 @@
     var roleNames = ViewBag.RoleNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var departmentNames = ViewBag.DepartmentNames as Dictionary<int, string> ?? new Dictionary<int, string>();
     var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var departmentManagers = ViewBag.DepartmentManagers as IReadOnlyList<DepartmentManager> ?? new List<DepartmentManager>();
+    var departmentManagerPersonnel = ViewBag.DepartmentManagerPersonnel as Dictionary<int, Personnel> ?? new Dictionary<int, Personnel>();
+    var allPersonnelForGmy = ViewBag.AllPersonnelForGmy as IReadOnlyList<Personnel> ?? new List<Personnel>();
 }
 @if (department == null)
 {
@@ -61,6 +64,47 @@ else
         </dl>
     </div>
 </div>
+
+@if (departmentManagers.Any())
+{
+<div class="am-card mb-3">
+    <div class="am-card-header">1. / 2. / 3. Yöneticiler</div>
+    <div class="am-card-body p-0">
+        <div class="am-table-wrap">
+            <table class="am-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="am-table-th-normal">Seviye</th>
+                        <th class="am-table-th-normal">Ad Soyad</th>
+                        <th class="am-table-th-normal">Ünvan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dm in departmentManagers.OrderBy(x => x.ManagerLevel).ThenBy(x => x.DisplayOrder))
+                    {
+                        var p = departmentManagerPersonnel.TryGetValue(dm.PersonnelId, out var per) ? per : null;
+                        var levelLabel = dm.ManagerLevel == 1 ? "1. Yönetici" : dm.ManagerLevel == 2 ? "2. Yönetici" : "3. Yönetici";
+                        <tr>
+                            <td>@levelLabel</td>
+                            <td>
+                                @if (p != null)
+                                {
+                                    <a class="am-link" asp-controller="Personnel" asp-action="Detail" asp-route-id="@p.Id">@p.FirstName @p.LastName</a>
+                                }
+                                else
+                                {
+                                    @:—
+                                }
+                            </td>
+                            <td>@(p?.Position ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+}
 
 <div class="am-card mb-3">
     <div class="am-card-header">Bu departmandaki personeller (aktif)</div>
@@ -153,6 +197,16 @@ else
                     <div class="mb-3">
                         <label for="editDescription" class="form-label">Açıklama</label>
                         <textarea name="Description" id="editDescription" class="form-control" rows="3" maxlength="2000">@department.Description</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTopManagerPersonnelId" class="form-label">Departman Yöneticisi (GMY)</label>
+                        <select name="TopManagerPersonnelId" id="editTopManagerPersonnelId" class="form-select">
+                            <option value="">— Seçiniz —</option>
+                            @foreach (var p in allPersonnelForGmy)
+                            {
+                                <option value="@p.Id" selected="@(department.TopManagerPersonnelId == p.Id)">@p.FirstName @p.LastName</option>
+                            }
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">

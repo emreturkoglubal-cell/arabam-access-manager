@@ -102,12 +102,29 @@ public static class ServiceCollectionExtensions
                 ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required for code chunks (pgvector).");
             return new CodeChunkRepository(cs);
         });
+        services.AddScoped<ITeamRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new TeamRepository(cs);
+        });
+        services.AddScoped<IDepartmentManagerRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new DepartmentManagerRepository(cs);
+        });
+        services.AddScoped<IPersonnelReminderRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new PersonnelReminderRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPersonnelService, PersonnelService>();
         services.AddScoped<IManagerService, ManagerService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
+        services.AddScoped<ITeamService, TeamService>();
+        services.AddScoped<IPersonnelReminderService, PersonnelReminderService>();
         services.AddScoped<ISystemService, SystemService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IPersonnelAccessService, PersonnelAccessService>();

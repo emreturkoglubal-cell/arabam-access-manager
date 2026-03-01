@@ -10,6 +10,8 @@ public class AssetAssignment
     public int? AssignedByUserId { get; set; }
     public string? AssignedByUserName { get; set; }
     public DateTime? ReturnedAt { get; set; }
+    public int? ReturnedByUserId { get; set; }
+    public string? ReturnedByUserName { get; set; }
     public string? ReturnCondition { get; set; }
     public string? Notes { get; set; }
 

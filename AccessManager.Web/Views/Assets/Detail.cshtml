@@ -7,6 +7,7 @@
     var asset = ViewBag.Asset as Asset;
     var assignment = ViewBag.Assignment as AssetAssignment;
     var personName = ViewBag.PersonName as string ?? "—";
+    var managerName = ViewBag.ManagerName as string ?? "—";
 }
 @if (asset == null)
 {
@@ -91,8 +92,47 @@ else
             <dd class="col-sm-8">@(asset.PurchaseDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
             <dt class="col-sm-4">Satın alma ücreti</dt>
             <dd class="col-sm-8">@(asset.PurchasePrice.HasValue ? asset.PurchasePrice.Value.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) + " " + CurrencyHelper.GetSymbol(asset.PurchaseCurrency) : "—")</dd>
-            <dt class="col-sm-4">Amortisman tarihi</dt>
+            <dt class="col-sm-4">Amortisman süresi (yıl)</dt>
+            <dd class="col-sm-8">@(asset.DepreciationYears.HasValue ? asset.DepreciationYears.Value + " yıl" : "—")</dd>
+            <dt class="col-sm-4">Amortisman bitiş tarihi</dt>
             <dd class="col-sm-8">@(asset.DepreciationEndDate?.ToString("dd.MM.yyyy") ?? (asset.PurchaseDate.HasValue ? asset.PurchaseDate.Value.AddYears(5).ToString("dd.MM.yyyy") + " (varsayılan 5 yıl)" : "—"))</dd>
+            @{
+                var depEnd = asset.DepreciationEndDate;
+                var purchaseDate = asset.PurchaseDate;
+                var totalCost = asset.PurchasePrice ?? 0;
+                var years = asset.DepreciationYears ?? (depEnd.HasValue && purchaseDate.HasValue ? (short?)Math.Max(1, (int)((depEnd.Value - purchaseDate.Value).TotalDays / 365.25)) : null);
+                var monthlyCost = (years.HasValue && years.Value > 0 && totalCost > 0) ? totalCost / (years.Value * 12) : (decimal?)null;
+                var remainingMonths = (depEnd.HasValue && depEnd.Value.Date > DateTime.Today) ? (int?)Math.Ceiling((depEnd.Value - DateTime.Today).TotalDays / 30.0) : null;
+                var remainingCost = (monthlyCost.HasValue && remainingMonths.HasValue) ? monthlyCost.Value * remainingMonths.Value : (decimal?)null;
+            }
+            @if (monthlyCost.HasValue)
+            {
+                <dt class="col-sm-4">Aylık maliyet</dt>
+                <dd class="col-sm-8">@monthlyCost.Value.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) @CurrencyHelper.GetSymbol(asset.PurchaseCurrency)</dd>
+                <dt class="col-sm-4">Kalan maliyet</dt>
+                <dd class="col-sm-8">@(remainingCost.HasValue ? remainingCost.Value.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) + " " + CurrencyHelper.GetSymbol(asset.PurchaseCurrency) : "—")</dd>
+            }
+            @if (asset.AssetType == AssetType.Laptop || asset.AssetType == AssetType.Desktop)
+            {
+                if (asset.SpecRamGb.HasValue || asset.SpecStorageGb.HasValue || !string.IsNullOrEmpty(asset.SpecCpu) || asset.SpecScreenInches.HasValue)
+                {
+                    <dt class="col-sm-4">Özellikler</dt>
+                    <dd class="col-sm-8">@(asset.SpecRamGb.HasValue ? "RAM: " + asset.SpecRamGb + " GB " : "")@(asset.SpecStorageGb.HasValue ? "Depolama: " + asset.SpecStorageGb + " GB " : "")@(!string.IsNullOrEmpty(asset.SpecCpu) ? "İşlemci: " + asset.SpecCpu + " " : "")@(asset.SpecScreenInches.HasValue ? "Ekran: " + asset.SpecScreenInches + " inç" : "")</dd>
+                }
+            }
+            @if (asset.AssetType == AssetType.Phone || asset.AssetType == AssetType.Tablet)
+            {
+                if (asset.SpecRamGb.HasValue || asset.SpecStorageGb.HasValue || asset.SpecScreenInches.HasValue)
+                {
+                    <dt class="col-sm-4">Özellikler</dt>
+                    <dd class="col-sm-8">@(asset.SpecScreenInches.HasValue ? "Ekran: " + asset.SpecScreenInches + " inç " : "")@(asset.SpecRamGb.HasValue ? "RAM: " + asset.SpecRamGb + " GB " : "")@(asset.SpecStorageGb.HasValue ? "Hafıza: " + asset.SpecStorageGb + " GB" : "")</dd>
+                }
+            }
+            @if (asset.AssetType == AssetType.Monitor && (asset.SpecIsPivot.HasValue || asset.SpecScreenInches.HasValue))
+            {
+                <dt class="col-sm-4">Özellikler</dt>
+                <dd class="col-sm-8">@(asset.SpecIsPivot == true ? "Pivot: Evet " : asset.SpecIsPivot == false ? "Pivot: Hayır " : "")@(asset.SpecScreenInches.HasValue ? "Ekran: " + asset.SpecScreenInches + " inç" : "")</dd>
+            }
             <dt class="col-sm-4">Not</dt>
             <dd class="col-sm-8">@(asset.Notes ?? "—")</dd>
         </dl>
@@ -109,7 +149,9 @@ else
             <dd class="col-sm-8">@personName</dd>
             <dt class="col-sm-4">Zimmet tarihi</dt>
             <dd class="col-sm-8">@assignment.AssignedAt.ToString("dd.MM.yyyy")</dd>
-            <dt class="col-sm-4">Zimmetleyen</dt>
+            <dt class="col-sm-4">Yönetici</dt>
+            <dd class="col-sm-8">@managerName</dd>
+            <dt class="col-sm-4">Zimmetleyen (Teslim eden)</dt>
             <dd class="col-sm-8">@(assignment.AssignedByUserName ?? "—")</dd>
             <dt class="col-sm-4">Not</dt>
             <dd class="col-sm-8">@(assignment.Notes ?? "—")</dd>

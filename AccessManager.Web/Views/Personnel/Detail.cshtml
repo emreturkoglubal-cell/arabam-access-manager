@@ -5,6 +5,7 @@
     ViewData["Title"] = "Personel Detay";
     var managersForEdit = ViewBag.ManagersForEdit as IReadOnlyList<Personnel> ?? new List<Personnel>();
     var departmentsForEdit = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var teamsForEdit = ViewBag.TeamsForEdit as IReadOnlyList<Team> ?? new List<Team>();
     var rolesForEdit = ViewBag.Roles as IReadOnlyList<Role> ?? new List<Role>();
     var isManager = ViewBag.IsManager as bool? ?? false;
 }
@@ -91,10 +92,10 @@ else
                     <dd class="col-sm-8">@(ViewBag.FormattedPhone ?? "—")</dd>
                     <dt class="col-sm-4">Departman</dt>
                     <dd class="col-sm-8">@Model.DepartmentName</dd>
-                    <dt class="col-sm-4">Pozisyon</dt>
-                    <dd class="col-sm-8">@(Model.Personnel.Position ?? "-")</dd>
-                    <dt class="col-sm-4">Rol</dt>
-                    <dd class="col-sm-8">@(Model.RoleName ?? "-")</dd>
+                    <dt class="col-sm-4">Alt ekip</dt>
+                    <dd class="col-sm-8">@(Model.TeamName ?? "—")</dd>
+                    <dt class="col-sm-4">Ünvan</dt>
+                    <dd class="col-sm-8">@(Model.Personnel.Position ?? "—")</dd>
                     <dt class="col-sm-4">Yönetici İsmi</dt>
                     <dd class="col-sm-8">
                         @if (Model.Personnel.ManagerId.HasValue && !string.IsNullOrEmpty(Model.ManagerName))
@@ -198,18 +199,29 @@ else
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
                     </div>
                 }
-                @if (Model.AssetAssignments.Any())
+                @{
+                    var activeZimmet = Model.AssetAssignments.Where(z => !z.ReturnedAt.HasValue).ToList();
+                    var pastZimmet = Model.AssetAssignments.Where(z => z.ReturnedAt.HasValue).ToList();
+                }
+                @if (activeZimmet.Any())
                 {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var z in Model.AssetAssignments)
+                    <p class="small fw-semibold mb-1">Aktif zimmetler</p>
+                    <ul class="list-group list-group-flush mb-3">
+                        @foreach (var z in activeZimmet)
                         {
                             var assetName = Model.AssetNames.TryGetValue(z.AssetId, out var an) ? an : "—";
                             var assetType = Model.AssetTypes.TryGetValue(z.AssetId, out var at) ? StatusLabels.AssetTypeLabel(at) : "—";
+                            var brandModel = Model.AssetBrandModels.TryGetValue(z.AssetId, out var bm) ? bm : "—";
+                            var serialNo = Model.AssetSerialNumbers.TryGetValue(z.AssetId, out var sn) ? sn : "—";
                             var zNotes = Model.AssignmentNotes.GetValueOrDefault(z.Id, new List<AssetAssignmentNote>());
                             <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>@assetName <small class="text-muted">(@assetType)</small></span>
-                                    <span class="small text-muted">@z.AssignedAt.ToString("dd.MM.yyyy")</span>
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                    <div>
+                                        <strong>@assetName</strong> <span class="text-muted">(@assetType)</span>
+                                        <div class="small mt-1">Tür: @assetType · Marka/Model: @brandModel · Seri no: @serialNo · Zimmet tarihi: @z.AssignedAt.ToString("dd.MM.yyyy")</div>
+                                        <div class="small text-muted">Teslim eden: @(z.AssignedByUserName ?? "—") · Teslim alan: @(Model.Personnel?.FirstName) @(Model.Personnel?.LastName)</div>
+                                    </div>
+                                    <a asp-controller="Assets" asp-action="ZimmetPdf" asp-route-assignmentId="@z.Id" class="btn btn-am-outline btn-sm" target="_blank">PDF oluştur</a>
                                 </div>
                                 @if (!string.IsNullOrWhiteSpace(z.Notes))
                                 {
@@ -226,7 +238,7 @@ else
                                             }
                                         </ul>
                                     }
-                                    <form method="post" asp-controller="Personnel" asp-action="AddZimmetNote" asp-route-id="@Model.Personnel.Id" asp-route-assignmentId="@z.Id" class="d-flex gap-2 align-items-end">
+                                    <form method="post" asp-controller="Personnel" asp-action="AddZimmetNote" asp-route-id="@Model.Personnel!.Id" asp-route-assignmentId="@z.Id" class="d-flex gap-2 align-items-end">
                                         @Html.AntiForgeryToken()
                                         <div class="flex-grow-1">
                                             <input type="text" name="Content" class="form-control form-control-sm" placeholder="Not ekle..." maxlength="2000" required />
@@ -238,10 +250,65 @@ else
                         }
                     </ul>
                 }
-                else
+                @if (pastZimmet.Any())
+                {
+                    <p class="small fw-semibold mb-1">Geçmiş zimmetler (iade edilen)</p>
+                    <ul class="list-group list-group-flush">
+                        @foreach (var z in pastZimmet)
+                        {
+                            var assetName = Model.AssetNames.TryGetValue(z.AssetId, out var an) ? an : "—";
+                            var assetType = Model.AssetTypes.TryGetValue(z.AssetId, out var at) ? StatusLabels.AssetTypeLabel(at) : "—";
+                            var brandModel = Model.AssetBrandModels.TryGetValue(z.AssetId, out var bm) ? bm : "—";
+                            var serialNo = Model.AssetSerialNumbers.TryGetValue(z.AssetId, out var sn) ? sn : "—";
+                            <li class="list-group-item bg-light">
+                                <div class="small"><strong>@assetName</strong> (@assetType) · Marka/Model: @brandModel · Seri no: @serialNo</div>
+                                <div class="small text-muted">Zimmet tarihi: @z.AssignedAt.ToString("dd.MM.yyyy") · İade: @(z.ReturnedAt?.ToString("dd.MM.yyyy") ?? "—") · Teslim alan: @(z.ReturnedByUserName ?? "—")</div>
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (!activeZimmet.Any() && !pastZimmet.Any())
                 {
                     <p class="text-muted mb-0">Zimmette donanım yok.</p>
-                    <a asp-controller="Personnel" asp-action="AssignAsset" asp-route-id="@Model.Personnel.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Donanım ekle</a>
+                    <a asp-controller="Personnel" asp-action="AssignAsset" asp-route-id="@Model.Personnel!.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Donanım ekle</a>
+                }
+                @if (activeZimmet.Any())
+                {
+                    <a asp-controller="Personnel" asp-action="AssignAsset" asp-route-id="@Model.Personnel!.Id" class="btn btn-am-outline btn-am-outline-solid btn-sm mt-2">Donanım ekle</a>
+                }
+            </div>
+        </div>
+        <div class="am-card mb-3">
+            <div class="am-card-header">Hatırlatma (Schedule)</div>
+            <div class="am-card-body">
+                <form method="post" asp-controller="Personnel" asp-action="AddReminder" asp-route-id="@Model.Personnel!.Id" class="row g-2 mb-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-auto">
+                        <label for="ReminderDate" class="form-label col-form-label col-auto">Tarih</label>
+                        <input type="date" name="ReminderDate" id="ReminderDate" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="col">
+                        <label for="ReminderDescription" class="form-label col-form-label col-auto">Açıklama</label>
+                        <input type="text" name="Description" id="ReminderDescription" class="form-control form-control-sm" placeholder="Ne zaman uyarmasını istiyorsunuz?" maxlength="500" required />
+                    </div>
+                    <div class="col-auto d-flex align-items-end">
+                        <button type="submit" class="btn btn-am-primary btn-sm">Hatırlatma ekle</button>
+                    </div>
+                </form>
+                @if (Model.Reminders.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var r in Model.Reminders.OrderByDescending(x => x.ReminderDate))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                <span>@r.ReminderDate.ToString("dd.MM.yyyy") — @r.Description @(r.SentAt.HasValue ? " (gönderildi)" : "")</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Henüz hatırlatma yok. Tarih ve açıklama girerek mail ile uyarı planlayabilirsiniz.</p>
                 }
             </div>
         </div>
@@ -318,14 +385,14 @@ else
                                         <td>
                                             @if (isActive)
                                             {
-                                                <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel.Id" asp-route-accessId="@access!.Id" class="d-inline">
+                                                <form method="post" asp-controller="Personnel" asp-action="RevokeAccess" asp-route-id="@Model.Personnel!.Id" asp-route-accessId="@access!.Id" class="d-inline">
                                                     @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--active" style="cursor:pointer;">Aktif</button>
                                                 </form>
                                             }
                                             else
                                             {
-                                                <form method="post" asp-controller="Personnel" asp-action="GrantAccess" asp-route-id="@Model.Personnel.Id" asp-route-systemId="@sys.Id" class="d-inline">
+                                                <form method="post" asp-controller="Personnel" asp-action="GrantAccess" asp-route-id="@Model.Personnel!.Id" asp-route-systemId="@sys!.Id" class="d-inline">
                                                     @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-link p-0 border-0 text-decoration-none am-access-toggle am-access-toggle--passive" style="cursor:pointer;">Pasif</button>
                                                 </form>
@@ -458,8 +525,28 @@ else
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="editPosition" class="form-label">Pozisyon</label>
+                            <label for="editTeamId" class="form-label">Alt ekip</label>
+                            <select name="TeamId" id="editTeamId" class="form-select">
+                                <option value="">— Seçiniz —</option>
+                                @foreach (var t in teamsForEdit)
+                                {
+                                    <option value="@t.Id" selected="@(Model.Personnel.TeamId == t.Id)">@t.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPosition" class="form-label">Ünvan</label>
                             <input type="text" name="Position" id="editPosition" class="form-control" value="@Model.Personnel.Position" maxlength="200" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editSeniorityLevel" class="form-label">Seviye</label>
+                            <select name="SeniorityLevel" id="editSeniorityLevel" class="form-select">
+                                <option value="">— Seçiniz —</option>
+                                <option value="Jr" selected="@(Model.Personnel.SeniorityLevel == "Jr")">Jr</option>
+                                <option value="Mid" selected="@(Model.Personnel.SeniorityLevel == "Mid")">Mid</option>
+                                <option value="Sr" selected="@(Model.Personnel.SeniorityLevel == "Sr")">Sr</option>
+                                <option value="Lead" selected="@(Model.Personnel.SeniorityLevel == "Lead")">Lead</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label for="editRoleId" class="form-label">Rol</label>

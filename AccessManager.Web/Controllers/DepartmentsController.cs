@@ -36,9 +36,12 @@ public class DepartmentsController : Controller
     {
         var departments = _departmentService.GetAll();
         var countByDept = _personnelService.GetPersonnelCountByDepartment();
-
+        var topManagerIds = departments.Where(d => d.TopManagerPersonnelId.HasValue).Select(d => d.TopManagerPersonnelId!.Value).Distinct().ToList();
+        var topManagerPersonnel = topManagerIds.Count > 0 ? _personnelService.GetByIds(topManagerIds) : new List<Personnel>();
+        var topManagerNames = topManagerPersonnel.ToDictionary(p => p.Id, p => $"{p.FirstName} {p.LastName}");
         ViewBag.Departments = departments;
         ViewBag.PersonnelCountByDepartment = countByDept;
+        ViewBag.TopManagerNames = topManagerNames;
         return View();
     }
 
@@ -68,6 +71,12 @@ public class DepartmentsController : Controller
         var managerIds = paged.Items.Where(p => p.ManagerId.HasValue).Select(p => p.ManagerId!.Value).Distinct().ToList();
         var managers = managerIds.Count > 0 ? _personnelService.GetByIds(managerIds) : new List<Personnel>();
         ViewBag.ManagerNames = managers.ToDictionary(m => m.Id, m => $"{m.FirstName} {m.LastName}");
+        var deptManagers = _departmentService.GetDepartmentManagers(id);
+        var deptManagerPersonnelIds = deptManagers.Select(m => m.PersonnelId).Distinct().ToList();
+        var deptManagerPersonnel = deptManagerPersonnelIds.Count > 0 ? _personnelService.GetByIds(deptManagerPersonnelIds) : new List<Personnel>();
+        ViewBag.DepartmentManagers = deptManagers;
+        ViewBag.DepartmentManagerPersonnel = deptManagerPersonnel.ToDictionary(p => p.Id, p => p);
+        ViewBag.AllPersonnelForGmy = _personnelService.GetActive();
 
         return View();
     }
@@ -87,6 +96,7 @@ public class DepartmentsController : Controller
         department.Name = input.Name.Trim();
         department.Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim();
         department.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
+        department.TopManagerPersonnelId = input.TopManagerPersonnelId;
         _departmentService.Update(department);
         _auditService.Log(AuditAction.Other, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?", "Department", id.ToString(), $"Departman güncellendi: {department.Name}");
         TempData["DepartmentEditSuccess"] = "Departman bilgileri güncellendi.";

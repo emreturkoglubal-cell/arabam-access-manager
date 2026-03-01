@@ -10,7 +10,7 @@ public interface IAssetAssignmentRepository
     IReadOnlyList<AssetAssignment> GetActiveByAssetIds(IReadOnlyList<int> assetIds);
     AssetAssignment? GetById(int id);
     int Insert(AssetAssignment assignment);
-    void SetReturned(int id, DateTime returnedAt, string? returnCondition, string? notes);
+    void SetReturned(int id, DateTime returnedAt, string? returnCondition, string? notes, int? returnedByUserId, string? returnedByUserName);
     void AddNote(AssetAssignmentNote note);
     IReadOnlyList<AssetAssignmentNote> GetNotesByAssignmentId(int assignmentId);
 }

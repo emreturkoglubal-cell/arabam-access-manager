@@ -16,18 +16,24 @@ public class OffboardingController : Controller
 {
     private readonly IPersonnelService _personnelService;
     private readonly IAuditService _auditService;
+    private readonly IReportService _reportService;
+    private readonly IAssetService _assetService;
 
-    public OffboardingController(IPersonnelService personnelService, IAuditService auditService)
+    public OffboardingController(IPersonnelService personnelService, IAuditService auditService, IReportService reportService, IAssetService assetService)
     {
         _personnelService = personnelService;
         _auditService = auditService;
+        _reportService = reportService;
+        _assetService = assetService;
     }
 
-    /// <summary>GET /Offboarding/Index — İşten çıkış formu; aktif personel listesi.</summary>
+    /// <summary>GET /Offboarding/Index — İşten çıkış formu; aktif personel listesi ve son 1 ay işten çıkanlar.</summary>
     [HttpGet]
     public IActionResult Index()
     {
         ViewBag.ActivePersonnel = _personnelService.GetActive();
+        var oneMonthAgo = DateTime.Today.AddMonths(-1);
+        ViewBag.RecentOffboarded = _reportService.GetOffboardedReport(oneMonthAgo, DateTime.Today);
         return View(new OffboardingInputModel());
     }
 

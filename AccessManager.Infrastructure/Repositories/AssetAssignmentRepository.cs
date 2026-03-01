@@ -18,7 +18,7 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
-            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, returned_by_user_id AS ReturnedByUserId, returned_by_user_name AS ReturnedByUserName, return_condition AS ReturnCondition, notes AS Notes
             FROM asset_assignments WHERE asset_id = @AssetId ORDER BY assigned_at DESC";
         return conn.Query<AssetAssignment>(sql, new { AssetId = assetId }).ToList();
     }
@@ -28,7 +28,7 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
-            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, returned_by_user_id AS ReturnedByUserId, returned_by_user_name AS ReturnedByUserName, return_condition AS ReturnCondition, notes AS Notes
             FROM asset_assignments WHERE personnel_id = @PersonnelId ORDER BY assigned_at DESC";
         return conn.Query<AssetAssignment>(sql, new { PersonnelId = personnelId }).ToList();
     }
@@ -38,7 +38,7 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
-            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, returned_by_user_id AS ReturnedByUserId, returned_by_user_name AS ReturnedByUserName, return_condition AS ReturnCondition, notes AS Notes
             FROM asset_assignments WHERE asset_id = @AssetId AND returned_at IS NULL LIMIT 1";
         return conn.QuerySingleOrDefault<AssetAssignment>(sql, new { AssetId = assetId });
     }
@@ -49,7 +49,7 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
-            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, returned_by_user_id AS ReturnedByUserId, returned_by_user_name AS ReturnedByUserName, return_condition AS ReturnCondition, notes AS Notes
             FROM asset_assignments WHERE asset_id = ANY(@AssetIds) AND returned_at IS NULL";
         return conn.Query<AssetAssignment>(sql, new { AssetIds = assetIds.Distinct().ToList() }).ToList();
     }
@@ -59,7 +59,7 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
         const string sql = @"SELECT id AS Id, asset_id AS AssetId, personnel_id AS PersonnelId, assigned_at AS AssignedAt,
-            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, return_condition AS ReturnCondition, notes AS Notes
+            assigned_by_user_id AS AssignedByUserId, assigned_by_user_name AS AssignedByUserName, returned_at AS ReturnedAt, returned_by_user_id AS ReturnedByUserId, returned_by_user_name AS ReturnedByUserName, return_condition AS ReturnCondition, notes AS Notes
             FROM asset_assignments WHERE id = @Id";
         return conn.QuerySingleOrDefault<AssetAssignment>(sql, new { Id = id });
     }
@@ -68,20 +68,20 @@ public class AssetAssignmentRepository : IAssetAssignmentRepository
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        const string sql = @"INSERT INTO asset_assignments (asset_id, personnel_id, assigned_at, assigned_by_user_id, assigned_by_user_name, returned_at, return_condition, notes)
-            VALUES (@AssetId, @PersonnelId, @AssignedAt, @AssignedByUserId, @AssignedByUserName, @ReturnedAt, @ReturnCondition, @Notes) RETURNING id";
+        const string sql = @"INSERT INTO asset_assignments (asset_id, personnel_id, assigned_at, assigned_by_user_id, assigned_by_user_name, returned_at, returned_by_user_id, returned_by_user_name, return_condition, notes)
+            VALUES (@AssetId, @PersonnelId, @AssignedAt, @AssignedByUserId, @AssignedByUserName, @ReturnedAt, @ReturnedByUserId, @ReturnedByUserName, @ReturnCondition, @Notes) RETURNING id";
         return conn.ExecuteScalar<int>(sql, new {
             assignment.AssetId, assignment.PersonnelId, assignment.AssignedAt, assignment.AssignedByUserId, assignment.AssignedByUserName,
-            assignment.ReturnedAt, assignment.ReturnCondition, assignment.Notes
+            assignment.ReturnedAt, assignment.ReturnedByUserId, assignment.ReturnedByUserName, assignment.ReturnCondition, assignment.Notes
         });
     }
 
-    public void SetReturned(int id, DateTime returnedAt, string? returnCondition, string? notes)
+    public void SetReturned(int id, DateTime returnedAt, string? returnCondition, string? notes, int? returnedByUserId, string? returnedByUserName)
     {
         using var conn = new NpgsqlConnection(_connectionString);
         conn.Open();
-        conn.Execute("UPDATE asset_assignments SET returned_at = @ReturnedAt, return_condition = @ReturnCondition, notes = COALESCE(@Notes, notes) WHERE id = @Id",
-            new { Id = id, ReturnedAt = returnedAt, ReturnCondition = returnCondition, Notes = notes });
+        conn.Execute("UPDATE asset_assignments SET returned_at = @ReturnedAt, returned_by_user_id = @ReturnedByUserId, returned_by_user_name = @ReturnedByUserName, return_condition = @ReturnCondition, notes = COALESCE(@Notes, notes) WHERE id = @Id",
+            new { Id = id, ReturnedAt = returnedAt, ReturnCondition = returnCondition, Notes = notes, ReturnedByUserId = returnedByUserId, ReturnedByUserName = returnedByUserName });
     }
 
     public void AddNote(AssetAssignmentNote note)
