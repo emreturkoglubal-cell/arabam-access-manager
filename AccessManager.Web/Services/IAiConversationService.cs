@@ -8,6 +8,8 @@ public interface IAiConversationService
     (IReadOnlyList<AiConversation> Items, int Total) GetConversationsPaged(int skip, int take);
     AiConversation? GetConversation(int conversationId);
     IReadOnlyList<AiConversationMessage> GetMessages(int conversationId);
+    /// <summary>Tek round-trip ile konuşma başlığı + mesajlar (yetkisizse null).</summary>
+    (string? Title, IReadOnlyList<AiConversationMessage> Messages) GetConversationWithMessages(int conversationId);
     Task<(int ConversationId, string Title, string Reply)> SendMessageAsync(int? conversationId, string userMessage, CancellationToken cancellationToken = default);
     /// <summary>Sohbeti soft delete yapar (is_active = false). Sadece kendi sohbeti için true döner.</summary>
     bool DeleteConversation(int conversationId);

@@ -77,6 +77,21 @@ public class AiConversationRepository : IAiConversationRepository
         return conn.QueryFirstOrDefault<AiConversation>(sql, new { Id = conversationId, UserId = userId });
     }
 
+    public (AiConversation? Conversation, IReadOnlyList<AiConversationMessage> Messages) GetConversationWithMessages(int conversationId, int userId)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string convSql = @"SELECT id AS Id, user_id AS UserId, title AS Title, created_at AS CreatedAt, updated_at AS UpdatedAt, COALESCE(is_active, true) AS IsActive
+            FROM ai_conversations WHERE id = @Id AND user_id = @UserId AND COALESCE(is_active, true) = true";
+        var conv = conn.QueryFirstOrDefault<AiConversation>(convSql, new { Id = conversationId, UserId = userId });
+        if (conv == null)
+            return (null, Array.Empty<AiConversationMessage>());
+        const string msgSql = @"SELECT id AS Id, conversation_id AS ConversationId, role AS Role, content AS Content, created_at AS CreatedAt
+            FROM ai_conversation_messages WHERE conversation_id = @ConversationId ORDER BY created_at ASC";
+        var messages = conn.Query<AiConversationMessage>(msgSql, new { ConversationId = conversationId }).ToList();
+        return (conv, messages);
+    }
+
     public bool SetConversationInactive(int conversationId, int userId)
     {
         using var conn = new NpgsqlConnection(_connectionString);

@@ -55,6 +55,14 @@ public class AiConversationService : IAiConversationService
         return _repo.GetMessagesByConversation(conversationId);
     }
 
+    public (string? Title, IReadOnlyList<AiConversationMessage> Messages) GetConversationWithMessages(int conversationId)
+    {
+        var userId = _currentUser.UserId;
+        if (userId == null) return (null, Array.Empty<AiConversationMessage>());
+        var (conv, messages) = _repo.GetConversationWithMessages(conversationId, userId.Value);
+        return (conv?.Title, messages ?? Array.Empty<AiConversationMessage>());
+    }
+
     public async Task<(int ConversationId, string Title, string Reply)> SendMessageAsync(int? conversationId, string userMessage, CancellationToken cancellationToken = default)
     {
         var userId = _currentUser.UserId ?? 0;

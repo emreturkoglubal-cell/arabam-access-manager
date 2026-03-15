@@ -44,17 +44,17 @@ public class AiController : Controller
         });
     }
 
-    /// <summary>GET /Ai/GetMessages — Belirtilen konuşmanın mesajlarını döner (JSON).</summary>
+    /// <summary>GET /Ai/GetMessages — Belirtilen konuşmanın mesajlarını döner (JSON). Tek round-trip: conversation + messages.</summary>
     [HttpGet]
     public IActionResult GetMessages([FromQuery] int conversationId)
     {
-        var conv = _aiConversation.GetConversation(conversationId);
-        if (conv == null)
+        var (title, list) = _aiConversation.GetConversationWithMessages(conversationId);
+        if (title == null)
             return Json(new { title = (string?)null, messages = Array.Empty<object>() });
-        var list = _aiConversation.GetMessages(conversationId);
+
         return Json(new
         {
-            title = conv.Title,
+            title,
             messages = list.Select(m => new { role = m.Role, content = m.Content, createdAt = m.CreatedAt })
         });
     }

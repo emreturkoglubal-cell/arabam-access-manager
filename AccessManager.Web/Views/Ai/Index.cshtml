@@ -135,7 +135,12 @@
         color: var(--am-accent, #e40030);
     }
     .ai-chat-conv-item.list-group-item { padding-right: 2rem; }
-    .ai-chat-conv-item .ai-chat-conv-link { flex: 1; min-width: 0; text-align: left; padding: 0.5rem 0.25rem 0.5rem 0.75rem; }
+    .ai-chat-conv-item .ai-chat-conv-link { flex: 1; min-width: 0; text-align: left; padding: 0.5rem 0.25rem 0.5rem 0.75rem; color: var(--am-text, #111827); }
+    /* Hover ve seçili satırda da yazı hep koyu (açık arka planda okunabilir) */
+    #conversationListWrap .list-group-item-action.ai-chat-conv-item:hover .ai-chat-conv-link,
+    #conversationListWrap .list-group-item-action.ai-chat-conv-item.active .ai-chat-conv-link {
+        color: #111827 !important;
+    }
     .ai-chat-main { min-height: 0; }
     .ai-chat-has-messages .ai-chat-welcome-block {
         display: none !important;
@@ -169,13 +174,13 @@
     .ai-chat-input-inner--centered { max-width: 640px; margin-left: auto; margin-right: auto; }
     .ai-chat-input-row {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         gap: 0;
         border: 1px solid var(--am-border, #e5e7eb);
         border-radius: 1.5rem;
         background: var(--am-card-bg, #fff);
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        padding: 0 0.5rem 0 1rem;
+        padding: 0.5rem 0.5rem 0.5rem 1rem;
         min-height: 2.5rem;
     }
     .ai-chat-input-row:focus-within {
@@ -184,13 +189,22 @@
     }
     .ai-chat-input {
         resize: none;
-        min-height: 2rem;
+        min-height: 2.25rem;
+        height: 2.25rem;
         max-height: 10rem;
+        overflow-y: auto;
         border: none !important;
         box-shadow: none !important;
         padding: 0.5rem 0.25rem 0.5rem 0;
         background: transparent;
         flex: 1;
+        line-height: 1.5;
+        transition: height 0.1s ease-out;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .ai-chat-input::-webkit-scrollbar {
+        display: none;
     }
     .ai-chat-input:focus {
         outline: none;
@@ -328,6 +342,15 @@
 
     function scrollToBottom() {
         messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    var CHAT_INPUT_MAX_HEIGHT_PX = 160;
+    var CHAT_INPUT_MIN_HEIGHT_PX = 36;
+    function resizeChatInput() {
+        if (!inputEl) return;
+        inputEl.style.height = CHAT_INPUT_MIN_HEIGHT_PX + 'px';
+        var h = inputEl.scrollHeight;
+        inputEl.style.height = Math.min(Math.max(h, CHAT_INPUT_MIN_HEIGHT_PX), CHAT_INPUT_MAX_HEIGHT_PX) + 'px';
     }
 
     var inputBarBottomInner = document.getElementById('inputBarBottomInner');
@@ -557,6 +580,16 @@
         }
     }
 
+    function setActiveConversationInSidebar(id) {
+        listEl.querySelectorAll('.ai-chat-conv-item').forEach(function (el) {
+            if (parseInt(el.getAttribute('data-conversation-id'), 10) === id) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+    }
+
     function appendConversationItems(items) {
         if (!items || items.length === 0) return;
         items.forEach(function (c) {
@@ -565,8 +598,17 @@
             wrap.setAttribute('data-conversation-id', c.id);
             var a = document.createElement('a');
             a.href = '/Ai/Index?conversationId=' + c.id;
-            a.className = 'ai-chat-conv-link text-decoration-none' + (currentConversationId === c.id ? ' text-white' : ' text-dark');
+            a.className = 'ai-chat-conv-link text-decoration-none';
             a.textContent = (c.title || '(Sohbet)').substring(0, 50) + (c.title && c.title.length > 50 ? '…' : '');
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (currentConversationId === c.id) return;
+                currentConversationId = c.id;
+                setActiveConversationInSidebar(c.id);
+                if (window.history && window.history.replaceState)
+                    window.history.replaceState(null, '', '/Ai/Index?conversationId=' + c.id);
+                loadMessages(c.id);
+            });
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'ai-chat-conv-remove';
@@ -629,9 +671,16 @@
         }
         setPlaceholder(false);
         messagesContainer.querySelectorAll('.mb-3').forEach(function (el) { el.remove(); });
+        var loadingEl = document.createElement('div');
+        loadingEl.className = 'text-muted small text-center py-3';
+        loadingEl.id = 'messagesLoading';
+        loadingEl.textContent = 'Mesajlar yükleniyor...';
+        messagesContainer.appendChild(loadingEl);
         fetch('/Ai/GetMessages?conversationId=' + conversationId)
             .then(function (r) { return r.json(); })
             .then(function (data) {
+                var el = document.getElementById('messagesLoading');
+                if (el) el.remove();
                 var items = data.messages || [];
                 if (items.length === 0) {
                     setPlaceholder(true);
@@ -648,6 +697,8 @@
                     hidePushPrBar();
             })
             .catch(function () {
+                var el = document.getElementById('messagesLoading');
+                if (el) el.remove();
                 addMessage('assistant', 'Mesajlar yüklenemedi.');
             });
     }
@@ -665,7 +716,7 @@
         if (!msg) return;
         setPlaceholder(false);
         addMessage('user', msg);
-        if (inputEl) inputEl.value = '';
+        if (inputEl) { inputEl.value = ''; resizeChatInput(); }
         if (sendBtn) sendBtn.disabled = true;
         addTypingIndicator();
 
@@ -728,6 +779,8 @@
             sendBtn.click();
         }
     });
+    inputEl.addEventListener('input', resizeChatInput);
+    inputEl.addEventListener('keyup', resizeChatInput);
     inputEl.focus();
 })();
 </script>
