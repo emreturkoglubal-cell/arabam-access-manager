@@ -457,7 +457,11 @@
         return out.join('');
     }
     function formatInlineMarkdown(s) {
-        var escaped = escapeHtml(s);
+        var escaped = escapeHtml(s || '');
+        // Markdown linkler [metin](url) -> tıklanabilir link (metin/url zaten escapeHtml içinden geliyor)
+        escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(_, text, url) {
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="am-link">' + text + '</a>';
+        });
         // Markdown başlıklar (satır başı #, ##, ###)
         escaped = escaped.replace(/^### (.+)$/gm, function(_, t) { return '<h3 class="am-ai-h3">' + t + '</h3>'; });
         escaped = escaped.replace(/^## (.+)$/gm, function(_, t) { return '<h2 class="am-ai-h2">' + t + '</h2>'; });
@@ -720,6 +724,7 @@
         if (sendBtn) sendBtn.disabled = true;
         addTypingIndicator();
 
+        var isActionMessage = /^pr\s*aç$/i.test(msg.trim()) || /^(evet,?\s*)?pushla$/i.test(msg.trim()) || /onayla/i.test(msg.trim());
         var body = { message: msg };
         if (currentConversationId) body.conversationId = currentConversationId;
 
@@ -752,6 +757,7 @@
                 loadConversations(false);
             }
             addMessage('assistant', data.reply || '(cevap yok)');
+            if (isActionMessage) hidePushPrBar();
         })
         .catch(function (err) {
             removeTypingIndicator();

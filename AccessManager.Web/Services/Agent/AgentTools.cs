@@ -200,8 +200,8 @@ public sealed class AgentTools : IAgentTools
 
         var prResult = await _gitService.CreateGitHubPullRequestAsync(branchName, commitMessage, null, cancellationToken);
         if (prResult.Success)
-            return "OK: PR oluşturuldu: " + prResult.Message + " Branch: " + branchName;
-        return "OK: " + result.Message + " Branch: " + branchName + ". (GitHub PR otomatik açılamadı: " + prResult.Message + ")";
+            return "OK: PR oluşturuldu. Branch: " + branchName + ".\n\n[PR linki](" + prResult.Message + ")";
+        return "OK: Branch pushlandı: " + branchName + ". GitHub PR otomatik açılamadı (" + prResult.Message + "). GitHub'da 'Compare & pull request' ile PR açabilirsiniz.";
     }
 
     public async Task<string> GitCommitAndPushAsync(string commitMessage, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken = default)

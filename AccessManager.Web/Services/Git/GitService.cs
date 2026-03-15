@@ -222,13 +222,45 @@ public sealed class GitService : IGitService
                 return GitResult.Fail("main branch'a geçilemedi: " + (coMain.Output ?? "?"));
         }
 
-        var addArgs = "add -f -- " + string.Join(" ", relativePaths.Select(p => $"\"{p.Replace("\"", "\\\"")}\""));
-        var safeMessage = commitMessage.Replace("\"", "\\\"");
-        var commitArgs = $"-c user.name=\"{userName}\" -c user.email=\"{userEmail}\" commit -m \"{safeMessage}\"";
+        // PR branch'ini her zaman güncel origin/main'den oluştur (çoklu kullanıcıda conflict/stale branch önlemek için)
+        // Değişiklikler working dir'de; önce stash, main'i güncelle, branch oluştur, stash pop
+        var stashArgs = "stash push -m \"ai-pr-temp\" -- " + string.Join(" ", relativePaths.Select(p => $"\"{p.Replace("\"", "\\\"")}\""));
+        var didStash = false;
+        var stashResult = await RunGitWithEnvAsync(repo, stashArgs, env, cancellationToken);
+        if (stashResult.Success) didStash = true;
+
+        // Stash başarılıysa main'i güncelle; yoksa reset working dir'i siler
+        if (didStash)
+        {
+            var prRemoteUrl = await GetRemoteOriginUrlAsync(repo, cancellationToken);
+            if (!string.IsNullOrEmpty(prRemoteUrl))
+            {
+                var fetchAuthUrl = !string.IsNullOrEmpty(token) ? InjectTokenIntoUrl(prRemoteUrl, token) : null;
+                var fetchTarget = fetchAuthUrl ?? "origin";
+                var fetchResult = await RunGitWithEnvAsync(repo, "fetch \"" + fetchTarget + "\" " + MainBranch, env, cancellationToken);
+                if (fetchResult.Success)
+                {
+                    var resetResult = await RunGitWithEnvAsync(repo, "reset --hard FETCH_HEAD", env, cancellationToken);
+                    if (!resetResult.Success)
+                        _logger.LogWarning("CreateBranchAndPush: main reset --hard FETCH_HEAD başarısız. Output: {Output}", resetResult.Output);
+                }
+            }
+        }
 
         var coResult = await RunGitWithEnvAsync(repo, "checkout -b \"" + branchName.Replace("\"", "\\\"") + "\"", env, cancellationToken);
         if (!coResult.Success)
             return GitResult.Fail("Branch oluşturulamadı: " + (coResult.Output ?? "?"));
+
+        if (didStash)
+        {
+            var popResult = await RunGitWithEnvAsync(repo, "stash pop", env, cancellationToken);
+            if (!popResult.Success)
+                _logger.LogWarning("CreateBranchAndPush: stash pop başarısız. Output: {Output}", popResult.Output);
+        }
+
+        var addArgs = "add -f -- " + string.Join(" ", relativePaths.Select(p => $"\"{p.Replace("\"", "\\\"")}\""));
+        var safeMessage = commitMessage.Replace("\"", "\\\"");
+        var commitArgs = $"-c user.name=\"{userName}\" -c user.email=\"{userEmail}\" commit -m \"{safeMessage}\"";
 
         var addResult = await RunGitAsync(repo, addArgs, cancellationToken);
         if (!addResult.Success)
