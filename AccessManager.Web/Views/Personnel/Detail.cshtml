@@ -285,11 +285,11 @@ else
                     @Html.AntiForgeryToken()
                     <div class="col-auto">
                         <label for="ReminderDate" class="form-label col-form-label col-auto">Tarih</label>
-                        <input type="date" name="ReminderDate" id="ReminderDate" class="form-control form-control-sm" required />
+                        <input type="text" name="ReminderDate" id="ReminderDate" class="form-control form-control-sm am-fp-date" placeholder="gg.aa.yyyy" autocomplete="off" required />
                     </div>
                     <div class="col">
                         <label for="ReminderDescription" class="form-label col-form-label col-auto">Açıklama</label>
-                        <input type="text" name="Description" id="ReminderDescription" class="form-control form-control-sm" placeholder="Ne zaman uyarmasını istiyorsunuz?" maxlength="500" required />
+                        <input type="text" name="Description" id="ReminderDescription" class="form-control form-control-sm" placeholder="Ne zaman uyarılmasını istiyorsunuz?" maxlength="500" required />
                     </div>
                     <div class="col-auto d-flex align-items-end">
                         <button type="submit" class="btn btn-am-primary btn-sm">Hatırlatma ekle</button>
@@ -584,11 +584,11 @@ else
                         </div>
                         <div class="col-md-6">
                             <label for="editStartDate" class="form-label">İşe giriş</label>
-                            <input type="date" name="StartDate" id="editStartDate" class="form-control" value="@Model.Personnel.StartDate.ToString("yyyy-MM-dd")" required />
+                            <input type="text" name="StartDate" id="editStartDate" class="form-control am-fp-date" value="@Model.Personnel.StartDate.ToString("yyyy-MM-dd")" placeholder="gg.aa.yyyy" autocomplete="off" required />
                         </div>
                         <div class="col-md-6">
                             <label for="editEndDate" class="form-label">İşten çıkış</label>
-                            <input type="date" name="EndDate" id="editEndDate" class="form-control" value="@(Model.Personnel.EndDate?.ToString("yyyy-MM-dd") ?? "")" />
+                            <input type="text" name="EndDate" id="editEndDate" class="form-control am-fp-date" value="@(Model.Personnel.EndDate?.ToString("yyyy-MM-dd") ?? "")" placeholder="gg.aa.yyyy" autocomplete="off" />
                         </div>
                         <div class="col-md-6">
                             <label for="editStatus" class="form-label">Durum</label>

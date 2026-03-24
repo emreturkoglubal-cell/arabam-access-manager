@@ -448,6 +448,48 @@ body {
   flex-shrink: 0;
 }
 
+/* Kontrol paneli: özel tarih alanları tek satırda, dar ekranda yatay kaydırma */
+.am-toolbar--dashboard-filter {
+  min-width: 0;
+}
+.am-toolbar--dashboard-filter > form {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.am-dashboard-filter-form {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.am-toolbar-date-input {
+  width: 9.5rem;
+  min-width: 9.5rem;
+  max-width: 9.5rem;
+}
+
+/* Flatpickr görünür alan (gün.ay.yıl) — form-control ile uyumlu genişlik */
+input.am-fp-alt-input.form-control {
+  min-width: 9.5rem;
+}
+
+/* Flatpickr: sunucuya giden gizli alan yerleşmesin; görünen gg.aa.yyyy alanı hizalı kalsın */
+.am-toolbar--dashboard-filter .am-date-field {
+  position: relative;
+}
+.am-toolbar--dashboard-filter .am-date-field input.am-flatpickr-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .am-toolbar .am-toolbar-end {
   margin-left: auto;
 }

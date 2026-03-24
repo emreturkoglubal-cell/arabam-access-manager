@@ -29,11 +29,9 @@ public class ReportService : IReportService
         _systemRepo = systemRepo;
     }
 
-    public DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null)
+    public DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null, DateTime? periodFrom = null, DateTime? periodTo = null)
     {
         var now = SystemTime.Now;
-        var months = periodMonths.HasValue && periodMonths.Value > 0 ? Math.Min(periodMonths.Value, 120) : 1;
-        var periodStart = now.AddMonths(-months).Date;
 
         var personnelInScope = departmentId.HasValue
             ? _personnelRepo.GetByDepartmentId(departmentId.Value).Select(p => p.Id).ToHashSet()
@@ -43,7 +41,30 @@ public class ReportService : IReportService
 
         var activePersonnel = _personnelRepo.GetActive().Where(p => personnelInScope == null || personnelInScope.Contains(p.Id)).ToList();
         var allPersonnel = _personnelRepo.GetAll();
-        var offboardedInPeriod = allPersonnel.Count(p => p.EndDate.HasValue && p.EndDate >= periodStart && InScope(p.Id));
+
+        int offboardedInPeriod;
+        if (periodFrom.HasValue && periodTo.HasValue)
+        {
+            var from = periodFrom.Value.Date;
+            var to = periodTo.Value.Date;
+            if (from > to)
+                (from, to) = (to, from);
+            var maxEnd = from.AddYears(10);
+            if (to > maxEnd)
+                to = maxEnd;
+
+            offboardedInPeriod = allPersonnel.Count(p =>
+                p.EndDate.HasValue &&
+                p.EndDate.Value.Date >= from &&
+                p.EndDate.Value.Date <= to &&
+                InScope(p.Id));
+        }
+        else
+        {
+            var months = periodMonths.HasValue && periodMonths.Value > 0 ? Math.Min(periodMonths.Value, 120) : 1;
+            var periodStart = now.AddMonths(-months).Date;
+            offboardedInPeriod = allPersonnel.Count(p => p.EndDate.HasValue && p.EndDate >= periodStart && InScope(p.Id));
+        }
 
         var pendingRequests = _requestRepo.GetAll().Where(r =>
             r.Status == AccessRequestStatus.PendingManager || r.Status == AccessRequestStatus.PendingSystemOwner || r.Status == AccessRequestStatus.PendingIT);
@@ -64,7 +85,7 @@ public class ReportService : IReportService
         };
     }
 
-    public DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12)
+    public DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12, DateTime? rangeFrom = null, DateTime? rangeTo = null)
     {
         var now = SystemTime.Now;
         var personnelInScope = departmentId.HasValue
@@ -73,15 +94,39 @@ public class ReportService : IReportService
         bool InScope(int pid) => personnelInScope == null || personnelInScope.Contains(pid);
 
         var allPersonnel = _personnelRepo.GetAll().Where(p => InScope(p.Id)).ToList();
-        var months = Math.Clamp(periodMonths, 1, 24);
         var personnelTrend = new List<MonthCountPair>();
         var offboardedByMonth = new List<MonthCountPair>();
 
         var culture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
-        for (var i = months - 1; i >= 0; i--)
+        const int chartMonthCap = 48;
+
+        IEnumerable<DateTime> MonthStarts()
         {
-            var monthEnd = now.AddMonths(-i);
-            var monthStart = new DateTime(monthEnd.Year, monthEnd.Month, 1, 0, 0, 0, DateTimeKind.Local);
+            if (rangeFrom.HasValue && rangeTo.HasValue)
+            {
+                var from = rangeFrom.Value.Date;
+                var to = rangeTo.Value.Date;
+                if (from > to)
+                    (from, to) = (to, from);
+                var startMonth = new DateTime(from.Year, from.Month, 1, 0, 0, 0, DateTimeKind.Local);
+                var endMonth = new DateTime(to.Year, to.Month, 1, 0, 0, 0, DateTimeKind.Local);
+                var n = 0;
+                for (var m = startMonth; m <= endMonth && n < chartMonthCap; m = m.AddMonths(1), n++)
+                    yield return m;
+            }
+            else
+            {
+                var months = Math.Clamp(periodMonths, 1, 24);
+                for (var i = months - 1; i >= 0; i--)
+                {
+                    var anchor = now.AddMonths(-i);
+                    yield return new DateTime(anchor.Year, anchor.Month, 1, 0, 0, 0, DateTimeKind.Local);
+                }
+            }
+        }
+
+        foreach (var monthStart in MonthStarts())
+        {
             var monthEndDate = monthStart.AddMonths(1).AddDays(-1);
 
             var activeAtMonthEnd = allPersonnel.Count(p =>
@@ -96,8 +141,8 @@ public class ReportService : IReportService
 
             var offboardedInThisMonth = allPersonnel.Count(p =>
                 p.EndDate.HasValue &&
-                p.EndDate.Value.Year == monthEnd.Year &&
-                p.EndDate.Value.Month == monthEnd.Month);
+                p.EndDate.Value.Year == monthStart.Year &&
+                p.EndDate.Value.Month == monthStart.Month);
             offboardedByMonth.Add(new MonthCountPair
             {
                 Label = monthStart.ToString("MMM yyyy", culture),

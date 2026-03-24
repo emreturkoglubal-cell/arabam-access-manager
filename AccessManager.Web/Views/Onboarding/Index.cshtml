@@ -77,7 +77,7 @@
             </div>
             <div class="col-md-6">
                 <label asp-for="StartDate" class="form-label">İşe başlama tarihi</label>
-                <input asp-for="StartDate" class="form-control" type="date" />
+                <input asp-for="StartDate" type="text" class="form-control am-fp-date" asp-format="{0:yyyy-MM-dd}" placeholder="gg.aa.yyyy" />
             </div>
             <div class="col-12">
                 <div class="am-manager-toggle">

@@ -5,28 +5,54 @@
     var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
     var filterDepartmentId = ViewBag.DepartmentId as int?;
     var periodMonths = ViewBag.PeriodMonths as int? ?? 1;
+    var customFromVal = ViewBag.CustomFrom as DateTime?;
+    var customToVal = ViewBag.CustomTo as DateTime?;
+    var offboardedLabel = ViewBag.OffboardedPeriodLabel as string ?? (periodMonths == 12 ? "Son 1 yıl" : periodMonths == 24 ? "Son 2 yıl" : periodMonths == 0 ? "Son 1 ay" : $"Son {periodMonths} ay");
+    var chartMonthsLabel = ViewBag.ChartMonthsLabel as string ?? "12 ay";
+    var periodHint = TempData["AmDashboardPeriodHint"] as string;
 }
 
-<div class="am-toolbar mb-3">
-    <form method="get" asp-controller="Home" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
-        <label class="form-label mb-0">Departman</label>
-        <select name="departmentId" class="form-select form-select-sm am-toolbar-select" style="max-width: 220px;">
+@if (!string.IsNullOrEmpty(periodHint))
+{
+    <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">@periodHint</div>
+}
+
+<div class="am-toolbar am-toolbar--dashboard-filter mb-3">
+    <form id="amDashboardFilterForm" method="get" asp-controller="Home" asp-action="Index" autocomplete="off" class="am-toolbar-form am-dashboard-filter-form d-flex flex-nowrap gap-2 align-items-center">
+        <label class="form-label mb-0 text-nowrap flex-shrink-0">Departman</label>
+        <select name="departmentId" class="form-select form-select-sm am-toolbar-select flex-shrink-0" style="max-width: 220px;">
             <option value="">Tümü</option>
             @foreach (var d in departments)
             {
                 <option value="@d.Id" selected="@(filterDepartmentId == d.Id)">@d.Name</option>
             }
         </select>
-        <label class="form-label mb-0">Dönem</label>
-        <select name="periodMonths" class="form-select form-select-sm am-toolbar-select" style="max-width: 160px;">
+        <label class="form-label mb-0 text-nowrap flex-shrink-0">Dönem</label>
+        <select id="amPeriodMonths" name="periodMonths" class="form-select form-select-sm am-toolbar-select flex-shrink-0" style="max-width: 200px;">
             <option value="1" selected="@(periodMonths == 1)">Son 1 ay</option>
             <option value="2" selected="@(periodMonths == 2)">Son 2 ay</option>
             <option value="3" selected="@(periodMonths == 3)">Son 3 ay</option>
             <option value="6" selected="@(periodMonths == 6)">Son 6 ay</option>
             <option value="12" selected="@(periodMonths == 12)">Son 1 yıl</option>
             <option value="24" selected="@(periodMonths == 24)">Son 2 yıl</option>
+            <option value="0" selected="@(periodMonths == 0)">Kendi tarih aralığım</option>
         </select>
-        <button type="submit" class="btn btn-am-outline btn-am-outline-solid btn-sm">Uygula</button>
+        <div id="amCustomRangeWrap" class="d-flex flex-nowrap align-items-center gap-2 flex-shrink-0 @(periodMonths == 0 ? "" : "d-none")">
+            <div class="d-flex flex-nowrap align-items-center gap-1 am-date-field">
+                <label class="form-label mb-0 text-muted small text-nowrap" for="amCustomFrom">Başlangıç</label>
+                <input type="text" name="customFrom" id="amCustomFrom" class="form-control form-control-sm am-toolbar-date-input am-flatpickr-source"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"
+                       placeholder="gg.aa.yyyy" value="@(customFromVal?.ToString("yyyy-MM-dd"))" @(periodMonths == 0 ? "" : "disabled=\"disabled\"") />
+            </div>
+            <div class="d-flex flex-nowrap align-items-center gap-1 am-date-field">
+                <label class="form-label mb-0 text-muted small text-nowrap" for="amCustomTo">Bitiş</label>
+                <input type="text" name="customTo" id="amCustomTo" class="form-control form-control-sm am-toolbar-date-input am-flatpickr-source"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"
+                       placeholder="gg.aa.yyyy" value="@(customToVal?.ToString("yyyy-MM-dd"))" @(periodMonths == 0 ? "" : "disabled=\"disabled\"") />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-am-outline btn-am-outline-solid btn-sm flex-shrink-0 align-self-center">Uygula</button>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-am-ghost btn-sm flex-shrink-0 align-self-center text-nowrap">Filtreleri sıfırla</a>
     </form>
 </div>
 
@@ -37,7 +63,7 @@
         <div class="action"><span class="btn-am-ghost">Listele →</span></div>
     </a>
     <a href="@Url.Action("Index", "Reports")" class="am-stat-card am-stat-card-clickable d-block text-decoration-none text-body">
-        <div class="label">@(periodMonths == 12 ? "Son 1 yıl" : periodMonths == 24 ? "Son 2 yıl" : $"Son {periodMonths} ay") İşten Ayrılan</div>
+        <div class="label">@offboardedLabel İşten Ayrılan</div>
         <div class="value">@Model.OffboardedLastMonthCount</div>
         <div class="action"><span class="btn-am-ghost">Raporlar →</span></div>
     </a>
@@ -61,7 +87,7 @@
 <div class="row g-2 mb-3">
     <div class="col-md-6">
         <div class="am-card am-card--chart h-100">
-            <div class="am-card-header am-card-header--sm">Personel trendi (12 ay)</div>
+            <div class="am-card-header am-card-header--sm">Personel trendi (@chartMonthsLabel)</div>
             <div class="am-card-body am-card-body--chart">
                 <canvas id="chartPersonnelTrend"></canvas>
             </div>
@@ -69,7 +95,7 @@
     </div>
     <div class="col-md-6">
         <div class="am-card am-card--chart h-100">
-            <div class="am-card-header am-card-header--sm">İşten ayrılan personel (12 ay)</div>
+            <div class="am-card-header am-card-header--sm">İşten ayrılan personel (@chartMonthsLabel)</div>
             <div class="am-card-body am-card-body--chart">
                 <canvas id="chartOffboardedByMonth"></canvas>
             </div>
@@ -98,6 +124,115 @@
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
+(function () {
+    var sel = document.getElementById('amPeriodMonths');
+    var wrap = document.getElementById('amCustomRangeWrap');
+    var fromIn = document.getElementById('amCustomFrom');
+    var toIn = document.getElementById('amCustomTo');
+    var form = document.getElementById('amDashboardFilterForm');
+    var trLocale = (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.tr) ? flatpickr.l10ns.tr : 'tr';
+    var noHistRand = Math.random().toString(36).slice(2, 11);
+
+    function unlockAltInput(fp) {
+        if (!fp || !fp.altInput) return;
+        fp.altInput.removeAttribute('readonly');
+        fp.altInput.readOnly = false;
+    }
+
+    function setPickerEnabled(fp, enabled) {
+        if (!fp) return;
+        fp._input.disabled = !enabled;
+        if (fp.altInput) {
+            fp.altInput.disabled = !enabled;
+            if (enabled) unlockAltInput(fp);
+        }
+    }
+
+    /** Tarayıcı / şifre yöneticisi geçmiş önerilerini kapatır (Flatpickr altInput dahil). */
+    function blockInputHistory(fp, uniqueToken) {
+        if (!fp) return;
+        var token = 'am-nohist-' + uniqueToken + '-' + noHistRand;
+        [fp._input, fp.altInput].forEach(function (el) {
+            if (!el) return;
+            el.setAttribute('autocomplete', token);
+            el.setAttribute('autocorrect', 'off');
+            el.setAttribute('autocapitalize', 'off');
+            el.setAttribute('spellcheck', 'false');
+            el.setAttribute('data-lpignore', 'true');
+            el.setAttribute('data-1p-ignore', 'true');
+            el.setAttribute('data-bwignore', 'true');
+        });
+    }
+
+    function fpOpts(altId, labelForSelector, historyToken) {
+        return {
+            locale: trLocale,
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd.m.Y',
+            allowInput: true,
+            disableMobile: true,
+            clickOpens: true,
+            altInputClass: 'form-control form-control-sm am-toolbar-date-input',
+            onReady: function () {
+                var fp = this;
+                if (fp.altInput) {
+                    fp.altInput.id = altId;
+                    var lb = labelForSelector ? document.querySelector(labelForSelector) : null;
+                    if (lb) lb.setAttribute('for', altId);
+                    fp._input.setAttribute('tabindex', '-1');
+                    unlockAltInput(fp);
+                }
+                blockInputHistory(fp, historyToken);
+                setPickerEnabled(fp, sel && sel.value === '0');
+            },
+            onOpen: function () {
+                if (sel && sel.value === '0') unlockAltInput(this);
+            },
+            onClose: function () {
+                if (sel && sel.value === '0') unlockAltInput(this);
+            },
+            onValueUpdate: function () {
+                if (sel && sel.value === '0') unlockAltInput(this);
+            }
+        };
+    }
+    var fpFrom = fromIn && typeof flatpickr !== 'undefined' ? flatpickr(fromIn, fpOpts('amCustomFromAlt', 'label[for="amCustomFrom"]', 'from')) : null;
+    var fpTo = toIn && typeof flatpickr !== 'undefined' ? flatpickr(toIn, fpOpts('amCustomToAlt', 'label[for="amCustomTo"]', 'to')) : null;
+
+    function syncCustomRangeUi() {
+        var custom = sel && sel.value === '0';
+        if (wrap) wrap.classList.toggle('d-none', !custom);
+        setPickerEnabled(fpFrom, custom);
+        setPickerEnabled(fpTo, custom);
+        if (fromIn) {
+            if (!custom) fromIn.removeAttribute('required');
+            else fromIn.setAttribute('required', 'required');
+        }
+        if (toIn) {
+            if (!custom) toIn.removeAttribute('required');
+            else toIn.setAttribute('required', 'required');
+        }
+        if (custom) {
+            requestAnimationFrame(function () {
+                unlockAltInput(fpFrom);
+                unlockAltInput(fpTo);
+            });
+        }
+    }
+    if (sel) sel.addEventListener('change', syncCustomRangeUi);
+    syncCustomRangeUi();
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            if (sel && sel.value === '0') {
+                if (!fromIn || !toIn || !fromIn.value || !toIn.value) {
+                    e.preventDefault();
+                    alert('Tarih aralığı seçildiğinde başlangıç ve bitiş tarihlerini girin.');
+                }
+            }
+        });
+    }
+})();
 (function () {
     var chartData = @Html.Raw(ViewBag.ChartDataJson ?? "null");
     if (!chartData) return;

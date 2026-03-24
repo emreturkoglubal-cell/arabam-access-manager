@@ -9,11 +9,15 @@ public interface IReportService
 {
     /// <summary>Dashboard için özet istatistikler (talep sayıları, personel, erişim vb.); departman ve dönem filtresi.</summary>
     /// <param name="departmentId">Faz 1: Departman bazlı filtre (null = tümü).</param>
-    /// <param name="periodMonths">Faz 1: Son N ay (1 veya 3; null = 1).</param>
-    DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null);
+    /// <param name="periodMonths">Son N ay (null = 1). 0 veya özel aralık için <paramref name="periodFrom"/>/<paramref name="periodTo"/> kullanılır.</param>
+    /// <param name="periodFrom">Özel dönem başlangıcı (dahil).</param>
+    /// <param name="periodTo">Özel dönem bitişi (dahil).</param>
+    DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null, DateTime? periodFrom = null, DateTime? periodTo = null);
 
     /// <summary>Kontrol paneli grafikleri için veri (personel trendi, işten ayrılma, sistem/departman dağılımı).</summary>
-    DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12);
+    /// <param name="rangeFrom">Doluysa <paramref name="rangeTo"/> ile birlikte takvim ayları bu aralıkta üretilir (öncelikli).</param>
+    /// <param name="rangeTo">Özel dönem bitiş ayı (dahil).</param>
+    DashboardChartData GetDashboardChartData(int? departmentId = null, int periodMonths = 12, DateTime? rangeFrom = null, DateTime? rangeTo = null);
     /// <summary>Sistem bazlı aktif erişim sayıları (rapor satırları).</summary>
     IReadOnlyList<AccessBySystemReportRow> GetAccessReportBySystem();
     /// <summary>Belirtilen tarih aralığında işten çıkan personel raporu.</summary>

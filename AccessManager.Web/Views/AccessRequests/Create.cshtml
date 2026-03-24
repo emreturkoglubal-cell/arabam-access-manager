@@ -54,7 +54,7 @@
             </div>
             <div class="mb-3">
                 <label asp-for="EndDate" class="form-label">Bitiş tarihi (opsiyonel)</label>
-                <input asp-for="EndDate" class="form-control" type="date" />
+                <input asp-for="EndDate" type="text" class="form-control am-fp-date" asp-format="{0:yyyy-MM-dd}" placeholder="gg.aa.yyyy" />
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-am-primary">Oluştur</button>

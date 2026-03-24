@@ -41,7 +41,7 @@
             </div>
             <div class="mb-3">
                 <label asp-for="PurchaseDate" class="form-label">Satın alma tarihi</label>
-                <input asp-for="PurchaseDate" class="form-control" type="date" />
+                <input asp-for="PurchaseDate" type="text" class="form-control am-fp-date" asp-format="{0:yyyy-MM-dd}" placeholder="gg.aa.yyyy" />
             </div>
             <div class="mb-3">
                 <label asp-for="PurchasePrice" class="form-label">Satın alma ücreti</label>
@@ -72,7 +72,7 @@
             </div>
             <div class="mb-3">
                 <label asp-for="DepreciationEndDate" class="form-label">Amortisman bitiş tarihi</label>
-                <input asp-for="DepreciationEndDate" class="form-control" type="date" />
+                <input asp-for="DepreciationEndDate" type="text" class="form-control am-fp-date" asp-format="{0:yyyy-MM-dd}" placeholder="gg.aa.yyyy" />
                 <span class="form-text">Boş bırakılırsa satın alma + amortisman süresi kullanılır.</span>
             </div>
             <div class="row g-2">
