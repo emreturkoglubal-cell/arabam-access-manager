@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AccessManager.UI.Constants;
 using AccessManager.UI.Services;
+using AccessManager.UI.Services.Agent;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,18 @@ namespace AccessManager.UI.Controllers;
 public class AiController : Controller
 {
     private readonly IAiConversationService _aiConversation;
+    private readonly IPendingSqlStore _pendingSql;
     private readonly CodeChunkIndexService? _codeChunkIndex;
     private readonly ILogger<AiController> _logger;
 
-    public AiController(IAiConversationService aiConversation, ILogger<AiController> logger, CodeChunkIndexService? codeChunkIndex = null)
+    public AiController(
+        IAiConversationService aiConversation,
+        IPendingSqlStore pendingSql,
+        ILogger<AiController> logger,
+        CodeChunkIndexService? codeChunkIndex = null)
     {
         _aiConversation = aiConversation;
+        _pendingSql = pendingSql;
         _logger = logger;
         _codeChunkIndex = codeChunkIndex;
     }
@@ -119,6 +126,19 @@ public class AiController : Controller
             _logger.LogError(ex, "AI Chat hatası. ConversationId: {ConversationId}, ExceptionType: {ExceptionType}, Message: {Message}", request.ConversationId, ex.GetType().FullName, ex.Message);
             return Json(new { reply = "Sunucu hatası: " + ex.Message });
         }
+    }
+
+    /// <summary>POST /Ai/CancelPendingSql — Kullanıcının bu konuşmadaki bekleyen onaylı SQL kaydını siler (onaylamıyorum akışı).</summary>
+    [HttpPost]
+    public IActionResult CancelPendingSql([FromBody] ChatRequest? request)
+    {
+        var id = request?.ConversationId;
+        if (id is null or < 1)
+            return Json(new { success = false, message = "Geçersiz konuşma." });
+        if (_aiConversation.GetConversation(id.Value) == null)
+            return Json(new { success = false, message = "Sohbet bulunamadı veya yetkiniz yok." });
+        _pendingSql.Clear(id.Value);
+        return Json(new { success = true });
     }
 
     /// <summary>POST /Ai/DeleteConversation — Sohbeti soft delete yapar (is_active = false). Sadece kendi sohbeti silinebilir.</summary>

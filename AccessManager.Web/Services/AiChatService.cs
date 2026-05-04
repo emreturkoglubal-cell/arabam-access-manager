@@ -145,6 +145,24 @@ Araçlar:
 - confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build alır; build başarısızsa push etmez ve hatayı bildirir. Başarılıysa main'e commit+push.
 - create_pr: Kullanıcı ""PR aç"", ""pull request aç"", ""pushlama PR aç"" veya doğrudan main'e push etmek istemediğini söylediğinde çağır. Değişiklikleri yeni branch'e commit edip push eder; kullanıcı GitHub/GitLab'da PR açar.
 - git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde (confirm_and_push dışında) kullan.
+- propose_sql: Veritabanından salt okunur veri için kullan. Önce her zaman bunu çağır; tek SELECT (veya WITH…SELECT) ver. Bu araç SQL'i doğrular ve konuşmaya bekleyen sorgu olarak kaydeder. Asla doğrudan veritabanına yazma veya execute_pending_sql dışında SQL çalıştırma.
+- execute_pending_sql: Parametresiz. Sadece kullanıcı sorguyu gördükten sonra açıkça onayladığında (""Evet, çalıştır"", ""Onaylıyorum"", ""Çalıştır"") çağır. Yalnızca bu konuşmada propose_sql ile kaydedilmiş sorguyu çalıştırır; istemciden veya argümanlardan ham SQL kabul etmez.
+
+Salt okunur SQL akışı:
+1) Veri sorusu: önce propose_sql ile geçerli bir SELECT öner; yanıttaki SQL'i kullanıcıya kod bloğunda göster ve çalıştırmadan önce onay iste.
+2) Onay: kullanıcı onayladıktan sonra yalnızca execute_pending_sql çağır (başka SQL metni verme).
+3) Onaysız execute_pending_sql kullanma.
+4) execute_pending_sql araç çıktısı geldikten sonra kullanıcıya tek bir nihai Türkçe yanıt ver: sonuç tablosu boş veya 0 satırsa bunu açıkça söyle (""bu kriterlerde kayıt yok"", ""zimmette eşleşen satır bulunamadı"" gibi). Boş sonuç hataya değildir; aynı onay turunda propose_sql ile aynı sorguyu TEKRAR önerme ve tekrar onay isteme.
+5) Araç ""bekleyen sorgu yok"" / benzeri dönerse: sorgu çoktan çalıştırılmış veya iptal edilmiş olabilir. Aynı SQL ile yeniden onay bekleme; kullanıcıya durumu kısaca anlat. Gerekirse yeni bir soru için propose_sql ile farklı bir sorgu öner.
+
+Veritabanı SQL — PostgreSQL (ZORUNLU):
+- Çalışan bağlantı PostgreSQL'dir. SQL içinde tablo ve sütun adları küçük harf ve snake_case kullanılır (örn. personnel, start_date). C# entity/sınıf adlarını (Personnel, StartDate) doğrudan SQL'de YAZMA.
+- SQL Server / T-SQL kullanma: DATEADD, GETDATE(), TOP n … Bunların yerine PostgreSQL: CURRENT_DATE, NOW(), INTERVAL '1 year', LIMIT n.
+- Kolon/tablo adından emin değilsen tahmin etme: read_file ile AccessManager.Domain/Entities/<İlgiliEntity>.cs ve AccessManager.Infrastructure/Repositories/<İlgili>Repository.cs aç; Repository içindeki SELECT … AS … ifadelerinde SQL tarafındaki gerçek adları görürsün.
+- Vektör araması ile gelen kod parçaları yardımcıdır; şema için kesin kaynak Entity + Repository dosyalarıdır (indeks eski olabilir — şüphede read_file kullan).
+
+Sık kullanılan personnel tablosu (SQL adları): personnel ( id, first_name, last_name, email, phone, department_id, position, manager_id, start_date, end_date, status, role_id, location, image_url, rating, manager_comment, seniority_level, team_id ). status sayısal enum: 0=Aktif, 1=Pasif, 2=Offboard.
+Örnek son 1 yıl işe giriş sayısı: SELECT COUNT(*) AS total_hires FROM personnel WHERE start_date >= CURRENT_DATE - INTERVAL '1 year';
 
 Kod değişikliği akışı:
 1) read_file ile ilgili dosyayı oku, apply_diff veya write_file ile değiştir.
@@ -181,7 +199,7 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
         {
             round++;
             await Emit("ping", "keep-alive").ConfigureAwait(false);
-            await Emit("model_turn", $"OpenAI turu {round}: yanıt bekleniyor…", round).ConfigureAwait(false);
+            await Emit("model_turn", "Yanıt bekleniyor…", round).ConfigureAwait(false);
 
             var messagesCopy = JsonSerializer.Deserialize<JsonArray>(messages.ToJsonString())!;
             var payload = new JsonObject
@@ -331,6 +349,13 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                     if (root.TryGetProperty("commit_message", out var m))
                         return Truncate(m.GetString() ?? "", ArgsPreviewMaxChars);
                     break;
+                case "propose_sql":
+                    if (root.TryGetProperty("sql", out var sqlEl) && sqlEl.ValueKind == JsonValueKind.String)
+                    {
+                        var s = sqlEl.GetString() ?? "";
+                        return Truncate($"{s.Length} karakter SQL", ArgsPreviewMaxChars);
+                    }
+                    break;
             }
         }
         catch
@@ -425,6 +450,21 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                             paths.Add(p.GetString() ?? "");
                     }
                     return await _agentTools.GitCommitAndPushAsync(commitMessage, paths, cancellationToken).ConfigureAwait(false);
+                }
+                case "propose_sql":
+                {
+                    if (!conversationId.HasValue || conversationId.Value < 1)
+                        return "HATA: Bu konuşma için sorgu kaydedilemedi (konuşma bilgisi yok).";
+                    if (!root.TryGetProperty("sql", out var sqlEl))
+                        return "HATA: 'sql' parametresi gerekli (tek SELECT veya WITH…SELECT).";
+                    var sqlText = sqlEl.GetString() ?? "";
+                    return await _agentTools.ProposeSqlAsync(sqlText, conversationId.Value, cancellationToken).ConfigureAwait(false);
+                }
+                case "execute_pending_sql":
+                {
+                    if (!conversationId.HasValue || conversationId.Value < 1)
+                        return "HATA: Bekleyen sorgu çalıştırılamadı (konuşma bilgisi yok).";
+                    return await _agentTools.ExecutePendingSqlAsync(conversationId.Value, cancellationToken).ConfigureAwait(false);
                 }
                 default:
                     return "HATA: Bilinmeyen araç: " + name;

@@ -1,7 +1,7 @@
 namespace AccessManager.UI.Services.Agent;
 
 /// <summary>
-/// AI agent'ın kullandığı araçları çalıştırır: read_file, write_file, apply_diff, run_build, git_commit_and_push, confirm_and_push, create_pr.
+/// AI agent'ın kullandığı araçları çalıştırır: read_file, write_file, apply_diff, run_build, git_commit_and_push, confirm_and_push, create_pr, propose_sql, execute_pending_sql.
 /// </summary>
 public interface IAgentTools
 {
@@ -15,4 +15,10 @@ public interface IAgentTools
     Task<string> ConfirmPushAsync(int conversationId, CancellationToken cancellationToken = default);
     /// <summary>Onay bekleyen değişiklikleri yeni branch'e commit edip push eder; kullanıcı PR açar. Pushlamak yerine PR istendiğinde kullan.</summary>
     Task<string> CreatePrAsync(int conversationId, CancellationToken cancellationToken = default);
+
+    /// <summary>SELECT doğrular, normalize eder ve konuşmaya bekleyen SQL olarak kaydeder.</summary>
+    Task<string> ProposeSqlAsync(string sql, int conversationId, CancellationToken cancellationToken = default);
+
+    /// <summary>Bekleyen onaylı SELECT'i çalıştırır ve store'u temizler.</summary>
+    Task<string> ExecutePendingSqlAsync(int conversationId, CancellationToken cancellationToken = default);
 }

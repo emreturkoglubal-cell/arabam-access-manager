@@ -130,6 +130,39 @@ public static class OpenAiToolDefinitions
                         ["required"] = new JsonArray { }
                     }
                 }
+            },
+            new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = "propose_sql",
+                    ["description"] = "Veritabanından salt okunur veri almak için kullan. Önce HER ZAMAN bunu çağır: tek bir SELECT (veya WITH…SELECT) metni ver. Veritabanı PostgreSQL'dir; tablo/kolon adları snake_case (örn. personnel.start_date). SQL Server sözdizimi kullanma (DATEADD, GETDATE vb.). Şema emin değilsen read_file ile AccessManager.Domain/Entities ve AccessManager.Infrastructure/Repositories ilgili *Repository.cs dosyasına bak. Yazma yok. SQL doğrulanır, LIMIT 1000. Asla doğrudan DB'ye yazma. Kullanıcıya SQL'i göster, onay iste; onaydan sonra yalnızca execute_pending_sql.",
+                    ["parameters"] = new JsonObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JsonObject
+                        {
+                            ["sql"] = new JsonObject { ["type"] = "string", ["description"] = "Tek ifadeli SELECT veya WITH…SELECT sorgusu" }
+                        },
+                        ["required"] = new JsonArray { "sql" }
+                    }
+                }
+            },
+            new JsonObject
+            {
+                ["type"] = "function",
+                ["function"] = new JsonObject
+                {
+                    ["name"] = "execute_pending_sql",
+                    ["description"] = "Kullanıcı 'Evet çalıştır', 'Onaylıyorum', 'Çalıştır' gibi açıkça onayladıktan sonra çağır. Yalnızca bu konuşmada propose_sql ile kaydedilmiş doğrulanmış SELECT'i çalıştırır; istemciden ham SQL almaz. Parametre yok.",
+                    ["parameters"] = new JsonObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JsonObject { },
+                        ["required"] = new JsonArray { }
+                    }
+                }
             }
         };
     }

@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using AccessManager.Application.Interfaces;
+using AccessManager.Application.Sql;
 using AccessManager.UI.Services.CodeModification;
 using AccessManager.UI.Services.Git;
 
@@ -10,6 +12,8 @@ public sealed class AgentTools : IAgentTools
     private readonly ICodeModificationService _codeMod;
     private readonly IGitService _gitService;
     private readonly IPendingPushStore _pendingPush;
+    private readonly IPendingSqlStore _pendingSql;
+    private readonly IReadOnlySqlQueryService _readOnlySql;
     private readonly ILogger<AgentTools> _logger;
 
     public AgentTools(
@@ -17,12 +21,16 @@ public sealed class AgentTools : IAgentTools
         ICodeModificationService codeMod,
         IGitService gitService,
         IPendingPushStore pendingPush,
+        IPendingSqlStore pendingSql,
+        IReadOnlySqlQueryService readOnlySql,
         ILogger<AgentTools> logger)
     {
         _config = config;
         _codeMod = codeMod;
         _gitService = gitService;
         _pendingPush = pendingPush;
+        _pendingSql = pendingSql;
+        _readOnlySql = readOnlySql;
         _logger = logger;
     }
 
@@ -210,5 +218,41 @@ public sealed class AgentTools : IAgentTools
             return "HATA: En az bir dosya gerekli.";
         var result = await _gitService.CommitAndPushAsync(relativePaths, commitMessage, cancellationToken);
         return result.Success ? "OK: " + result.Message : "HATA: " + result.Message;
+    }
+
+    public Task<string> ProposeSqlAsync(string sql, int conversationId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var guard = SqlSelectGuard.ValidateAndNormalize(sql);
+        if (!guard.IsValid || string.IsNullOrEmpty(guard.NormalizedSql))
+            return Task.FromResult("HATA: " + (guard.ErrorMessage ?? "SQL doğrulanamadı."));
+
+        _pendingSql.Set(conversationId, guard.NormalizedSql);
+        var msg =
+            "OK: Sorgu bu konuşma için kaydedildi (en fazla " + SqlSelectGuard.MaxRows + " satır). Kullanıcıya aşağıdaki SQL'i kod bloğunda göster ve çalıştırmadan önce açık onay iste (ör. «Evet, çalıştır», «Onaylıyorum»). Onay sonrası yalnızca execute_pending_sql çağır; başka parametre veya ham SQL ile veritabanına gitme.\n\n```sql\n" +
+            guard.NormalizedSql +
+            "\n```";
+        return Task.FromResult(msg);
+    }
+
+    public async Task<string> ExecutePendingSqlAsync(int conversationId, CancellationToken cancellationToken = default)
+    {
+        var pending = _pendingSql.Get(conversationId);
+        if (string.IsNullOrEmpty(pending))
+            return "HATA: Bu konuşma için onay bekleyen SELECT sorgusu yok. Önce propose_sql ile geçerli bir sorgu önerin ve kullanıcıdan onay alın.";
+
+        try
+        {
+            var output = await _readOnlySql.ExecuteSelectAsync(pending, cancellationToken).ConfigureAwait(false);
+            if (output.StartsWith("HATA:", StringComparison.Ordinal))
+                return output;
+            _pendingSql.Clear(conversationId);
+            return output;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AgentTools.ExecutePendingSqlAsync: Sorgu çalıştırılamadı. ConversationId: {Id}", conversationId);
+            return "HATA: Sorgu çalıştırılamadı: " + ex.Message;
+        }
     }
 }

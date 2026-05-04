@@ -42,6 +42,15 @@
                     <button type="button" id="btnPush" class="btn btn-sm btn-am-primary am-ai-action-btn">Pushla</button>
                 </div>
             </div>
+            <div id="sqlApprovalActionsBar" class="ai-chat-sql-approval-bar border-top py-2 px-3 flex-shrink-0" style="display: none;">
+                <div class="ai-chat-input-bottom-inner ai-chat-sql-approval-inner d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-center gap-2 gap-sm-3">
+                    <span class="small text-muted text-center text-sm-start mb-0 ai-chat-sql-approval-hint">SQL çalıştırmadan önce onaylayın</span>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap flex-sm-nowrap">
+                        <button type="button" id="btnSqlApprove" class="btn btn-sm ai-chat-sql-btn ai-chat-sql-btn--approve">Onaylıyorum</button>
+                        <button type="button" id="btnSqlReject" class="btn btn-sm ai-chat-sql-btn ai-chat-sql-btn--reject">Onaylamıyorum</button>
+                    </div>
+                </div>
+            </div>
             <div id="inputBarBottom" class="ai-chat-input-bar ai-chat-input-bar--bottom border-top p-3 flex-shrink-0" style="display: none;">
                 <div id="inputBarBottomInner" class="ai-chat-input-bottom-inner"><!-- inputBar buraya taşınır --></div>
             </div>
@@ -276,6 +285,48 @@
         text-align: left;
     }
     .am-ai-code-block code { background: none; color: inherit; padding: 0; font-size: inherit; }
+    /* SQL blokları: tema vurgusu (accent ile uyumlu) */
+    pre.am-ai-code-block:has(code.language-sql) {
+        background: linear-gradient(135deg, var(--am-accent-light, #fef2f2) 0%, var(--am-card-bg, #fff) 55%);
+        border-color: rgba(228, 0, 48, 0.18);
+    }
+    pre.am-ai-code-block code.language-sql {
+        color: var(--am-accent, #e40030);
+    }
+    .ai-chat-sql-approval-bar {
+        background: linear-gradient(180deg, rgba(254, 242, 242, 0.65) 0%, var(--am-card-bg, #fff) 100%);
+        border-color: var(--am-border, #e5e7eb) !important;
+    }
+    .ai-chat-sql-approval-inner { max-width: 640px; margin-left: auto; margin-right: auto; }
+    .ai-chat-sql-btn {
+        min-width: 7.5rem;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.4rem 1.1rem;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .ai-chat-sql-btn:active { transform: scale(0.98); }
+    .ai-chat-sql-btn--approve {
+        background: var(--am-accent, #e40030);
+        border: 1px solid var(--am-accent, #e40030);
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(228, 0, 48, 0.25);
+    }
+    .ai-chat-sql-btn--approve:hover {
+        background: #c90028;
+        border-color: #c90028;
+        color: #fff;
+    }
+    .ai-chat-sql-btn--reject {
+        background: var(--am-card-bg, #fff);
+        border: 1px solid var(--am-border, #e5e7eb);
+        color: var(--am-text, #374151);
+    }
+    .ai-chat-sql-btn--reject:hover {
+        border-color: var(--am-accent, #e40030);
+        color: var(--am-accent, #e40030);
+        background: var(--am-accent-light, #fef2f2);
+    }
     /* Diff blokları: silinen satır soft kırmızı, eklenen satır soft yeşil */
     .am-ai-diff-block {
         margin: 0.75rem 0;
@@ -538,6 +589,29 @@
         return isQuestion;
     }
 
+    /** Asistan SQL onayı istiyorsa (butonlar). Model farklı Türkçe kalıplar kullanabildiği için eşleşme geniş tutulur. */
+    function isSqlApprovalPrompt(text) {
+        if (!text || typeof text !== 'string') return false;
+        var t = text.toLowerCase();
+        var hasSqlFence = /```\s*sql/i.test(text);
+        // ``` veya ```plaintext vb. içinde SELECT
+        var hasCodeBlockWithSelect = /```\s*\w*\r?\n[\s\S]*?\bselect\b[\s\S]*?```/i.test(text);
+        var looksLikeSelect = /\bselect\b/i.test(text) && /\bfrom\b/i.test(text);
+        if (!hasSqlFence && !hasCodeBlockWithSelect && !looksLikeSelect) return false;
+        // Onay / çalıştırma sorusu (ör. "Onay verirseniz", "Ne dersiniz?", "bekliyorum"…)
+        var asksApproval =
+            (t.indexOf('onay') !== -1 && (t.indexOf('bekliyorum') !== -1 || t.indexOf('bekliyor') !== -1)) ||
+            t.indexOf('onaylayın') !== -1 ||
+            (t.indexOf('onayınız') !== -1 && (t.indexOf('sql') !== -1 || t.indexOf('sorgu') !== -1)) ||
+            /\bonay\s+ver/.test(t) ||
+            t.indexOf('onaylar mısınız') !== -1 ||
+            t.indexOf('onaylıyor musunuz') !== -1 ||
+            t.indexOf('ne dersiniz') !== -1 ||
+            (t.indexOf('çalıştır') !== -1 && (t.indexOf('sorgu') !== -1 || t.indexOf('sql') !== -1 || hasSqlFence || hasCodeBlockWithSelect)) ||
+            (t.indexOf('ister misiniz') !== -1 && (t.indexOf('çalıştır') !== -1 || t.indexOf('onay') !== -1 || t.indexOf('sorgu') !== -1));
+        return asksApproval;
+    }
+
     function addMessage(role, text) {
         if (welcomeBlock.style.display !== 'none') switchToChatMode();
         var wrap = document.createElement('div');
@@ -547,24 +621,38 @@
             ? 'd-inline-block text-start p-3 rounded-3 bg-am-primary text-dark shadow-sm'
             : 'd-inline-block text-start p-3 rounded-3 bg-light border shadow-sm';
         bubble.style.maxWidth = '85%';
-        if (role === 'assistant')
+        if (role === 'assistant') {
             bubble.innerHTML = formatAssistantMessage(text);
-        else
+            if (isSqlApprovalPrompt(text)) {
+                hidePushPrBar();
+                showSqlApprovalBar();
+            } else {
+                hideSqlApprovalBar();
+                if (isPushOrPrPrompt(text)) showPushPrBar();
+                else hidePushPrBar();
+            }
+        } else {
             bubble.textContent = text;
+            hideSqlApprovalBar();
+            hidePushPrBar();
+        }
         wrap.appendChild(bubble);
         messagesContainer.appendChild(wrap);
-        if (role === 'assistant' && isPushOrPrPrompt(text))
-            showPushPrBar();
-        else
-            hidePushPrBar();
         scrollToBottom();
     }
     var pushPrActionsBarEl = document.getElementById('pushPrActionsBar');
+    var sqlApprovalActionsBarEl = document.getElementById('sqlApprovalActionsBar');
     function showPushPrBar() {
         if (pushPrActionsBarEl && inputBarBottom.style.display !== 'none') pushPrActionsBarEl.style.display = 'block';
     }
     function hidePushPrBar() {
         if (pushPrActionsBarEl) pushPrActionsBarEl.style.display = 'none';
+    }
+    function showSqlApprovalBar() {
+        if (sqlApprovalActionsBarEl && inputBarBottom.style.display !== 'none') sqlApprovalActionsBarEl.style.display = 'block';
+    }
+    function hideSqlApprovalBar() {
+        if (sqlApprovalActionsBarEl) sqlApprovalActionsBarEl.style.display = 'none';
     }
 
     function addTypingIndicator() {
@@ -749,11 +837,6 @@
                 items.forEach(function (m) {
                     addMessage(m.role, m.content || '');
                 });
-                var last = items.length > 0 ? items[items.length - 1] : null;
-                if (last && last.role === 'assistant' && isPushOrPrPrompt(last.content))
-                    showPushPrBar();
-                else
-                    hidePushPrBar();
             })
             .catch(function () {
                 var el = document.getElementById('messagesLoading');
@@ -778,6 +861,7 @@
     function sendMessage(msg) {
         msg = (msg || '').trim();
         if (!msg) return;
+        hideSqlApprovalBar();
         setPlaceholder(false);
         addMessage('user', msg);
         if (inputEl) { inputEl.value = ''; resizeChatInput(); }
@@ -908,6 +992,29 @@
     var btnPush = document.getElementById('btnPush');
     if (btnPrCreate) btnPrCreate.addEventListener('click', function () { sendMessage('PR aç'); });
     if (btnPush) btnPush.addEventListener('click', function () { sendMessage('Evet, pushla'); });
+
+    var btnSqlApprove = document.getElementById('btnSqlApprove');
+    var btnSqlReject = document.getElementById('btnSqlReject');
+    if (btnSqlApprove) btnSqlApprove.addEventListener('click', function () {
+        hideSqlApprovalBar();
+        hidePushPrBar();
+        sendMessage('Evet, çalıştır');
+    });
+    if (btnSqlReject) btnSqlReject.addEventListener('click', function () {
+        hideSqlApprovalBar();
+        hidePushPrBar();
+        var cid = currentConversationId;
+        function sendReject() {
+            sendMessage('Hayır, bu SQL sorgusunu çalıştırmayı onaylamıyorum.');
+        }
+        if (cid) {
+            fetch('/Ai/CancelPendingSql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId: cid })
+            }).then(function () { sendReject(); }).catch(function () { sendReject(); });
+        } else sendReject();
+    });
 
     inputEl.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
