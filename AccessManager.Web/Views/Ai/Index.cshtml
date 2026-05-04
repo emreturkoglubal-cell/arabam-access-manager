@@ -285,14 +285,46 @@
         text-align: left;
     }
     .am-ai-code-block code { background: none; color: inherit; padding: 0; font-size: inherit; }
-    /* SQL blokları: tema vurgusu (accent ile uyumlu) */
+    /* SQL: sol film şeridi yok, düz arka plan, tek renk metin (geçiş yok) */
     pre.am-ai-code-block:has(code.language-sql) {
-        background: linear-gradient(135deg, var(--am-accent-light, #fef2f2) 0%, var(--am-card-bg, #fff) 55%);
-        border-color: rgba(228, 0, 48, 0.18);
+        border-left: none;
+        background: var(--am-accent-light, #fef2f2);
+        border: 1px solid rgba(228, 0, 48, 0.14);
     }
     pre.am-ai-code-block code.language-sql {
         color: var(--am-accent, #e40030);
+        background: transparent !important;
     }
+    /* Asistan mesajındaki GFM tabloları */
+    .am-ai-table-wrap {
+        margin: 0.75rem 0;
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid var(--am-border, #e5e7eb);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .am-ai-md-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        background: var(--am-card-bg, #fff);
+    }
+    .am-ai-md-table th {
+        background: var(--am-accent-light, #fef2f2);
+        color: var(--am-text, #111827);
+        font-weight: 600;
+        text-align: left;
+        padding: 0.55rem 0.9rem;
+        border-bottom: 2px solid var(--am-accent, #e40030);
+        white-space: nowrap;
+    }
+    .am-ai-md-table td {
+        padding: 0.45rem 0.9rem;
+        border-bottom: 1px solid var(--am-border, #e5e7eb);
+        color: var(--am-text, #374151);
+    }
+    .am-ai-md-table tbody tr:last-child td { border-bottom: none; }
+    .am-ai-md-table tbody tr:nth-child(even) { background: rgba(254, 242, 242, 0.28); }
     .ai-chat-sql-approval-bar {
         background: linear-gradient(180deg, rgba(254, 242, 242, 0.65) 0%, var(--am-card-bg, #fff) 100%);
         border-color: var(--am-border, #e5e7eb) !important;
@@ -539,6 +571,89 @@
         html.push('</div>');
         return html.join('');
     }
+    function isTableDividerLine(line) {
+        var t = (line || '').trim();
+        if (t.length < 3 || t.charAt(0) !== '|' || t.charAt(t.length - 1) !== '|') return false;
+        var cells = t.slice(1, -1).split('|');
+        for (var j = 0; j < cells.length; j++) {
+            var c = cells[j].trim();
+            if (!/^:?-{3,}:?$/.test(c)) return false;
+        }
+        return cells.length > 0;
+    }
+    function isTableBodyRowLine(line) {
+        var t = (line || '').trim();
+        if (t.length < 3 || t.charAt(0) !== '|' || t.charAt(t.length - 1) !== '|') return false;
+        return !isTableDividerLine(line);
+    }
+    function parseTableCells(line) {
+        return line.trim().slice(1, -1).split('|').map(function (c) { return c.trim(); });
+    }
+    function renderGfmTableHtml(headerLine, bodyLines) {
+        var headers = parseTableCells(headerLine);
+        var colCount = headers.length;
+        if (colCount < 1) return escapeHtml(headerLine);
+        var parts = ['<div class="am-ai-table-wrap"><table class="am-ai-md-table"><thead><tr>'];
+        for (var h = 0; h < headers.length; h++) {
+            parts.push('<th>' + escapeHtml(headers[h]) + '</th>');
+        }
+        parts.push('</tr></thead><tbody>');
+        for (var r = 0; r < bodyLines.length; r++) {
+            var cells = parseTableCells(bodyLines[r]);
+            while (cells.length < colCount) cells.push('');
+            if (cells.length > colCount) cells = cells.slice(0, colCount);
+            parts.push('<tr>');
+            for (var c = 0; c < colCount; c++) {
+                parts.push('<td>' + escapeHtml(cells[c] || '') + '</td>');
+            }
+            parts.push('</tr>');
+        }
+        parts.push('</tbody></table></div>');
+        return parts.join('');
+    }
+    /** Kod blokları dışı kalan metinde | tablo | satırlarını HTML tabloya çevirir, sonra inline markdown. */
+    function formatInlineMarkdownWithTables(s) {
+        if (!s) return '';
+        var lines = s.split(/\r?\n/);
+        var chunks = [];
+        var textBuf = [];
+        var i = 0;
+        function flushText() {
+            if (textBuf.length) {
+                chunks.push({ type: 'text', value: textBuf.join('\n') });
+                textBuf = [];
+            }
+        }
+        while (i < lines.length) {
+            if (i + 1 < lines.length && isTableBodyRowLine(lines[i]) && isTableDividerLine(lines[i + 1])) {
+                flushText();
+                var hdr = lines[i];
+                i += 2;
+                var bodies = [];
+                while (i < lines.length && isTableBodyRowLine(lines[i])) {
+                    bodies.push(lines[i]);
+                    i++;
+                }
+                chunks.push({ type: 'table', header: hdr, body: bodies });
+                continue;
+            }
+            textBuf.push(lines[i]);
+            i++;
+        }
+        flushText();
+        return chunks.map(function (ch) {
+            if (ch.type === 'table') return renderGfmTableHtml(ch.header, ch.body);
+            return formatInlineMarkdown(ch.value);
+        }).join('');
+    }
+    /** Kod çiti öncesi/sonrası modelin eklediği fazladan boş satırları tek satıra indirger (HTML'de çift <br/> oluşmasın). */
+    function trimBlankLinesAroundCodeFence(segment, opts) {
+        opts = opts || {};
+        var s = segment || '';
+        if (opts.trimLeadingAfterFence) s = s.replace(/^\n{2,}/, '\n');
+        if (opts.trimTrailingBeforeFence) s = s.replace(/\n{2,}$/, '\n');
+        return s;
+    }
     // Markdown: kod blokları ```lang\n...\n``` -> <pre><code>; diff ise satır bazlı renk
     function formatAssistantMessage(text) {
         var raw = text || '';
@@ -548,18 +663,25 @@
         var m;
         while ((m = codeBlockRe.exec(raw)) !== null) {
             var before = raw.slice(lastEnd, m.index);
-            out.push(formatInlineMarkdown(before));
+            before = trimBlankLinesAroundCodeFence(before, { trimTrailingBeforeFence: true });
+            if (lastEnd > 0) before = trimBlankLinesAroundCodeFence(before, { trimLeadingAfterFence: true });
+            out.push(formatInlineMarkdownWithTables(before));
             var lang = (m[1] || 'text').toLowerCase();
             if (lang === 'cs') lang = 'csharp';
             var code = m[2].replace(/\r\n/g, '\n').trimEnd();
             if (lang === 'diff') {
                 out.push(formatDiffBlock(code));
             } else {
-                out.push('<pre class="am-ai-code-block"><code class="language-' + escapeHtml(lang) + '">' + escapeHtml(code) + '</code></pre>');
+                var effLang = lang;
+                if (!effLang || effLang === 'text') {
+                    if (/^\s*(\(|with\s+)?select\b/im.test(code)) effLang = 'sql';
+                }
+                out.push('<pre class="am-ai-code-block"><code class="language-' + escapeHtml(effLang || 'text') + '">' + escapeHtml(code) + '</code></pre>');
             }
             lastEnd = codeBlockRe.lastIndex;
         }
-        out.push(formatInlineMarkdown(raw.slice(lastEnd)));
+        var tail = trimBlankLinesAroundCodeFence(raw.slice(lastEnd), { trimLeadingAfterFence: true });
+        out.push(formatInlineMarkdownWithTables(tail));
         return out.join('');
     }
     function formatInlineMarkdown(s) {

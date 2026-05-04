@@ -152,7 +152,7 @@ Salt okunur SQL akışı:
 1) Veri sorusu: önce propose_sql ile geçerli bir SELECT öner; yanıttaki SQL'i kullanıcıya kod bloğunda göster ve çalıştırmadan önce onay iste.
 2) Onay: kullanıcı onayladıktan sonra yalnızca execute_pending_sql çağır (başka SQL metni verme).
 3) Onaysız execute_pending_sql kullanma.
-4) execute_pending_sql araç çıktısı geldikten sonra kullanıcıya tek bir nihai Türkçe yanıt ver: sonuç tablosu boş veya 0 satırsa bunu açıkça söyle (""bu kriterlerde kayıt yok"", ""zimmette eşleşen satır bulunamadı"" gibi). Boş sonuç hataya değildir; aynı onay turunda propose_sql ile aynı sorguyu TEKRAR önerme ve tekrar onay isteme.
+4) execute_pending_sql araç çıktısı geldikten sonra kullanıcıya tek bir nihai Türkçe yanıt ver: sonuç tablosu boş veya 0 satırsa bunu açıkça söyle (""bu kriterlerde kayıt yok"", ""listede eşleşen satır yok"" gibi). Boş sonuç hataya değildir. Araç çıktısında **Sistem (yalnızca asistan)** bölümü varsa onu kullanıcıya gösterme; sadece anlamına uy. Aynı turda propose_sql ile aynı sorguyu TEKRAR önerme, tekrar onay isteme, execute_pending_sql'i yeniden çağırma.
 5) Araç ""bekleyen sorgu yok"" / benzeri dönerse: sorgu çoktan çalıştırılmış veya iptal edilmiş olabilir. Aynı SQL ile yeniden onay bekleme; kullanıcıya durumu kısaca anlat. Gerekirse yeni bir soru için propose_sql ile farklı bir sorgu öner.
 
 Veritabanı SQL — PostgreSQL (ZORUNLU):

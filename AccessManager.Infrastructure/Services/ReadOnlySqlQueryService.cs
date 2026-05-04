@@ -10,6 +10,12 @@ public sealed class ReadOnlySqlQueryService : IReadOnlySqlQueryService
     private const int CommandTimeoutSeconds = 30;
     private const int MaxOutputChars = 100_000;
 
+    /// <summary>Boş sonuçta modelin aynı sorguyu tekrar propose etmesini engellemek için araç çıktısına eklenir.</summary>
+    private static string EmptyResultAssistantDirective =>
+        "\n\n---\n**Sistem (yalnızca asistan):** Veritabanı sorguyu başarıyla çalıştırdı; sonuç kümesi **boş** (0 satır). " +
+        "Kullanıcıya tek yanıtta kısaca bildir (ör. «Bu kriterlere uyan kayıt bulunamadı» / «Listede eşleşen satır yok»). " +
+        "**Yapma:** propose_sql ile aynı veya benzer sorguyu yeniden önerme, tekrar onay isteme, execute_pending_sql'i ikinci kez çağırma. Bu SQL turu tamamlanmıştır; gerekirse kullanıcıdan yeni bir soru bekle.\n";
+
     private readonly string? _connectionString;
 
     public ReadOnlySqlQueryService(IConfiguration configuration)
@@ -48,6 +54,7 @@ public sealed class ReadOnlySqlQueryService : IReadOnlySqlQueryService
         if (!reader.HasRows)
         {
             sb.AppendLine("*Sorgu başarıyla çalıştı; eşleşen satır yok (0 kayıt). Bu bir hataya değildir — filtre/join kriterlerine uyan veri bulunamadı.*");
+            sb.Append(EmptyResultAssistantDirective);
             return sb.ToString();
         }
 
@@ -90,7 +97,10 @@ public sealed class ReadOnlySqlQueryService : IReadOnlySqlQueryService
 
         sb.AppendLine();
         if (rowCount == 0)
+        {
             sb.AppendLine("*Sorgu başarıyla çalıştı; sonuç kümesinde satır yok (0 kayıt).*");
+            sb.Append(EmptyResultAssistantDirective);
+        }
         else
             sb.Append('*').Append(rowCount).AppendLine(" satır gösterildi.*");
         return sb.ToString();

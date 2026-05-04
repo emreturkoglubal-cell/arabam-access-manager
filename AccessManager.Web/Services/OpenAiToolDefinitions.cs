@@ -155,7 +155,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "execute_pending_sql",
-                    ["description"] = "Kullanıcı 'Evet çalıştır', 'Onaylıyorum', 'Çalıştır' gibi açıkça onayladıktan sonra çağır. Yalnızca bu konuşmada propose_sql ile kaydedilmiş doğrulanmış SELECT'i çalıştırır; istemciden ham SQL almaz. Parametre yok.",
+                    ["description"] = "Kullanıcı 'Evet çalıştır', 'Onaylıyorum', 'Çalıştır' gibi açıkça onayladıktan sonra çağır. Yalnızca bu konuşmada propose_sql ile kaydedilmiş doğrulanmış SELECT'i çalıştırır; istemciden ham SQL almaz. Sonuç 0 satırsa araç metnindeki talimatlara uy: aynı sorguyu tekrar propose etme. Parametre yok.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
