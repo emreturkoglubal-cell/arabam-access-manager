@@ -1,6 +1,8 @@
+using System.Text.Json;
 using AccessManager.UI.Constants;
 using AccessManager.UI.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AccessManager.UI.Controllers;
@@ -57,6 +59,47 @@ public class AiController : Controller
             title,
             messages = list.Select(m => new { role = m.Role, content = m.Content, createdAt = m.CreatedAt })
         });
+    }
+
+    /// <summary>POST /Ai/ChatStream — NDJSON satırları: phase, model_turn, tool_start, tool_end, ping, error, done (son).</summary>
+    [HttpPost]
+    public async Task ChatStream([FromBody] ChatRequest request, CancellationToken cancellationToken)
+    {
+        Response.ContentType = "application/x-ndjson; charset=utf-8";
+        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        Response.Headers.Append("X-Accel-Buffering", "no");
+        HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
+
+        async ValueTask WriteEvent(AiStreamEvent ev, CancellationToken ct)
+        {
+            var line = JsonSerializer.Serialize(ev, AiStreamSerialization.JsonOptions) + "\n";
+            await Response.WriteAsync(line, ct).ConfigureAwait(false);
+            await Response.Body.FlushAsync(ct).ConfigureAwait(false);
+        }
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Message))
+        {
+            await WriteEvent(new AiStreamEvent { Type = "error", Message = "Lütfen bir mesaj yazın." }, cancellationToken).ConfigureAwait(false);
+            await WriteEvent(new AiStreamEvent { Type = "done", ConversationId = 0, Title = "", Reply = "Lütfen bir mesaj yazın." }, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            await _aiConversation.SendMessageStreamAsync(request.ConversationId, request.Message.Trim(), WriteEvent, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            await WriteEvent(new AiStreamEvent { Type = "error", Message = "İstek iptal edildi." }, CancellationToken.None).ConfigureAwait(false);
+            await WriteEvent(new AiStreamEvent { Type = "done", ConversationId = 0, Title = "", Reply = "İstek iptal edildi." }, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI ChatStream hatası. ConversationId: {ConversationId}", request.ConversationId);
+            var msg = "Sunucu hatası: " + ex.Message;
+            await WriteEvent(new AiStreamEvent { Type = "error", Message = msg }, cancellationToken).ConfigureAwait(false);
+            await WriteEvent(new AiStreamEvent { Type = "done", ConversationId = 0, Title = "", Reply = msg }, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>POST /Ai/Chat — Kullanıcı mesajını AI'a gönderir; yanıt ve güncel conversationId/title JSON döner.</summary>

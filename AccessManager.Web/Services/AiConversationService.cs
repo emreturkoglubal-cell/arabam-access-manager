@@ -112,6 +112,74 @@ public class AiConversationService : IAiConversationService
         return (convId, title, reply);
     }
 
+    public async Task<(int ConversationId, string Title, string Reply)> SendMessageStreamAsync(
+        int? conversationId,
+        string userMessage,
+        Func<AiStreamEvent, CancellationToken, ValueTask> emit,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.UserId ?? 0;
+        if (userId == 0)
+        {
+            const string msg = "Oturum açmanız gerekiyor.";
+            await emit(new AiStreamEvent { Type = "error", Message = msg }, cancellationToken).ConfigureAwait(false);
+            await emit(new AiStreamEvent { Type = "done", ConversationId = 0, Title = "", Reply = msg }, cancellationToken).ConfigureAwait(false);
+            return (0, "", msg);
+        }
+
+        int convId;
+        string title;
+
+        if (conversationId.HasValue && conversationId.Value > 0)
+        {
+            var conv = _repo.GetConversation(conversationId.Value, userId);
+            if (conv == null)
+            {
+                const string msg = "Bu konuşmaya erişim yetkiniz yok.";
+                await emit(new AiStreamEvent { Type = "error", Message = msg }, cancellationToken).ConfigureAwait(false);
+                await emit(new AiStreamEvent { Type = "done", ConversationId = 0, Title = "", Reply = msg }, cancellationToken).ConfigureAwait(false);
+                return (0, "", msg);
+            }
+            convId = conv.Id;
+            title = conv.Title;
+        }
+        else
+        {
+            var titleRaw = userMessage.Trim();
+            title = titleRaw.Length <= TitleMaxLength ? titleRaw : titleRaw[..TitleMaxLength].TrimEnd();
+            if (string.IsNullOrEmpty(title)) title = "(Yeni sohbet)";
+            convId = _repo.CreateConversation(userId, title);
+        }
+
+        var previousMessages = _repo.GetMessagesByConversation(convId)
+            .Select(m => (m.Role, m.Content))
+            .ToList();
+
+        _repo.AddMessage(convId, "user", userMessage.Trim());
+
+        string reply;
+        try
+        {
+            reply = await _chat.SendAsync(userMessage.Trim(), previousMessages, convId, cancellationToken, emit).ConfigureAwait(false);
+        }
+        catch (OutOfMemoryException ex)
+        {
+            _logger.LogError(ex, "AiConversationService.SendMessageStreamAsync: Bellek yetersiz (OOM). ConversationId: {ConversationId}, UserId: {UserId}", convId, userId);
+            reply = "Şu an yanıt üretilemedi (bellek sınırı). Lütfen kısa bir mesajla tekrar deneyin veya daha sonra tekrar deneyin.";
+            await emit(new AiStreamEvent { Type = "error", Message = reply }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AiConversationService.SendMessageStreamAsync: AI yanıt alınırken hata. ConversationId: {ConversationId}, UserId: {UserId}", convId, userId);
+            reply = "Yanıt alınırken bir hata oluştu: " + ex.Message;
+            await emit(new AiStreamEvent { Type = "error", Message = reply }, cancellationToken).ConfigureAwait(false);
+        }
+
+        _repo.AddMessage(convId, "assistant", reply);
+        await emit(new AiStreamEvent { Type = "done", ConversationId = convId, Title = title, Reply = reply }, cancellationToken).ConfigureAwait(false);
+        return (convId, title, reply);
+    }
+
     public bool DeleteConversation(int conversationId)
     {
         var userId = _currentUser.UserId;

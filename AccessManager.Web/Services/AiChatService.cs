@@ -11,6 +11,8 @@ public class AiChatService : IAiChatService
 {
     private const int MaxToolRoundTrips = 10;
     private const int VectorSearchTopK = 10;
+    private const int ToolPreviewMaxChars = 320;
+    private const int ArgsPreviewMaxChars = 240;
 
     private readonly IConfiguration _config;
     private readonly ICodeContextService _codeContext;
@@ -38,19 +40,41 @@ public class AiChatService : IAiChatService
         _codeChunkSearch = codeChunkSearch;
     }
 
-    public async Task<string> SendAsync(string userMessage, IReadOnlyList<(string Role, string Content)>? previousMessages = null, int? conversationId = null, CancellationToken cancellationToken = default)
+    public async Task<string> SendAsync(
+        string userMessage,
+        IReadOnlyList<(string Role, string Content)>? previousMessages = null,
+        int? conversationId = null,
+        CancellationToken cancellationToken = default,
+        Func<AiStreamEvent, CancellationToken, ValueTask>? onProgress = null)
     {
+        ValueTask Emit(string type, string? message = null, int? round = null, string? toolName = null, string? argsPreview = null, string? resultPreview = null)
+        {
+            if (onProgress == null) return ValueTask.CompletedTask;
+            return onProgress(new AiStreamEvent
+            {
+                Type = type,
+                Message = message,
+                Round = round,
+                ToolName = toolName,
+                ArgsPreview = argsPreview,
+                ResultPreview = resultPreview
+            }, cancellationToken);
+        }
+
         var apiKey = _config["OpenAI:ApiKey"]?.Trim();
         if (string.IsNullOrEmpty(apiKey))
         {
             _logger.LogError("OpenAI API anahtarı tanımlı değil. OpenAI:ApiKey veya ortam değişkeni ayarlanmalı.");
-            return "OpenAI API anahtarı tanımlı değil. Lütfen yapılandırmada OpenAI:ApiKey veya ortam değişkeni ile verin.";
+            var msg = "OpenAI API anahtarı tanımlı değil. Lütfen yapılandırmada OpenAI:ApiKey veya ortam değişkeni ile verin.";
+            await Emit("error", msg).ConfigureAwait(false);
+            return msg;
         }
 
+        await Emit("phase", "Proje yapısı yükleniyor…").ConfigureAwait(false);
         string structure;
         try
         {
-            structure = await _codeContext.GetProjectStructureAsync(cancellationToken);
+            structure = await _codeContext.GetProjectStructureAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OutOfMemoryException ex)
         {
@@ -63,15 +87,18 @@ public class AiChatService : IAiChatService
             structure = "# Proje yapısı yüklenemedi: " + ex.Message;
         }
 
+        await Emit("phase", "Proje yapısı hazır.").ConfigureAwait(false);
+
         var relevantChunksBlock = "";
         if (_codeChunkSearch != null)
         {
+            await Emit("phase", "Kod parçaları için vektör araması yapılıyor…").ConfigureAwait(false);
             try
             {
-                var hasIndex = await _codeChunkSearch.HasIndexAsync(cancellationToken);
+                var hasIndex = await _codeChunkSearch.HasIndexAsync(cancellationToken).ConfigureAwait(false);
                 if (hasIndex)
                 {
-                    var chunks = await _codeChunkSearch.GetRelevantChunksAsync(userMessage, VectorSearchTopK, cancellationToken);
+                    var chunks = await _codeChunkSearch.GetRelevantChunksAsync(userMessage, VectorSearchTopK, cancellationToken).ConfigureAwait(false);
                     if (chunks.Count > 0)
                     {
                         var sb = new StringBuilder();
@@ -83,20 +110,26 @@ public class AiChatService : IAiChatService
                             sb.AppendLine(content);
                         }
                         relevantChunksBlock = sb.ToString();
+                        await Emit("phase", $"{chunks.Count} ilgili kod parçası bulundu.").ConfigureAwait(false);
                     }
+                    else
+                        await Emit("phase", "Vektör indeksinde eşleşen parça yok (veya boş).").ConfigureAwait(false);
                 }
+                else
+                    await Emit("phase", "Kod indeksi yok; vektör araması atlandı.").ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "AiChatService: Vektör araması atlandı.");
+                await Emit("phase", "Vektör araması atlandı: " + ex.Message).ConfigureAwait(false);
             }
         }
 
         var systemContent = @"Sen Access Manager (arabam-access-manager) projesi için çalışan, kullanıcıyla canlı sohbet eden bir asistanısın. Cursor ile konuşuyormuş gibi doğal ve bilgilendirici ol.
 
 ZORUNLU KURALLAR:
-1) Sadece bu projeyle ilgili sorulara cevap ver. Proje dışı konularda kısa ve nazikçe 'Bu asistan yalnızca Access Manager projesiyle ilgili soruları yanıtlar.' de.
-2) Cevaplarını projenin kaynak koduna dayandır; read_file ile ilgili dosyaları oku. Tahmin yapma.
+1) Selam, nasılsın, teşekkür, kısa hal hatır gibi mesajlara kısa ve sıcak yanıt ver; robotik reddetme yapma. Bu tür mesajlarda read_file veya başka araç çağırma. En az bir cümle doğal sohbet et; hemen ""projeye geçelim"" demek zorunda değilsin. İstersen en sonda yumuşakça kod veya Access Manager konusunda yardımcı olup olamayacağını sor.
+2) Teknik sorular, kod incelemesi, mimari ve değişiklik talepleri için yanıtlarını bu repoya dayandır; read_file ile ilgili dosyaları oku. Tahmin yapma. Proje dışı genel konularda (başka ürünler, tıbbi/hukuki tavsiye, sınav cevabı vb.) uzun içerik verme; kısaca bu sohbetin Access Manager proje asistanı olduğunu belirtip projeye yönlendir.
 3) Projeyi bozma veya tehlikeli toplu işlem (tüm dosyaları silmek, .git silmek vb.) kabul etme; reddedip nedenini açıkla.
 
 Tavır ve bilgilendirme:
@@ -142,10 +175,14 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
         var round = 0;
         string? lastContent = null;
 
+        await Emit("phase", "Model ile konuşma başlıyor (araçlar kullanılabilir).").ConfigureAwait(false);
+
         while (round < MaxToolRoundTrips)
         {
             round++;
-            // Her istekte messages'ın kopyasını kullan; aynı node iki payload'a atanınca "node already has a parent" hatası oluyor.
+            await Emit("ping", "keep-alive").ConfigureAwait(false);
+            await Emit("model_turn", $"OpenAI turu {round}: yanıt bekleniyor…", round).ConfigureAwait(false);
+
             var messagesCopy = JsonSerializer.Deserialize<JsonArray>(messages.ToJsonString())!;
             var payload = new JsonObject
             {
@@ -163,16 +200,18 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 var snippet = body.Length > 300 ? body[..300] + "..." : body;
                 _logger.LogError("OpenAI API hatası. StatusCode: {StatusCode}, Body: {Body}", response.StatusCode, snippet);
-                return $"API hatası ({(int)response.StatusCode}): " + snippet;
+                var err = $"API hatası ({(int)response.StatusCode}): " + snippet;
+                await Emit("error", err).ConfigureAwait(false);
+                return err;
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             JsonDocument doc;
             try
             {
@@ -181,21 +220,35 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "AiChatService.SendAsync: OpenAI yanıtı JSON parse edilemedi. ResponseLength: {Length}", responseJson?.Length ?? 0);
-                return lastContent ?? "Model yanıtı işlenemedi (geçersiz JSON).";
+                var err = lastContent ?? "Model yanıtı işlenemedi (geçersiz JSON).";
+                await Emit("error", err).ConfigureAwait(false);
+                return err;
             }
             using (doc)
             {
                 var choices = doc.RootElement.GetProperty("choices");
                 if (choices.GetArrayLength() == 0)
-                    return lastContent ?? "Model cevap üretmedi.";
+                {
+                    var err = lastContent ?? "Model cevap üretmedi.";
+                    await Emit("error", err).ConfigureAwait(false);
+                    return err;
+                }
 
                 var msg = choices[0].GetProperty("message");
                 lastContent = msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String
                     ? c.GetString()
                     : null;
 
+                if (!string.IsNullOrWhiteSpace(lastContent))
+                    await Emit("phase", "Model kısa metin üretti; araç çağrısı yoksa bu yanıt nihai olabilir.", round).ConfigureAwait(false);
+
                 if (!msg.TryGetProperty("tool_calls", out var toolCallsEl) || toolCallsEl.GetArrayLength() == 0)
+                {
+                    await Emit("phase", "Nihai yanıt hazır (araç zinciri bitti).").ConfigureAwait(false);
                     return lastContent ?? "(Boş cevap)";
+                }
+
+                await Emit("phase", $"{toolCallsEl.GetArrayLength()} araç çağrısı planlandı.", round).ConfigureAwait(false);
 
                 var assistantMsg = new JsonObject { ["role"] = "assistant", ["content"] = lastContent ?? "" };
                 var toolCallsArray = new JsonArray();
@@ -225,7 +278,13 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                     var fn = tc.GetProperty("function");
                     var name = fn.GetProperty("name").GetString() ?? "";
                     var argsStr = fn.GetProperty("arguments").GetString() ?? "{}";
-                    var toolResult = await ExecuteToolAsync(name, argsStr, conversationId, cancellationToken);
+                    var argsPreview = BuildArgsPreview(name, argsStr);
+                    await Emit("tool_start", message: null, round: round, toolName: name, argsPreview: argsPreview).ConfigureAwait(false);
+
+                    var toolResult = await ExecuteToolAsync(name, argsStr, conversationId, cancellationToken).ConfigureAwait(false);
+                    var resultPreview = BuildResultPreview(toolResult);
+                    await Emit("tool_end", message: null, round: round, toolName: name, resultPreview: resultPreview).ConfigureAwait(false);
+
                     messages.Add(new JsonObject
                     {
                         ["role"] = "tool",
@@ -236,7 +295,63 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
             }
         }
 
-        return lastContent ?? "Araç döngüsü sınırına ulaşıldı. Özet: işlem yapıldı veya devam etmek için tekrar deneyin."; 
+        await Emit("error", "Araç döngüsü üst sınırına ulaşıldı.").ConfigureAwait(false);
+        return lastContent ?? "Araç döngüsü sınırına ulaşıldı. Özet: işlem yapıldı veya devam etmek için tekrar deneyin.";
+    }
+
+    private static string BuildArgsPreview(string toolName, string argumentsJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(argumentsJson);
+            var root = doc.RootElement;
+            switch (toolName)
+            {
+                case "read_file":
+                    if (root.TryGetProperty("path", out var p))
+                        return Truncate(p.GetString() ?? "", ArgsPreviewMaxChars);
+                    break;
+                case "write_file":
+                {
+                    var path = root.TryGetProperty("path", out var wp) ? wp.GetString() ?? "" : "";
+                    var len = root.TryGetProperty("content", out var ce) && ce.ValueKind == JsonValueKind.String
+                        ? (ce.GetString() ?? "").Length
+                        : 0;
+                    return Truncate(path + $" (içerik ~{len} karakter)", ArgsPreviewMaxChars);
+                }
+                case "apply_diff":
+                {
+                    var path = root.TryGetProperty("path", out var ap) ? ap.GetString() ?? "" : "";
+                    var dlen = root.TryGetProperty("diff", out var de) && de.ValueKind == JsonValueKind.String
+                        ? (de.GetString() ?? "").Length
+                        : 0;
+                    return Truncate(path + $" (unified diff ~{dlen} karakter)", ArgsPreviewMaxChars);
+                }
+                case "git_commit_and_push":
+                    if (root.TryGetProperty("commit_message", out var m))
+                        return Truncate(m.GetString() ?? "", ArgsPreviewMaxChars);
+                    break;
+            }
+        }
+        catch
+        {
+            /* ignore */
+        }
+
+        return Truncate(argumentsJson.Replace('\r', ' ').Replace('\n', ' '), ArgsPreviewMaxChars);
+    }
+
+    private static string BuildResultPreview(string result)
+    {
+        if (string.IsNullOrEmpty(result)) return "(boş)";
+        var oneLine = result.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return Truncate(oneLine, ToolPreviewMaxChars);
+    }
+
+    private static string Truncate(string s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        return s.Length <= max ? s : s[..max] + "…";
     }
 
     private async Task<string> ExecuteToolAsync(string name, string argumentsJson, int? conversationId, CancellationToken cancellationToken)
@@ -271,7 +386,7 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                         return "HATA: 'content' parametresi gerekli.";
                     var wPath = pathEl.GetString() ?? "";
                     var content = contentEl.GetString() ?? "";
-                    return await _agentTools.WriteFileAsync(wPath, content, conversationId, cancellationToken);
+                    return await _agentTools.WriteFileAsync(wPath, content, conversationId, cancellationToken).ConfigureAwait(false);
                 }
                 case "apply_diff":
                 {
@@ -282,21 +397,21 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                     var path = pathEl.GetString() ?? "";
                     var diff = diffEl.GetString() ?? "";
                     _logger.LogError("AiChatService.apply_diff: path: {Path}, diff (ilk 1000 karakter): {DiffPreview}", path, diff.Length > 1000 ? diff[..1000] + "..." : diff);
-                    return await _agentTools.ApplyDiffAsync(path, diff, conversationId, cancellationToken);
+                    return await _agentTools.ApplyDiffAsync(path, diff, conversationId, cancellationToken).ConfigureAwait(false);
                 }
                 case "run_build":
-                    return await _agentTools.RunBuildAsync(cancellationToken);
+                    return await _agentTools.RunBuildAsync(cancellationToken).ConfigureAwait(false);
                 case "confirm_and_push":
                 {
                     if (!conversationId.HasValue || conversationId.Value < 1)
                         return "HATA: Onay bekleyen değişiklik eşleştirilemedi (konuşma bilgisi yok).";
-                    return await _agentTools.ConfirmPushAsync(conversationId.Value, cancellationToken);
+                    return await _agentTools.ConfirmPushAsync(conversationId.Value, cancellationToken).ConfigureAwait(false);
                 }
                 case "create_pr":
                 {
                     if (!conversationId.HasValue || conversationId.Value < 1)
                         return "HATA: Bu konuşma için onay bekleyen değişiklik yok; önce değişiklik yapıp kullanıcıya 'PR aç' dedirt.";
-                    return await _agentTools.CreatePrAsync(conversationId.Value, cancellationToken);
+                    return await _agentTools.CreatePrAsync(conversationId.Value, cancellationToken).ConfigureAwait(false);
                 }
                 case "git_commit_and_push":
                 {
@@ -309,7 +424,7 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                         foreach (var p in arr.EnumerateArray())
                             paths.Add(p.GetString() ?? "");
                     }
-                    return await _agentTools.GitCommitAndPushAsync(commitMessage, paths, cancellationToken);
+                    return await _agentTools.GitCommitAndPushAsync(commitMessage, paths, cancellationToken).ConfigureAwait(false);
                 }
                 default:
                     return "HATA: Bilinmeyen araç: " + name;

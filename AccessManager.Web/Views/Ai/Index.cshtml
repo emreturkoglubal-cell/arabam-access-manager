@@ -317,6 +317,61 @@
     .am-ai-h1 { font-size: 1.35rem; font-weight: 700; margin: 1rem 0 0.5rem; color: var(--am-text, #111827); }
     .am-ai-h2 { font-size: 1.2rem; font-weight: 700; margin: 0.9rem 0 0.4rem; color: var(--am-text, #111827); }
     .am-ai-h3 { font-size: 1.05rem; font-weight: 600; margin: 0.75rem 0 0.35rem; color: var(--am-accent, #e40030); }
+    /* Asistan balonu ile aynı hizada geniş kart; iç scroll yok — tüm sohbet alanı kayar */
+    .ai-stream-live-wrap {
+        width: 85%;
+        max-width: 100%;
+        margin-right: auto;
+        box-sizing: border-box;
+    }
+    .ai-stream-live-card {
+        border: 1px solid var(--am-border, #e5e7eb);
+        border-radius: 10px;
+        background: linear-gradient(180deg, var(--am-accent-light, #fef2f2) 0%, var(--am-card-bg, #fff) 48%);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .ai-stream-live-head {
+        padding: 0.45rem 0.75rem;
+        background: rgba(255,255,255,0.72);
+        border-bottom: 1px solid var(--am-border, #e5e7eb);
+    }
+    .ai-stream-live-brand {
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--am-text, #111827);
+    }
+    .ai-stream-live-list {
+        padding: 0.45rem 0.65rem 0.55rem;
+        margin: 0;
+        max-height: none;
+        overflow: visible;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: var(--am-text, #374151);
+    }
+    .ai-stream-live-list li {
+        padding: 0.15rem 0;
+        padding-left: 0.65rem;
+        border-bottom: none;
+        position: relative;
+    }
+    .ai-stream-live-list li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.55em;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--am-accent, #e40030);
+        opacity: 0.75;
+    }
+    .ai-stream-live-list li.ai-stream-tool { color: #1f2937; }
+    .ai-stream-live-list li.ai-stream-err { color: #b91c1c; }
+    .ai-stream-live-list li.ai-stream-err::before { background: #b91c1c; }
+    .ai-stream-live-code { font-size: 0.72rem; word-break: break-all; }
 </style>
 
 @section Scripts {
@@ -715,6 +770,11 @@
         startTypewriter();
     }
 
+    function removeStreamLiveWrap() {
+        var w = document.getElementById('aiStreamLiveWrap');
+        if (w) w.remove();
+    }
+
     function sendMessage(msg) {
         msg = (msg || '').trim();
         if (!msg) return;
@@ -722,46 +782,116 @@
         addMessage('user', msg);
         if (inputEl) { inputEl.value = ''; resizeChatInput(); }
         if (sendBtn) sendBtn.disabled = true;
-        addTypingIndicator();
+        removeTypingIndicator();
+        removeStreamLiveWrap();
+
+        var liveWrap = document.createElement('div');
+        liveWrap.id = 'aiStreamLiveWrap';
+        liveWrap.className = 'mb-2 text-start ai-stream-live-wrap';
+        liveWrap.innerHTML = '<div class="ai-stream-live-card">' +
+            '<div class="d-flex justify-content-between align-items-center ai-stream-live-head flex-wrap gap-2">' +
+            '<span class="ai-stream-live-brand">arabam AI</span>' +
+            '<button type="button" class="btn btn-sm btn-am-ghost py-0 px-2" style="font-size:0.75rem;" id="aiStreamCancelBtn">Durdur</button></div>' +
+            '<ul id="aiLiveStatusList" class="list-unstyled ai-stream-live-list text-start"></ul></div>';
+        messagesContainer.appendChild(liveWrap);
+        var ul = liveWrap.querySelector('#aiLiveStatusList');
+        var streamAbortController = new AbortController();
+        var cancelBtn = liveWrap.querySelector('#aiStreamCancelBtn');
+        if (cancelBtn) cancelBtn.addEventListener('click', function () { streamAbortController.abort(); });
+
+        function appendLiveLine(html, liClass) {
+            if (!html || !String(html).trim()) return;
+            var li = document.createElement('li');
+            li.className = liClass || '';
+            li.innerHTML = html;
+            ul.appendChild(li);
+            scrollToBottom();
+        }
+        function formatStreamEvent(ev) {
+            if (ev.type === 'ping') return '';
+            if (ev.type === 'phase') return escapeHtml(ev.message || '');
+            if (ev.type === 'model_turn') return escapeHtml(ev.message || '');
+            if (ev.type === 'tool_start') {
+                var t = ev.toolName || 'araç';
+                var p = ev.argsPreview ? ' <code class="ai-stream-live-code am-ai-inline-code">' + escapeHtml(ev.argsPreview) + '</code>' : '';
+                return '<span class="ai-stream-tool">' + escapeHtml(t) + '</span> çalışıyor' + p;
+            }
+            if (ev.type === 'tool_end') {
+                var t2 = ev.toolName || 'araç';
+                return '<span class="ai-stream-tool">' + escapeHtml(t2) + '</span> <span class="text-muted">' + escapeHtml(ev.resultPreview || '') + '</span>';
+            }
+            if (ev.type === 'error') return '<span class="ai-stream-err">' + escapeHtml(ev.message || '') + '</span>';
+            return '<code class="ai-stream-live-code">' + escapeHtml(JSON.stringify(ev)) + '</code>';
+        }
 
         var isActionMessage = /^pr\s*aç$/i.test(msg.trim()) || /^(evet,?\s*)?pushla$/i.test(msg.trim()) || /onayla/i.test(msg.trim());
         var body = { message: msg };
         if (currentConversationId) body.conversationId = currentConversationId;
 
-        fetch('/Ai/Chat', {
+        var streamGotDone = false;
+        function processLine(line) {
+            line = (line || '').trim();
+            if (!line) return false;
+            var ev;
+            try { ev = JSON.parse(line); } catch (e) { return false; }
+            if (ev.type === 'done') {
+                streamGotDone = true;
+                removeStreamLiveWrap();
+                if (ev.conversationId && !currentConversationId) {
+                    currentConversationId = ev.conversationId;
+                    var newUrl = '/Ai/Index?conversationId=' + ev.conversationId;
+                    if (window.history && window.history.replaceState)
+                        window.history.replaceState(null, '', newUrl);
+                    loadConversations(false);
+                }
+                if (ev.conversationId) setActiveConversationInSidebar(ev.conversationId);
+                addMessage('assistant', ev.reply || '(cevap yok)');
+                if (isActionMessage) hidePushPrBar();
+                return true;
+            }
+            var html = formatStreamEvent(ev);
+            appendLiveLine(html, ev.type === 'error' ? 'ai-stream-err' : '');
+            return false;
+        }
+
+        fetch('/Ai/ChatStream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: streamAbortController.signal
         })
-        .then(function (r) {
-            return r.text().then(function (text) {
-                var data = null;
-                if (text && text.trim().length > 0) {
-                    try { data = JSON.parse(text); } catch (e) { /* response JSON değil */ }
-                }
-                if (!r.ok) {
-                    var errMsg = (data && data.reply) ? data.reply : ('HTTP ' + r.status + (text ? ': ' + text.substring(0, 200) : ''));
-                    throw new Error(errMsg);
-                }
-                if (!data) throw new Error('Sunucu boş veya geçersiz yanıt döndü. Zaman aşımı veya ağ hatası olabilir.');
-                return data;
-            });
-        })
-        .then(function (data) {
-            removeTypingIndicator();
-            if (data.conversationId && !currentConversationId) {
-                currentConversationId = data.conversationId;
-                var newUrl = '/Ai/Index?conversationId=' + data.conversationId;
-                if (window.history && window.history.replaceState)
-                    window.history.replaceState(null, '', newUrl);
-                loadConversations(false);
+        .then(async function (response) {
+            if (!response.ok) {
+                var t = await response.text();
+                throw new Error(t || ('HTTP ' + response.status));
             }
-            addMessage('assistant', data.reply || '(cevap yok)');
-            if (isActionMessage) hidePushPrBar();
+            var reader = response.body.getReader();
+            var dec = new TextDecoder();
+            var buf = '';
+            while (true) {
+                var rd = await reader.read();
+                if (rd.done) break;
+                buf += dec.decode(rd.value, { stream: true });
+                var parts = buf.split('\n');
+                buf = parts.pop() || '';
+                for (var i = 0; i < parts.length; i++) {
+                    if (processLine(parts[i])) return;
+                }
+            }
+            if (buf.trim()) processLine(buf);
+        })
+        .then(function () {
+            if (!streamGotDone) {
+                removeStreamLiveWrap();
+                addMessage('assistant', 'Yanıt akışı tamamlanamadı.');
+            }
         })
         .catch(function (err) {
-            removeTypingIndicator();
-            addMessage('assistant', 'İstek hatası: ' + (err.message || String(err)));
+            removeStreamLiveWrap();
+            if (err.name === 'AbortError')
+                addMessage('assistant', 'İstek durduruldu.');
+            else
+                addMessage('assistant', 'İstek hatası: ' + (err.message || String(err)));
         })
         .finally(function () {
             if (sendBtn) sendBtn.disabled = false;

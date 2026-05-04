@@ -162,7 +162,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ZimmetPdfService>();
         services.AddScoped<IDailyMaintenanceRunner, DailyMaintenanceRunner>();
         services.AddHttpClient();
-        services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromSeconds(90));
+        // Uzun tool zincirleri + yavaş ağ; NDJSON stream sırasında proxy idle timeout riskini azaltmak için keep-alive olayları da gönderiliyor.
+        services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromMinutes(15));
 
         services.AddSingleton<ExtendedLogLoggerProvider>();
 
