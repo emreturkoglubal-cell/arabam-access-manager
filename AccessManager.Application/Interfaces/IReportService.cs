@@ -21,7 +21,7 @@ public interface IReportService
     /// <summary>Sistem bazlı aktif erişim sayıları (rapor satırları).</summary>
     IReadOnlyList<AccessBySystemReportRow> GetAccessReportBySystem();
     /// <summary>Belirtilen tarih aralığında işten çıkan personel raporu.</summary>
-    IReadOnlyList<OffboardedReportRow> GetOffboardedReport(DateTime? from, DateTime? to);
+    IReadOnlyList<OffboardedReportRow> GetOffboardedReport(DateTime? from, DateTime? to, int? departmentId = null);
     /// <summary>İstisna olarak işaretlenmiş erişimlerin raporu.</summary>
     IReadOnlyList<ExceptionReportRow> GetExceptionReport();
 
@@ -29,4 +29,10 @@ public interface IReportService
     /// Raporlar sayfası için tüm veriyi tek turda çeker (performans için).
     /// </summary>
     ReportsIndexData GetReportsIndexData(DateTime? from, DateTime? to);
+
+    /// <summary>Departman için aylık işe giren / işten çıkan sayıları (personel kayıtlarına göre).</summary>
+    IReadOnlyList<DepartmentTurnoverPoint> GetDepartmentTurnoverPoints(int departmentId, int months = 12);
+
+    /// <summary>Departmandaki aktif personellerin aktif uygulama yetkilerinin toplam USD maliyeti.</summary>
+    decimal? GetDepartmentActiveLicenseCostUsd(int departmentId);
 }

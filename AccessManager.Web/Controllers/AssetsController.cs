@@ -1,9 +1,11 @@
+using System.Text.Json;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Constants;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
 using AccessManager.UI.Constants;
 using AccessManager.UI.Services;
+using AccessManager.Infrastructure.Repositories;
 using AccessManager.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,13 +24,20 @@ public class AssetsController : Controller
     private readonly IPersonnelService _personnelService;
     private readonly ICurrentUserService _currentUser;
     private readonly ZimmetPdfService _zimmetPdfService;
+    private readonly IAssetInventorySnapshotRepository _inventorySnapshotRepo;
 
-    public AssetsController(IAssetService assetService, IPersonnelService personnelService, ICurrentUserService currentUser, ZimmetPdfService zimmetPdfService)
+    public AssetsController(
+        IAssetService assetService,
+        IPersonnelService personnelService,
+        ICurrentUserService currentUser,
+        ZimmetPdfService zimmetPdfService,
+        IAssetInventorySnapshotRepository inventorySnapshotRepo)
     {
         _assetService = assetService;
         _personnelService = personnelService;
         _currentUser = currentUser;
         _zimmetPdfService = zimmetPdfService;
+        _inventorySnapshotRepo = inventorySnapshotRepo;
     }
 
     /// <summary>GET /Assets/Detail/{id} — Donanım detay sayfası; düzenle / zimmet / iade / sil buradan yapılır.</summary>
@@ -92,6 +101,12 @@ public class AssetsController : Controller
             CountByStatus = countByStatus,
             DepreciationEndingSoonCount = depreciationEndingSoon
         };
+
+        var invTrend = _inventorySnapshotRepo.GetTotalInventoryByMonth(6);
+        ViewBag.AssetInventoryTrendJson = invTrend.Count > 0
+            ? JsonSerializer.Serialize(new { labels = invTrend.Select(t => t.Label).ToList(), totals = invTrend.Select(t => t.TotalCount).ToList() })
+            : null;
+
         return View(model);
     }
 
@@ -319,11 +334,6 @@ public class AssetsController : Controller
     {
         var assignment = _assetService.GetAssignmentById(assignmentId);
         if (assignment == null) return NotFound();
-        if (assignment.ReturnedAt.HasValue)
-        {
-            TempData["Error"] = "İade edilmiş zimmet için belge oluşturulamaz.";
-            return RedirectToAction(nameof(Detail), new { id = assignment.AssetId });
-        }
 
         var asset = _assetService.GetById(assignment.AssetId);
         if (asset == null) return NotFound();
@@ -338,7 +348,8 @@ public class AssetsController : Controller
         }
 
         var pdfBytes = _zimmetPdfService.GeneratePdf(asset, assignment, personName, managerName);
-        var fileName = $"ZimmetBelgesi_{asset.Name?.Replace(" ", "_") ?? "Donanım"}_{assignment.AssignedAt:yyyyMMdd}.pdf";
+        var suffix = assignment.ReturnedAt.HasValue ? "_arsiv" : "";
+        var fileName = $"ZimmetBelgesi_{asset.Name?.Replace(" ", "_") ?? "Donanım"}_{assignment.AssignedAt:yyyyMMdd}{suffix}.pdf";
         return File(pdfBytes, "application/pdf", fileName);
     }
 }

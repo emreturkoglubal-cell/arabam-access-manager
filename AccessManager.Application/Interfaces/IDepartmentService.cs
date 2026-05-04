@@ -11,8 +11,8 @@ public interface IDepartmentService
     IReadOnlyList<Department> GetAll();
     /// <summary>ID ile tek departman; yoksa null.</summary>
     Department? GetById(int id);
-    /// <summary>Yeni departman oluşturur; ad zorunlu, kod ve açıklama isteğe bağlı.</summary>
-    Department Add(string name, string? code, string? description);
+    /// <summary>Yeni departman oluşturur; ad zorunlu, kod ve açıklama isteğe bağlı; üst departman ve GMY isteğe bağlı.</summary>
+    Department Add(string name, string? code, string? description, int? parentId = null, int? topManagerPersonnelId = null);
     /// <summary>Mevcut departman bilgilerini günceller.</summary>
     void Update(Department department);
     /// <summary>Departman 1./2./3. yöneticileri.</summary>

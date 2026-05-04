@@ -117,6 +117,21 @@ public static class ServiceCollectionExtensions
             var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
             return new PersonnelReminderRepository(cs);
         });
+        services.AddScoped<IResourceSystemCostSnapshotRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new ResourceSystemCostSnapshotRepository(cs);
+        });
+        services.AddScoped<IAssetInventorySnapshotRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new AssetInventorySnapshotRepository(cs);
+        });
+        services.AddScoped<IPositionTitleTemplateRepository>(sp =>
+        {
+            var cs = sp.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")!;
+            return new PositionTitleTemplateRepository(cs);
+        });
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -145,6 +160,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAiChatService, AiChatService>();
         services.AddScoped<IAiConversationService, AiConversationService>();
         services.AddScoped<ZimmetPdfService>();
+        services.AddScoped<IDailyMaintenanceRunner, DailyMaintenanceRunner>();
         services.AddHttpClient();
         services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromSeconds(90));
 

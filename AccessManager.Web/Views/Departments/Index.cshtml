@@ -1,7 +1,7 @@
 @using AccessManager.Domain.Entities
 @{
     ViewData["Title"] = "Departmanlar";
-    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var departmentRows = ViewBag.DepartmentRows as IReadOnlyList<(Department Dept, int Level)> ?? new List<(Department, int)>();
     var countByDept = ViewBag.PersonnelCountByDepartment as Dictionary<int, int> ?? new Dictionary<int, int>();
     var topManagerNames = ViewBag.TopManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
@@ -25,12 +25,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var d in departments)
+                    @foreach (var row in departmentRows)
                     {
+                        var d = row.Dept;
+                        var pad = row.Level > 0 ? new string('\u00a0', row.Level * 3) + "↳ " : "";
                         var gmyName = d.TopManagerPersonnelId.HasValue && topManagerNames.TryGetValue(d.TopManagerPersonnelId.Value, out var gmy) ? gmy : "—";
                         <tr role="button" tabindex="0" class="am-table-row-clickable" data-href="@Url.Action("Detail", "Departments", new { id = d.Id })" onclick="window.location.href=this.dataset.href">
                             <td>@(d.Code ?? "—")</td>
-                            <td>@d.Name</td>
+                            <td><span class="text-muted small">@pad</span>@d.Name</td>
                             <td>@gmyName</td>
                             <td>@(countByDept.TryGetValue(d.Id, out var c) ? c : 0)</td>
                         </tr>

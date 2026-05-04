@@ -19,13 +19,15 @@ public class DepartmentService : IDepartmentService
 
     public Department? GetById(int id) => _repo.GetById(id);
 
-    public Department Add(string name, string? code, string? description)
+    public Department Add(string name, string? code, string? description, int? parentId = null, int? topManagerPersonnelId = null)
     {
         var department = new Department
         {
             Name = name?.Trim() ?? string.Empty,
             Code = string.IsNullOrWhiteSpace(code) ? null : code.Trim(),
-            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            ParentId = parentId,
+            TopManagerPersonnelId = topManagerPersonnelId
         };
         department.Id = _repo.Insert(department);
         return department;

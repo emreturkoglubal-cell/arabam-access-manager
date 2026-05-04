@@ -19,4 +19,8 @@ public interface IPersonnelRepository
     void UpdateRating(int personnelId, decimal? rating, string? managerComment);
     IReadOnlyList<PersonnelNote> GetNotes(int personnelId);
     void AddNote(PersonnelNote note);
+    /// <summary>İşe giriş tarihi aralığında (dahil) personel; departman filtresi isteğe bağlı.</summary>
+    IReadOnlyList<Personnel> GetByStartDateInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId);
+    /// <summary>İşten çıkış tarihi aralığında (dahil) ve status Offboarded personel.</summary>
+    IReadOnlyList<Personnel> GetByEndDateOffboardedInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId);
 }

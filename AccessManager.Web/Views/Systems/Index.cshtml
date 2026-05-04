@@ -94,3 +94,52 @@
         }
     </div>
 </div>
+
+@if (ViewBag.SystemCostTrendJson != null)
+{
+<div class="am-card am-card--chart mt-4">
+    <div class="am-card-header am-card-header--sm">Toplam lisans maliyeti trendi (USD, snapshot — günlük job)</div>
+    <div class="am-card-body am-card-body--chart" style="min-height: 220px;">
+        <canvas id="chartSystemCostTrend"></canvas>
+    </div>
+    <p class="small text-muted px-3 pb-2 mb-0">Veri yoksa bir gece İstanbul 00:00 sonrası job doldurur veya migration çalıştırıldığından emin olun.</p>
+</div>
+}
+
+@section Scripts {
+@if (ViewBag.SystemCostTrendJson != null)
+{
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var raw = @Html.Raw(ViewBag.SystemCostTrendJson as string ?? "null");
+    if (!raw || !raw.labels || !raw.labels.length) return;
+    var themeRed = '#e40030';
+    var themeRedLight = '#fef2f2';
+    new Chart(document.getElementById('chartSystemCostTrend'), {
+        type: 'line',
+        data: {
+            labels: raw.labels,
+            datasets: [{
+                label: 'Toplam USD',
+                data: raw.totals,
+                borderColor: themeRed,
+                backgroundColor: themeRedLight,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                x: { ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+})();
+</script>
+}
+}

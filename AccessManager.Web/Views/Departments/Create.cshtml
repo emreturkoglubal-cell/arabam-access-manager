@@ -1,6 +1,9 @@
 @model AccessManager.UI.ViewModels.DepartmentCreateInputModel
+@using AccessManager.Domain.Entities
 @{
     ViewData["Title"] = "Yeni Departman";
+    var allDepts = ViewBag.AllDepartments as IReadOnlyList<Department> ?? new List<Department>();
+    var gmyList = ViewBag.AllPersonnelForGmy as IReadOnlyList<Personnel> ?? new List<Personnel>();
 }
 
 <div class="am-card am-card--narrow">
@@ -19,6 +22,26 @@
             <div class="mb-3">
                 <label asp-for="Description" class="form-label">Açıklama</label>
                 <textarea asp-for="Description" class="form-control" rows="2" placeholder="İsteğe bağlı"></textarea>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ParentId" class="form-label">Üst departman</label>
+                <select asp-for="ParentId" class="form-select">
+                    <option value="">— Yok (kök departman) —</option>
+                    @foreach (var d in allDepts)
+                    {
+                        <option value="@d.Id">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="TopManagerPersonnelId" class="form-label">Departman yöneticisi (GMY)</label>
+                <select asp-for="TopManagerPersonnelId" class="form-select">
+                    <option value="">— Seçiniz —</option>
+                    @foreach (var p in gmyList)
+                    {
+                        <option value="@p.Id">@p.FirstName @p.LastName</option>
+                    }
+                </select>
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-am-primary">Oluştur</button>

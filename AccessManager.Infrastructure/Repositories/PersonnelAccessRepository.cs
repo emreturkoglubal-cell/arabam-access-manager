@@ -95,4 +95,13 @@ public class PersonnelAccessRepository : IPersonnelAccessRepository
             is_active AS IsActive, granted_by_request_id AS GrantedByRequestId FROM personnel_accesses WHERE id = @Id";
         return conn.QuerySingleOrDefault<PersonnelAccess>(sql, new { Id = id });
     }
+
+    public IReadOnlyDictionary<int, int> GetActiveAccessCountByResourceSystem()
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"SELECT resource_system_id AS Id, COUNT(*)::int AS Cnt FROM personnel_accesses WHERE is_active = true GROUP BY resource_system_id";
+        var rows = conn.Query<(int Id, int Cnt)>(sql);
+        return rows.ToDictionary(r => r.Id, r => r.Cnt);
+    }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
@@ -20,21 +21,29 @@ public class DepartmentsController : Controller
     private readonly IRoleService _roleService;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
+    private readonly IReportService _reportService;
 
-    public DepartmentsController(IDepartmentService departmentService, IPersonnelService personnelService, IRoleService roleService, IAuditService auditService, ICurrentUserService currentUser)
+    public DepartmentsController(
+        IDepartmentService departmentService,
+        IPersonnelService personnelService,
+        IRoleService roleService,
+        IAuditService auditService,
+        ICurrentUserService currentUser,
+        IReportService reportService)
     {
         _departmentService = departmentService;
         _personnelService = personnelService;
         _roleService = roleService;
         _auditService = auditService;
         _currentUser = currentUser;
+        _reportService = reportService;
     }
 
-    /// <summary>GET /Departments/Index — Tüm departmanları ve her birindeki personel sayısını listeler.</summary>
+    /// <summary>GET /Departments/Index — Tüm departmanları ve her birindeki personel sayısını listeler (hiyerarşi satırları).</summary>
     [HttpGet]
     public IActionResult Index()
     {
-        var departments = _departmentService.GetAll();
+        var departments = _departmentService.GetAll().ToList();
         var countByDept = _personnelService.GetPersonnelCountByDepartment();
         var topManagerIds = departments.Where(d => d.TopManagerPersonnelId.HasValue).Select(d => d.TopManagerPersonnelId!.Value).Distinct().ToList();
         var topManagerPersonnel = topManagerIds.Count > 0 ? _personnelService.GetByIds(topManagerIds) : new List<Personnel>();
@@ -42,6 +51,25 @@ public class DepartmentsController : Controller
         ViewBag.Departments = departments;
         ViewBag.PersonnelCountByDepartment = countByDept;
         ViewBag.TopManagerNames = topManagerNames;
+
+        var byId = departments.ToDictionary(d => d.Id);
+        var roots = departments.Where(d => !d.ParentId.HasValue).OrderBy(d => d.Name).ToList();
+        var rows = new List<(Department Dept, int Level)>();
+        void Visit(Department d, int level)
+        {
+            rows.Add((d, level));
+            foreach (var c in departments.Where(x => x.ParentId == d.Id).OrderBy(x => x.Name))
+                Visit(c, level + 1);
+        }
+        foreach (var r in roots)
+            Visit(r, 0);
+        foreach (var orphan in departments.Where(d => d.ParentId.HasValue && !byId.ContainsKey(d.ParentId.Value)).OrderBy(d => d.Name))
+        {
+            if (!rows.Any(x => x.Dept.Id == orphan.Id))
+                Visit(orphan, 0);
+        }
+        ViewBag.DepartmentRows = rows;
+
         return View();
     }
 
@@ -78,6 +106,20 @@ public class DepartmentsController : Controller
         ViewBag.DepartmentManagerPersonnel = deptManagerPersonnel.ToDictionary(p => p.Id, p => p);
         ViewBag.AllPersonnelForGmy = _personnelService.GetActive();
 
+        var turnover = _reportService.GetDepartmentTurnoverPoints(id, 12);
+        ViewBag.DepartmentTurnoverJson = turnover.Count > 0
+            ? JsonSerializer.Serialize(new
+            {
+                labels = turnover.Select(t => t.Label).ToList(),
+                hires = turnover.Select(t => t.Hires).ToList(),
+                exits = turnover.Select(t => t.Exits).ToList()
+            })
+            : null;
+        ViewBag.DepartmentLicenseUsd = _reportService.GetDepartmentActiveLicenseCostUsd(id);
+
+        var allDepts = _departmentService.GetAll().Where(d => d.Id != id).OrderBy(d => d.Name).ToList();
+        ViewBag.ParentDepartmentChoices = allDepts;
+
         return View();
     }
 
@@ -93,10 +135,19 @@ public class DepartmentsController : Controller
             TempData["DepartmentEditError"] = "Departman adı zorunludur.";
             return RedirectToAction(nameof(Detail), new { id });
         }
+
+        var all = _departmentService.GetAll().ToList();
+        if (WouldCreateParentCycle(all, id, input.ParentId))
+        {
+            TempData["DepartmentEditError"] = "Üst departman seçimi döngü oluşturur (kendi altına bağlanamaz).";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
         department.Name = input.Name.Trim();
         department.Code = string.IsNullOrWhiteSpace(input.Code) ? null : input.Code.Trim();
         department.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         department.TopManagerPersonnelId = input.TopManagerPersonnelId;
+        department.ParentId = input.ParentId;
         _departmentService.Update(department);
         _auditService.Log(AuditAction.Other, _currentUser.UserId, _currentUser.DisplayName ?? _currentUser.UserName ?? "?", "Department", id.ToString(), $"Departman güncellendi: {department.Name}");
         TempData["DepartmentEditSuccess"] = "Departman bilgileri güncellendi.";
@@ -107,6 +158,8 @@ public class DepartmentsController : Controller
     [HttpGet]
     public IActionResult Create()
     {
+        ViewBag.AllDepartments = _departmentService.GetAll().OrderBy(d => d.Name).ToList();
+        ViewBag.AllPersonnelForGmy = _personnelService.GetActive();
         return View(new DepartmentCreateInputModel());
     }
 
@@ -118,9 +171,26 @@ public class DepartmentsController : Controller
         if (string.IsNullOrWhiteSpace(input.Name))
         {
             ModelState.AddModelError(nameof(input.Name), "Departman adı gerekli.");
+            ViewBag.AllDepartments = _departmentService.GetAll().OrderBy(d => d.Name).ToList();
+            ViewBag.AllPersonnelForGmy = _personnelService.GetActive();
             return View(input);
         }
-        _departmentService.Add(input.Name, input.Code, input.Description);
+        _departmentService.Add(input.Name, input.Code, input.Description, input.ParentId, input.TopManagerPersonnelId);
         return RedirectToAction(nameof(Index));
+    }
+
+    private static bool WouldCreateParentCycle(IReadOnlyList<Department> all, int departmentId, int? newParentId)
+    {
+        if (!newParentId.HasValue) return false;
+        if (newParentId.Value == departmentId) return true;
+        var byId = all.ToDictionary(d => d.Id);
+        var walk = newParentId;
+        var guard = 0;
+        while (walk.HasValue && byId.TryGetValue(walk.Value, out var node) && guard++ < 200)
+        {
+            if (walk.Value == departmentId) return true;
+            walk = node.ParentId;
+        }
+        return false;
     }
 }

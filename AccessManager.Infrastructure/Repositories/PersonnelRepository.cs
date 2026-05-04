@@ -202,4 +202,32 @@ public class PersonnelRepository : IPersonnelRepository
             VALUES (@PersonnelId, @Content, @CreatedAt, @CreatedByUserId, @CreatedByUserName)";
         conn.Execute(sql, new { note.PersonnelId, note.Content, note.CreatedAt, note.CreatedByUserId, note.CreatedByUserName });
     }
+
+    public IReadOnlyList<Personnel> GetByStartDateInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
+            department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
+            FROM personnel WHERE start_date >= @From AND start_date <= @To";
+        if (departmentId.HasValue)
+            sql += " AND department_id = @DepartmentId";
+        sql += " ORDER BY start_date DESC, id DESC";
+        return conn.Query<Personnel>(sql, new { From = fromInclusive.Date, To = toInclusive.Date, DepartmentId = departmentId }).ToList();
+    }
+
+    public IReadOnlyList<Personnel> GetByEndDateOffboardedInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        var sql = @"SELECT id AS Id, first_name AS FirstName, last_name AS LastName, email AS Email, phone AS PhoneNumber,
+            department_id AS DepartmentId, position AS Position, manager_id AS ManagerId, start_date AS StartDate, end_date AS EndDate,
+            status AS Status, role_id AS RoleId, location AS Location, image_url AS ImageUrl, rating AS Rating, manager_comment AS ManagerComment, seniority_level AS SeniorityLevel, team_id AS TeamId
+            FROM personnel WHERE status = 2 AND end_date IS NOT NULL AND end_date >= @From AND end_date <= @To";
+        if (departmentId.HasValue)
+            sql += " AND department_id = @DepartmentId";
+        sql += " ORDER BY end_date DESC, id DESC";
+        return conn.Query<Personnel>(sql, new { From = fromInclusive.Date, To = toInclusive.Date, DepartmentId = departmentId }).ToList();
+    }
 }

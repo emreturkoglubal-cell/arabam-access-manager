@@ -2,6 +2,7 @@ using System.Text.Json;
 using AccessManager.Application.Interfaces;
 using AccessManager.Domain.Entities;
 using AccessManager.Domain.Enums;
+using AccessManager.Infrastructure.Repositories;
 using AccessManager.UI.Constants;
 using AccessManager.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,7 @@ public class SystemsController : Controller
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
     private readonly ICurrencyService _currencyService;
+    private readonly IResourceSystemCostSnapshotRepository _costSnapshotRepo;
 
     public SystemsController(
         ISystemService systemService,
@@ -33,7 +35,8 @@ public class SystemsController : Controller
         IRoleService roleService,
         IAuditService auditService,
         ICurrentUserService currentUser,
-        ICurrencyService currencyService)
+        ICurrencyService currencyService,
+        IResourceSystemCostSnapshotRepository costSnapshotRepo)
     {
         _systemService = systemService;
         _personnelService = personnelService;
@@ -43,6 +46,7 @@ public class SystemsController : Controller
         _auditService = auditService;
         _currentUser = currentUser;
         _currencyService = currencyService;
+        _costSnapshotRepo = costSnapshotRepo;
     }
 
     /// <summary>GET /Systems/Index — Tüm kaynak sistemleri listeler; erişim sayısı ve sistem sahibi adı gösterilir.</summary>
@@ -98,6 +102,12 @@ public class SystemsController : Controller
         ViewBag.OwnerNamesBySystem = ownerNamesBySystem;
         ViewBag.ResponsibleDepartmentNames = responsibleDepartmentNames;
         ViewBag.AccessCounts = accessCounts;
+
+        var trend = _costSnapshotRepo.GetGrandTotalsByMonth(12);
+        ViewBag.SystemCostTrendJson = trend.Count > 0
+            ? JsonSerializer.Serialize(new { labels = trend.Select(t => t.Label).ToList(), totals = trend.Select(t => t.TotalUsd).ToList() })
+            : null;
+
         return View();
     }
 
@@ -141,6 +151,11 @@ public class SystemsController : Controller
         ViewBag.ResponsibleDepartmentName = system.ResponsibleDepartmentId.HasValue
             ? _departmentService.GetById(system.ResponsibleDepartmentId.Value)?.Name ?? "—"
             : "—";
+
+        var sysTrend = _costSnapshotRepo.GetBySystemId(id, 6);
+        ViewBag.SystemDetailCostJson = sysTrend.Count > 0
+            ? JsonSerializer.Serialize(sysTrend.Select(t => new { t.Label, total = t.TotalCostUsd, count = t.ActiveAccessCount }).ToList())
+            : null;
 
         return View();
     }

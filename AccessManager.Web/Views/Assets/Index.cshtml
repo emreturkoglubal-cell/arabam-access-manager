@@ -119,3 +119,49 @@ else
     </div>
 </div>
 }
+
+@if (ViewBag.AssetInventoryTrendJson != null)
+{
+<div class="am-card am-card--chart mt-4">
+    <div class="am-card-header am-card-header--sm">Toplam envanter trendi (snapshot, son 6 ay)</div>
+    <div class="am-card-body am-card-body--chart" style="min-height: 200px;">
+        <canvas id="chartAssetInventoryTrend"></canvas>
+    </div>
+</div>
+}
+
+@section Scripts {
+@if (ViewBag.AssetInventoryTrendJson != null)
+{
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var raw = @Html.Raw(ViewBag.AssetInventoryTrendJson as string ?? "null");
+    if (!raw || !raw.labels || !raw.labels.length) return;
+    new Chart(document.getElementById('chartAssetInventoryTrend'), {
+        type: 'line',
+        data: {
+            labels: raw.labels,
+            datasets: [{
+                label: 'Toplam adet',
+                data: raw.totals,
+                borderColor: '#e40030',
+                backgroundColor: '#fef2f2',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
+                x: { ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+})();
+</script>
+}
+}

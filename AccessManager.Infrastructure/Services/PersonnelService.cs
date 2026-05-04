@@ -91,4 +91,10 @@ public class PersonnelService : IPersonnelService
         };
         _repo.AddNote(note);
     }
+
+    public IReadOnlyList<Personnel> GetByStartDateInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId) =>
+        _repo.GetByStartDateInRange(fromInclusive, toInclusive, departmentId);
+
+    public IReadOnlyList<Personnel> GetByEndDateOffboardedInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId) =>
+        _repo.GetByEndDateOffboardedInRange(fromInclusive, toInclusive, departmentId);
 }

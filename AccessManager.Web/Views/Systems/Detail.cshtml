@@ -88,6 +88,16 @@ else
     </div>
 </div>
 
+@if (ViewBag.SystemDetailCostJson != null)
+{
+<div class="am-card am-card--chart mb-3">
+    <div class="am-card-header am-card-header--sm">Maliyet trendi (son 6 ay, USD — snapshot)</div>
+    <div class="am-card-body am-card-body--chart" style="min-height: 220px;">
+        <canvas id="chartSystemDetailCost"></canvas>
+    </div>
+</div>
+}
+
 <div class="am-card mb-3">
     <div class="am-card-header">Bu uygulamada aktif yetkisi olan personeller</div>
     <div class="am-card-body p-0">
@@ -157,4 +167,63 @@ else
 </div>
 
 <a asp-controller="Systems" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}
+
+@section Scripts {
+@if (ViewBag.SystemDetailCostJson != null)
+{
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var pts = @Html.Raw(ViewBag.SystemDetailCostJson as string ?? "[]");
+    if (!pts || !pts.length) return;
+    var el = document.getElementById('chartSystemDetailCost');
+    if (!el) return;
+    var labels = pts.map(function (x) { return x.label; });
+    var data = pts.map(function (x) { return Number(x.total); });
+    var themeRed = '#e40030';
+    var bg = data.map(function (v, i) {
+        if (i === 0) return '#e5e7eb';
+        var d = v - data[i - 1];
+        return d > 0 ? '#fecaca' : d < 0 ? '#bbf7d0' : '#e5e7eb';
+    });
+    new Chart(el, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Toplam USD',
+                data: data,
+                backgroundColor: bg,
+                borderColor: themeRed,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function (ctx) {
+                            var i = ctx.dataIndex;
+                            if (i > 0) {
+                                var d = data[i] - data[i - 1];
+                                return 'Önceki aya göre: ' + (d > 0 ? '+' : '') + d.toFixed(2) + ' USD';
+                            }
+                            return '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                x: { ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+})();
+</script>
+}
 }

@@ -5,6 +5,10 @@
     ViewData["Title"] = "İşten Çıkış";
     var activePersonnel = ViewBag.ActivePersonnel as IReadOnlyList<Personnel> ?? new List<Personnel>();
     var recentOffboarded = ViewBag.RecentOffboarded as IReadOnlyList<OffboardedReportRow> ?? new List<OffboardedReportRow>();
+    var departments = ViewBag.Departments as IReadOnlyList<Department> ?? new List<Department>();
+    var filterFrom = ViewBag.FilterFrom as DateTime? ?? DateTime.Today.AddMonths(-1);
+    var filterTo = ViewBag.FilterTo as DateTime? ?? DateTime.Today;
+    var filterDeptId = ViewBag.FilterDepartmentId as int?;
 }
 
 <p class="text-muted">Personel için çıkış tarihi girerek tüm yetkileri kapatın.</p>
@@ -35,10 +39,39 @@
     </div>
 </div>
 
+<div class="am-card mt-4">
+    <div class="am-card-header">İşten çıkanlar listesi (filtre)</div>
+    <div class="am-card-body">
+        <form method="get" asp-controller="Offboarding" asp-action="Index" class="row g-2 align-items-end flex-wrap">
+            <div class="col-auto">
+                <label class="form-label small mb-0">Başlangıç</label>
+                <input type="date" name="from" class="form-control form-control-sm" value="@filterFrom.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-0">Bitiş</label>
+                <input type="date" name="to" class="form-control form-control-sm" value="@filterTo.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-0">Departman</label>
+                <select name="departmentId" class="form-select form-select-sm">
+                    <option value="">Tümü</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.Id" selected="@(filterDeptId == d.Id)">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-am-outline btn-sm">Uygula</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @if (recentOffboarded.Any())
 {
 <div class="am-card mt-4">
-    <div class="am-card-header">Son 1 ay içinde işten çıkanlar</div>
+    <div class="am-card-header">İşten çıkanlar (@recentOffboarded.Count kayıt)</div>
     <div class="am-card-body p-0">
         <div class="am-table-wrap">
             <table class="am-table mb-0">
@@ -60,7 +93,10 @@
                             <td>@(r.StartDate?.ToString("dd.MM.yyyy") ?? "—")</td>
                             <td>@(r.EndDate?.ToString("dd.MM.yyyy") ?? "—")</td>
                             <td>@(r.Email ?? "—")</td>
-                            <td><a asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId" class="btn btn-am-outline btn-sm" target="_blank">Zimmet / PDF</a></td>
+                            <td>
+                                <a asp-controller="Offboarding" asp-action="ExitSummaryPdf" asp-route-id="@r.PersonnelId" class="btn btn-am-outline btn-sm" target="_blank">Özet PDF</a>
+                                <a asp-controller="Personnel" asp-action="Detail" asp-route-id="@r.PersonnelId" class="btn btn-am-outline btn-sm" target="_blank">Detay</a>
+                            </td>
                         </tr>
                     }
                 </tbody>

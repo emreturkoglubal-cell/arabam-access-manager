@@ -15,6 +15,9 @@
     var departmentManagers = ViewBag.DepartmentManagers as IReadOnlyList<DepartmentManager> ?? new List<DepartmentManager>();
     var departmentManagerPersonnel = ViewBag.DepartmentManagerPersonnel as Dictionary<int, Personnel> ?? new Dictionary<int, Personnel>();
     var allPersonnelForGmy = ViewBag.AllPersonnelForGmy as IReadOnlyList<Personnel> ?? new List<Personnel>();
+    var parentChoices = ViewBag.ParentDepartmentChoices as IReadOnlyList<Department> ?? new List<Department>();
+    var licenseUsd = ViewBag.DepartmentLicenseUsd as decimal?;
+    var ciMoney = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
 }
 @if (department == null)
 {
@@ -61,9 +64,33 @@ else
             <dd class="col-sm-8">@(department.Description ?? "—")</dd>
             <dt class="col-sm-4">Personel sayısı</dt>
             <dd class="col-sm-8">@personnelCount</dd>
+            <dt class="col-sm-4">Aktif lisans (USD)</dt>
+            <dd class="col-sm-8">@(licenseUsd.HasValue ? licenseUsd.Value.ToString("N2", ciMoney) + " $" : "—")</dd>
         </dl>
     </div>
 </div>
+
+@if (ViewBag.DepartmentTurnoverJson != null)
+{
+<div class="row g-2 mb-3">
+    <div class="col-md-6">
+        <div class="am-card am-card--chart h-100">
+            <div class="am-card-header am-card-header--sm">İşe giren (12 ay)</div>
+            <div class="am-card-body am-card-body--chart" style="min-height: 200px;">
+                <canvas id="chartDeptHires"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="am-card am-card--chart h-100">
+            <div class="am-card-header am-card-header--sm">İşten çıkan (12 ay)</div>
+            <div class="am-card-body am-card-body--chart" style="min-height: 200px;">
+                <canvas id="chartDeptExits"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+}
 
 @if (departmentManagers.Any())
 {
@@ -199,6 +226,16 @@ else
                         <textarea name="Description" id="editDescription" class="form-control" rows="3" maxlength="2000">@department.Description</textarea>
                     </div>
                     <div class="mb-3">
+                        <label for="editParentId" class="form-label">Üst departman</label>
+                        <select name="ParentId" id="editParentId" class="form-select">
+                            <option value="">— Yok (kök) —</option>
+                            @foreach (var pd in parentChoices)
+                            {
+                                <option value="@pd.Id" selected="@(department.ParentId == pd.Id)">@pd.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="editTopManagerPersonnelId" class="form-label">Departman Yöneticisi (GMY)</label>
                         <select name="TopManagerPersonnelId" id="editTopManagerPersonnelId" class="form-select">
                             <option value="">— Seçiniz —</option>
@@ -219,4 +256,31 @@ else
 </div>
 
 <a asp-controller="Departments" asp-action="Index" class="btn btn-am-ghost">Listeye dön</a>
+}
+
+@section Scripts {
+@if (ViewBag.DepartmentTurnoverJson != null)
+{
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var raw = @Html.Raw(ViewBag.DepartmentTurnoverJson as string ?? "null");
+    if (!raw || !raw.labels || !raw.labels.length) return;
+    var themeRed = '#e40030';
+    var themeBlue = '#1d4ed8';
+    var elH = document.getElementById('chartDeptHires');
+    var elE = document.getElementById('chartDeptExits');
+    if (elH) new Chart(elH, {
+        type: 'bar',
+        data: { labels: raw.labels, datasets: [{ label: 'İşe giren', data: raw.hires, backgroundColor: themeBlue }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+    if (elE) new Chart(elE, {
+        type: 'bar',
+        data: { labels: raw.labels, datasets: [{ label: 'İşten çıkan', data: raw.exits, backgroundColor: themeRed }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+})();
+</script>
+}
 }

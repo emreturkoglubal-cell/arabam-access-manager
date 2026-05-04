@@ -1,4 +1,5 @@
 using AccessManager.UI.Extensions;
+using AccessManager.UI.Hosting;
 using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,7 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddAccessManagerAuthentication();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAccessManagerServices();
+builder.Services.AddHostedService<DailyMaintenanceHostedService>();
 
 var app = builder.Build();
 

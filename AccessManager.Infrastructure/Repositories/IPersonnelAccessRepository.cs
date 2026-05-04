@@ -12,4 +12,6 @@ public interface IPersonnelAccessRepository
     int Insert(PersonnelAccess access);
     void SetActive(int id, bool isActive);
     PersonnelAccess? GetById(int id);
+    /// <summary>Aktif erişim kayıtlarını resource_system_id bazında sayar.</summary>
+    IReadOnlyDictionary<int, int> GetActiveAccessCountByResourceSystem();
 }

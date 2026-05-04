@@ -40,4 +40,6 @@ public interface IPersonnelService
     IReadOnlyList<PersonnelNote> GetNotes(int personnelId);
     /// <summary>Faz 1: Personel için yeni not ekler.</summary>
     void AddNote(int personnelId, string content, int? createdByUserId, string? createdByUserName);
+    IReadOnlyList<Personnel> GetByStartDateInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId);
+    IReadOnlyList<Personnel> GetByEndDateOffboardedInRange(DateTime fromInclusive, DateTime toInclusive, int? departmentId);
 }

@@ -14,19 +14,22 @@ public class ReportService : IReportService
     private readonly IAccessRequestRepository _requestRepo;
     private readonly IPersonnelAccessRepository _accessRepo;
     private readonly IResourceSystemRepository _systemRepo;
+    private readonly ICurrencyService _currencyService;
 
     public ReportService(
         IPersonnelRepository personnelRepo,
         IDepartmentRepository departmentRepo,
         IAccessRequestRepository requestRepo,
         IPersonnelAccessRepository accessRepo,
-        IResourceSystemRepository systemRepo)
+        IResourceSystemRepository systemRepo,
+        ICurrencyService currencyService)
     {
         _personnelRepo = personnelRepo;
         _departmentRepo = departmentRepo;
         _requestRepo = requestRepo;
         _accessRepo = accessRepo;
         _systemRepo = systemRepo;
+        _currencyService = currencyService;
     }
 
     public DashboardStats GetDashboardStats(int? departmentId = null, int? periodMonths = null, DateTime? periodFrom = null, DateTime? periodTo = null)
@@ -189,9 +192,10 @@ public class ReportService : IReportService
         }).ToList();
     }
 
-    public IReadOnlyList<OffboardedReportRow> GetOffboardedReport(DateTime? from, DateTime? to)
+    public IReadOnlyList<OffboardedReportRow> GetOffboardedReport(DateTime? from, DateTime? to, int? departmentId = null)
     {
         var list = _personnelRepo.GetAll().Where(p => p.EndDate.HasValue).AsEnumerable();
+        if (departmentId.HasValue) list = list.Where(p => p.DepartmentId == departmentId.Value);
         if (from.HasValue) list = list.Where(p => p.EndDate >= from);
         if (to.HasValue) list = list.Where(p => p.EndDate <= to);
         var departments = _departmentRepo.GetAll().ToDictionary(d => d.Id);
@@ -303,5 +307,47 @@ public class ReportService : IReportService
             OffboardedReport = offboardedReport,
             ExceptionReport = exceptionReport
         };
+    }
+
+    public IReadOnlyList<DepartmentTurnoverPoint> GetDepartmentTurnoverPoints(int departmentId, int months = 12)
+    {
+        months = Math.Clamp(months, 1, 24);
+        var now = SystemTime.Now.Date;
+        var anchor = new DateTime(now.Year, now.Month, 1);
+        var allInDept = _personnelRepo.GetByDepartmentId(departmentId);
+        var ci = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+        var list = new List<DepartmentTurnoverPoint>();
+        for (var i = months - 1; i >= 0; i--)
+        {
+            var m = anchor.AddMonths(-i);
+            var hires = allInDept.Count(p => p.StartDate.Year == m.Year && p.StartDate.Month == m.Month);
+            var exits = allInDept.Count(p => p.EndDate.HasValue && p.EndDate.Value.Year == m.Year && p.EndDate.Value.Month == m.Month);
+            list.Add(new DepartmentTurnoverPoint
+            {
+                Label = m.ToString("MMM yyyy", ci),
+                Hires = hires,
+                Exits = exits
+            });
+        }
+        return list;
+    }
+
+    public decimal? GetDepartmentActiveLicenseCostUsd(int departmentId)
+    {
+        var activeInDept = _personnelRepo.GetActive().Where(p => p.DepartmentId == departmentId).Select(p => p.Id).ToHashSet();
+        if (activeInDept.Count == 0) return null;
+        var accesses = _accessRepo.GetActive().Where(a => activeInDept.Contains(a.PersonnelId)).ToList();
+        if (accesses.Count == 0) return null;
+        var systems = _systemRepo.GetAll().ToDictionary(s => s.Id);
+        var rates = _currencyService.GetRatesToUsd();
+        decimal totalUsd = 0;
+        foreach (var a in accesses)
+        {
+            if (!systems.TryGetValue(a.ResourceSystemId, out var sys) || !sys.UnitCost.HasValue) continue;
+            var currency = string.IsNullOrWhiteSpace(sys.UnitCostCurrency) ? "TRY" : sys.UnitCostCurrency.Trim().ToUpperInvariant();
+            if (rates.TryGetValue(currency, out var rate))
+                totalUsd += sys.UnitCost!.Value * rate;
+        }
+        return totalUsd > 0 ? totalUsd : null;
     }
 }
