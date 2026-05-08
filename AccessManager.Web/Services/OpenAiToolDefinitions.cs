@@ -92,7 +92,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "run_build",
-                    ["description"] = "Projeyi derler (dotnet build). confirm_and_push öncesi mutlaka çağır. Build hata verirse kullanıcıya çıktıyı göster, pushlama. Parametre yok.",
+                    ["description"] = "Projeyi derler (dotnet build). confirm_and_push öncesi çağrılır. Normal build hatasında pushlama. Ortamda uyumlu .NET SDK yoksa build atlanabilir; bu durumda kullanıcıya açıkça bildir.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
@@ -107,7 +107,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "confirm_and_push",
-                    ["description"] = "Kullanıcı 'Evet, pushla' / 'Onayla' dediğinde çağır. Önce build alır (başarısızsa push etmez), sonra bekleyen değişiklikleri commit edip main'e push eder. Parametre yok.",
+                    ["description"] = "Kullanıcı 'Evet, pushla' / 'Onayla' dediğinde çağır. Önce build alır; normal build hatasında push etmez. Sadece SDK eksikliği gibi ortam hatasında build atlanıp bekleyen değişiklikler commit edilerek main'e push edilebilir. Parametre yok.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",

@@ -37,6 +37,26 @@ public class PositionTitleTemplateRepository : IPositionTitleTemplateRepository
         });
     }
 
+    public void Update(PositionTitleTemplate row)
+    {
+        using var conn = new NpgsqlConnection(_connectionString);
+        conn.Open();
+        const string sql = @"UPDATE position_title_templates
+            SET department_id = @DepartmentId,
+                team_id = @TeamId,
+                seniority_level = @SeniorityLevel,
+                title = @Title
+            WHERE id = @Id";
+        conn.Execute(sql, new
+        {
+            row.Id,
+            row.DepartmentId,
+            row.TeamId,
+            SeniorityLevel = string.IsNullOrWhiteSpace(row.SeniorityLevel) ? null : row.SeniorityLevel.Trim(),
+            Title = row.Title.Trim()
+        });
+    }
+
     public void Delete(int id)
     {
         using var conn = new NpgsqlConnection(_connectionString);

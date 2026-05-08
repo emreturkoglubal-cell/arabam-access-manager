@@ -61,6 +61,8 @@ public class AiChatService : IAiChatService
             }, cancellationToken);
         }
 
+        var isFirstConversationTurn = previousMessages == null || previousMessages.Count == 0;
+
         var apiKey = _config["OpenAI:ApiKey"]?.Trim();
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -70,7 +72,8 @@ public class AiChatService : IAiChatService
             return msg;
         }
 
-        await Emit("phase", "Proje yapısı yükleniyor…").ConfigureAwait(false);
+        if (isFirstConversationTurn)
+            await Emit("phase", "Proje yapısı yükleniyor…").ConfigureAwait(false);
         string structure;
         try
         {
@@ -87,12 +90,14 @@ public class AiChatService : IAiChatService
             structure = "# Proje yapısı yüklenemedi: " + ex.Message;
         }
 
-        await Emit("phase", "Proje yapısı hazır.").ConfigureAwait(false);
+        if (isFirstConversationTurn)
+            await Emit("phase", "Proje yapısı hazır.").ConfigureAwait(false);
 
         var relevantChunksBlock = "";
         if (_codeChunkSearch != null)
         {
-            await Emit("phase", "Kod parçaları için vektör araması yapılıyor…").ConfigureAwait(false);
+            if (isFirstConversationTurn)
+                await Emit("phase", "Kod parçaları için vektör araması yapılıyor…").ConfigureAwait(false);
             try
             {
                 var hasIndex = await _codeChunkSearch.HasIndexAsync(cancellationToken).ConfigureAwait(false);
@@ -110,18 +115,26 @@ public class AiChatService : IAiChatService
                             sb.AppendLine(content);
                         }
                         relevantChunksBlock = sb.ToString();
-                        await Emit("phase", $"{chunks.Count} ilgili kod parçası bulundu.").ConfigureAwait(false);
+                        if (isFirstConversationTurn)
+                            await Emit("phase", $"{chunks.Count} ilgili kod parçası bulundu.").ConfigureAwait(false);
                     }
                     else
-                        await Emit("phase", "Vektör indeksinde eşleşen parça yok (veya boş).").ConfigureAwait(false);
+                    {
+                        if (isFirstConversationTurn)
+                            await Emit("phase", "Vektör indeksinde eşleşen parça yok (veya boş).").ConfigureAwait(false);
+                    }
                 }
                 else
-                    await Emit("phase", "Kod indeksi yok; vektör araması atlandı.").ConfigureAwait(false);
+                {
+                    if (isFirstConversationTurn)
+                        await Emit("phase", "Kod indeksi yok; vektör araması atlandı.").ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "AiChatService: Vektör araması atlandı.");
-                await Emit("phase", "Vektör araması atlandı: " + ex.Message).ConfigureAwait(false);
+                if (isFirstConversationTurn)
+                    await Emit("phase", "Vektör araması atlandı: " + ex.Message).ConfigureAwait(false);
             }
         }
 
@@ -130,7 +143,7 @@ public class AiChatService : IAiChatService
 ZORUNLU KURALLAR:
 1) Selam, nasılsın, teşekkür, kısa hal hatır gibi mesajlara kısa ve sıcak yanıt ver; robotik reddetme yapma. Bu tür mesajlarda read_file veya başka araç çağırma. En az bir cümle doğal sohbet et; hemen ""projeye geçelim"" demek zorunda değilsin. İstersen en sonda yumuşakça kod veya Access Manager konusunda yardımcı olup olamayacağını sor.
 2) Teknik sorular, kod incelemesi, mimari ve değişiklik talepleri için yanıtlarını bu repoya dayandır; read_file ile ilgili dosyaları oku. Tahmin yapma. Proje dışı genel konularda (başka ürünler, tıbbi/hukuki tavsiye, sınav cevabı vb.) uzun içerik verme; kısaca bu sohbetin Access Manager proje asistanı olduğunu belirtip projeye yönlendir.
-3) Projeyi bozma veya tehlikeli toplu işlem (tüm dosyaları silmek, .git silmek vb.) kabul etme; reddedip nedenini açıkla.
+3) Projeyi bozma veya tehlikeli toplu işlem (tüm dosyaları silmek, .git silmek vb.) kabul etme; reddedip nedenini açıkla. Basit ve güvenli istekleri (metin/label değiştirme, küçük UI düzeltmesi, typo düzeltmesi) reddetme; doğrudan uygula.
 
 Tavır ve bilgilendirme:
 - Ne yaptığını kısaca söyle: ""Dosyayı okuyorum..."", ""Değişikliği uyguluyorum..."", ""Build alıyorum..."", ""Pushlandı."" gibi.
@@ -141,8 +154,8 @@ Araçlar:
 - read_file: Dosya içeriği okumak. Path repo köküne göre. View'lar AccessManager.Web/Views/ altında.
 - write_file: Yeni dosya veya tam içerik. Sonrasında kullanıcıya göster, onay al; onayda confirm_and_push veya create_pr.
 - apply_diff: Mevcut dosyada unified diff uygula. Sonrasında kullanıcıya diff göster, onay al.
-- run_build: Projeyi derler (dotnet build). confirm_and_push zaten içinde build alır; ayrıca kullanıcı ""build al"" derse de çağır. Build hata verirse çıktıyı kullanıcıya göster, pushlama.
-- confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build alır; build başarısızsa push etmez ve hatayı bildirir. Başarılıysa main'e commit+push.
+- run_build: Projeyi derler (dotnet build). confirm_and_push zaten içinde build alır; ayrıca kullanıcı ""build al"" derse de çağır. Build hata verirse çıktıyı kullanıcıya göster. Ortamda SDK yoksa araç build'i atlayabilir.
+- confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build alır; normal build hatasında push etmez ve hatayı bildirir. Yalnızca ""SDK yok/uyumlu SDK bulunamadı"" türü ortam hatasında build atlanabilir ve push'a devam edilir.
 - create_pr: Kullanıcı ""PR aç"", ""pull request aç"", ""pushlama PR aç"" veya doğrudan main'e push etmek istemediğini söylediğinde çağır. Değişiklikleri yeni branch'e commit edip push eder; kullanıcı GitHub/GitLab'da PR açar.
 - git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde (confirm_and_push dışında) kullan.
 - propose_sql: Veritabanından salt okunur veri için kullan. Önce her zaman bunu çağır; tek SELECT (veya WITH…SELECT) ver. Bu araç SQL'i doğrular ve konuşmaya bekleyen sorgu olarak kaydeder. Asla doğrudan veritabanına yazma veya execute_pending_sql dışında SQL çalıştırma.

@@ -41,6 +41,15 @@ public class PositionTitleTemplatesController : Controller
         public string Title { get; set; } = string.Empty;
     }
 
+    public class UpdateInput
+    {
+        public int Id { get; set; }
+        public int? DepartmentId { get; set; }
+        public int? TeamId { get; set; }
+        public string? SeniorityLevel { get; set; }
+        public string Title { get; set; } = string.Empty;
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(CreateInput input)
@@ -58,6 +67,34 @@ public class PositionTitleTemplatesController : Controller
             Title = input.Title.Trim()
         });
         TempData["PttSuccess"] = "Şablon eklendi.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Update(UpdateInput input)
+    {
+        if (input.Id < 1)
+        {
+            TempData["PttError"] = "Geçersiz şablon kaydı.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (string.IsNullOrWhiteSpace(input.Title))
+        {
+            TempData["PttError"] = "Ünvan metni zorunludur.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _repo.Update(new PositionTitleTemplate
+        {
+            Id = input.Id,
+            DepartmentId = input.DepartmentId,
+            TeamId = input.TeamId,
+            SeniorityLevel = string.IsNullOrWhiteSpace(input.SeniorityLevel) ? null : input.SeniorityLevel.Trim(),
+            Title = input.Title.Trim()
+        });
+
+        TempData["PttSuccess"] = "Şablon güncellendi.";
         return RedirectToAction(nameof(Index));
     }
 

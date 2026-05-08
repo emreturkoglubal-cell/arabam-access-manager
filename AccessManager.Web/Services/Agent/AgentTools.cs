@@ -8,6 +8,7 @@ namespace AccessManager.UI.Services.Agent;
 
 public sealed class AgentTools : IAgentTools
 {
+    private const string BuildSkippedPrefix = "BUILD_ATLANDI:";
     private readonly IConfiguration _config;
     private readonly ICodeModificationService _codeMod;
     private readonly IGitService _gitService;
@@ -162,6 +163,9 @@ public sealed class AgentTools : IAgentTools
             var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
             var output = (stdout + "\n" + stderr).Trim();
+            if (IsDotnetSdkMissing(output))
+                return BuildSkippedPrefix + " Build ortamda çalıştırılamadı (uyumlu .NET SDK yok). Push akışında build atlanacak.\n\n" +
+                    (output.Length > 4000 ? output.AsSpan(0, 4000).ToString() + "\n... (kesildi)" : output);
             if (process.ExitCode != 0)
                 return "BUILD_HATA: Derleme başarısız (exit code " + process.ExitCode + "). Kullanıcıya bu çıktıyı göster, pushlama; düzeltmesini veya PR açmasını öner.\n\n" + (output.Length > 6000 ? output.AsSpan(0, 6000).ToString() + "\n... (kesildi)" : output);
             return "OK: Build başarılı.\n" + (output.Length > 2000 ? output.Substring(output.Length - 2000) : output);
@@ -181,6 +185,15 @@ public sealed class AgentTools : IAgentTools
         var (paths, commitMessage, _) = pending.Value;
 
         var buildResult = await RunBuildAsync(cancellationToken);
+        if (buildResult.StartsWith(BuildSkippedPrefix, StringComparison.Ordinal))
+        {
+            _logger.LogWarning("AgentTools.ConfirmPushAsync: Build atlandı (SDK yok). ConversationId: {ConversationId}", conversationId);
+            _pendingPush.Clear(conversationId);
+            var skippedBuildPushResult = await _gitService.CommitAndPushAsync(paths, commitMessage, cancellationToken);
+            if (skippedBuildPushResult.Success)
+                return "OK: Build ortamda atlandı (SDK yok), değişiklikler commit edilip main'e pushlandı: " + skippedBuildPushResult.Message;
+            return "HATA: Build atlandı ama push başarısız: " + skippedBuildPushResult.Message;
+        }
         if (buildResult.StartsWith("BUILD_HATA:") || buildResult.StartsWith("HATA:"))
         {
             return buildResult + "\n\nDeğişiklikler pushlanmadı. Hatayı düzelttikten sonra tekrar 'Evet, pushla' diyebilir veya 'PR aç' diyerek sadece branch oluşturup PR açabilirsiniz.";
@@ -191,6 +204,14 @@ public sealed class AgentTools : IAgentTools
         if (result.Success)
             return "OK: Build başarılı, değişiklikler commit edilip main'e pushlandı: " + result.Message;
         return "HATA: Push başarısız: " + result.Message;
+    }
+
+    private static bool IsDotnetSdkMissing(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return false;
+        return output.Contains("A compatible .NET SDK was not found", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("No .NET SDKs were found", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("It was not possible to find any installed .NET SDKs", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<string> CreatePrAsync(int conversationId, CancellationToken cancellationToken = default)
