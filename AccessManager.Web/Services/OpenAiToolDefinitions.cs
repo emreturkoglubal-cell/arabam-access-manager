@@ -54,7 +54,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "apply_diff",
-                    ["description"] = "Unified diff formatında değişikliği dosyaya uygular. Path repo köküne göre olmalı.",
+                    ["description"] = "Unified diff ile dosyayı günceller. Önce read_file ile güncel içeriği oku; bağlam satırlarını (space ile başlayan satırlar) dosyadan birebir kopyala. Tek küçük hunk tercih et. Hata olursa read_file + yeniden diff veya write_file ile kurtar.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
@@ -92,7 +92,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "run_build",
-                    ["description"] = "Projeyi derler (dotnet build). confirm_and_push öncesi çağrılır. Normal build hatasında pushlama. Ortamda uyumlu .NET SDK yoksa build atlanabilir; bu durumda kullanıcıya açıkça bildir.",
+                    ["description"] = "Projeyi derler (dotnet build). confirm_and_push öncesi çağrılır. Gerçek derleme hatasında push önerme. SDK yok veya dosya kilidi (MSB302x, başka işlem dosyayı kullanıyor) gibi ortam sorunlarında confirm_and_push push'a devam edebilir.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
@@ -107,7 +107,7 @@ public static class OpenAiToolDefinitions
                 ["function"] = new JsonObject
                 {
                     ["name"] = "confirm_and_push",
-                    ["description"] = "Kullanıcı 'Evet, pushla' / 'Onayla' dediğinde çağır. Önce build alır; normal build hatasında push etmez. Sadece SDK eksikliği gibi ortam hatasında build atlanıp bekleyen değişiklikler commit edilerek main'e push edilebilir. Parametre yok.",
+                    ["description"] = "Kullanıcı 'Evet, pushla' / 'Onayla' dediğinde çağır. Önce build dener (ArabamAi:PrePushBuild=false ise build atlanır). Gerçek kod/derleme hatasında push etmez. SDK eksikliği veya DLL dosya kilidi (Visual Studio/çalışan uygulama) gibi ortam hatalarında build atlanıp main'e push edilebilir. Parametre yok.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",

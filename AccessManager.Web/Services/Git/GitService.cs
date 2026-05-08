@@ -167,7 +167,8 @@ public sealed class GitService : IGitService
         var pushTarget = authUrl ?? "origin";
 
         // 5) Push öncesi origin/main'ı çekip kendi commit'imizi üste koy
-        var pullArgs = $"pull --rebase \"{pushTarget}\" {MainBranch}";
+        // Yerelde unrelated değişiklik varsa pull --rebase normalde patlar; --autostash ile geçici saklayıp rebase sonrası geri al.
+        var pullArgs = $"pull --rebase --autostash \"{pushTarget}\" {MainBranch}";
         var pullResult = await RunGitWithEnvAsync(repo, pullArgs, env, cancellationToken);
         if (!pullResult.Success)
         {

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using AccessManager.UI.Services.Git;
 
 namespace AccessManager.UI.Services.CodeModification;
@@ -205,11 +206,19 @@ public sealed class CodeModificationService : ICodeModificationService
         return (true, newContent, null);
     }
 
-    /// <summary>Satır eşleşmesi: tam veya trim edilmiş (patch bazen boşluksuz gönderiyor, dosyada girintili olabiliyor).</summary>
+    /// <summary>Satır eşleşmesi: tam, trim veya iç boşlukları tekilleştirilmiş karşılaştırma (model/context satırı ufak fark gönderir).</summary>
     private static bool LineMatches(string fileLine, string patchLine)
     {
         if (fileLine == patchLine) return true;
-        return fileLine.Trim() == patchLine.Trim();
+        if (fileLine.Trim() == patchLine.Trim()) return true;
+        return NormalizeLineForPatchCompare(fileLine) == NormalizeLineForPatchCompare(patchLine);
+    }
+
+    private static string NormalizeLineForPatchCompare(string line)
+    {
+        if (string.IsNullOrEmpty(line)) return "";
+        var t = line.Trim();
+        return Regex.Replace(t, @"\s+", " ");
     }
 
     private static bool TryParseHunkHeader(string line, out int oldStart, out int oldCount)

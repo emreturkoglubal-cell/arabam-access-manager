@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using AccessManager.Application.Interfaces;
 using AccessManager.Application.Sql;
 using AccessManager.UI.Services.CodeModification;
@@ -127,7 +128,21 @@ public sealed class AgentTools : IAgentTools
         if (!result.Success)
         {
             _logger.LogError("AgentTools.ApplyDiffAsync: Diff uygulanamadı. Path: {Path}, Hata: {Message}", relativePath, result.Message);
-            return "HATA: " + result.Message;
+            var fallback = await TrySimpleLineReplaceFallbackAsync(relativePath, unifiedDiff, cancellationToken).ConfigureAwait(false);
+            if (fallback.Success)
+            {
+                var fbPath = fallback.ResolvedPath.Replace("\\", "/");
+                if (conversationId.HasValue && conversationId.Value > 0)
+                {
+                    var diffStored = unifiedDiff.Length > 8000 ? unifiedDiff[..8000] + "\n... (kesildi)" : unifiedDiff;
+                    _pendingPush.Set(conversationId.Value, new[] { fbPath }, "Kod güncellemesi (arabam AI)", diffStored);
+                }
+                return "OK: Diff bağlamı tutmadığı için satır-bazlı güvenli fallback ile değişiklik uygulandı. Değiştirilen dosya: " + fbPath +
+                       ". Kullanıcıya değişikliği gösterip onay iste. Onay gelince confirm_and_push çağır.";
+            }
+
+            return "HATA: " + result.Message +
+                   "\nİpucu (asistan için): Hemen aynı turda read_file ile dosyanın güncel halini tekrar oku; bağlam satırlarını birebir kopyalayarak daha küçük bir apply_diff dene. Gerekirse son çare write_file kullan.";
         }
 
         var pathForGit = (result.ResolvedPath ?? relativePath).Replace("\\", "/");
@@ -137,6 +152,79 @@ public sealed class AgentTools : IAgentTools
             _pendingPush.Set(conversationId.Value, new[] { pathForGit }, "Kod güncellemesi (arabam AI)", diffStored);
         }
         return "OK: Diff uygulandı. Değiştirilen dosya: " + pathForGit + ". Kullanıcıya aşağıdaki diff'i kod bloğunda gösterip onay iste. Onay gelince confirm_and_push çağır. ASLA bu yanıtta git_commit_and_push çağırma.\n\nDiff:\n```diff\n" + (unifiedDiff.Length > 8000 ? unifiedDiff[..8000] + "\n... (kesildi)" : unifiedDiff) + "\n```";
+    }
+
+    private async Task<(bool Success, string ResolvedPath)> TrySimpleLineReplaceFallbackAsync(string relativePath, string unifiedDiff, CancellationToken cancellationToken)
+    {
+        if (!TryResolvePath(relativePath, out var fullPath, out _))
+            return (false, relativePath);
+        if (!File.Exists(fullPath))
+            return (false, relativePath);
+
+        var normalized = (unifiedDiff ?? "").Replace("\r\n", "\n").Replace("\r", "\n");
+        if (string.IsNullOrWhiteSpace(normalized))
+            return (false, relativePath);
+
+        var lines = normalized.Split('\n');
+        string? removeLine = null;
+        string? addLine = null;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var l = lines[i];
+            if (l.StartsWith("---") || l.StartsWith("+++") || l.StartsWith("@@")) continue;
+            if (l.StartsWith("-") && !l.StartsWith("---")) removeLine = l[1..];
+            if (l.StartsWith("+") && !l.StartsWith("+++")) addLine = l[1..];
+        }
+
+        if (string.IsNullOrEmpty(removeLine) || addLine == null)
+            return (false, relativePath);
+        if (removeLine == addLine)
+            return (false, relativePath);
+
+        var content = await File.ReadAllTextAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(content))
+            return (false, relativePath);
+
+        var updated = ReplaceUniqueOccurrence(content, removeLine, addLine);
+        if (updated == null)
+            return (false, relativePath);
+
+        await File.WriteAllTextAsync(fullPath, updated, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+        return (true, relativePath.Replace('\\', '/').TrimStart('/'));
+    }
+
+    private static string? ReplaceUniqueOccurrence(string content, string oldValue, string newValue)
+    {
+        var first = content.IndexOf(oldValue, StringComparison.Ordinal);
+        if (first >= 0)
+        {
+            var second = content.IndexOf(oldValue, first + oldValue.Length, StringComparison.Ordinal);
+            if (second < 0)
+                return content[..first] + newValue + content[(first + oldValue.Length)..];
+        }
+
+        // Exact satır değişimi mümkün değilse trim eşleşmesiyle tek satırı güncelle.
+        var lines = content.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+        var oldTrim = oldValue.Trim();
+        var matchIdx = -1;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Trim() == oldTrim)
+            {
+                if (matchIdx != -1) return null; // birden fazla aday varsa güvenli değil
+                matchIdx = i;
+            }
+        }
+        if (matchIdx < 0) return null;
+
+        var original = lines[matchIdx];
+        var indentLength = original.Length - original.TrimStart().Length;
+        var indent = indentLength > 0 ? original[..indentLength] : string.Empty;
+        lines[matchIdx] = indent + newValue.TrimStart();
+        var joined = string.Join("\n", lines);
+        if (content.EndsWith("\n", StringComparison.Ordinal) && !joined.EndsWith("\n", StringComparison.Ordinal))
+            joined += "\n";
+        return joined;
     }
 
     public async Task<string> RunBuildAsync(CancellationToken cancellationToken = default)
@@ -163,11 +251,14 @@ public sealed class AgentTools : IAgentTools
             var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
             var output = (stdout + "\n" + stderr).Trim();
-            if (IsDotnetSdkMissing(output))
-                return BuildSkippedPrefix + " Build ortamda çalıştırılamadı (uyumlu .NET SDK yok). Push akışında build atlanacak.\n\n" +
-                    (output.Length > 4000 ? output.AsSpan(0, 4000).ToString() + "\n... (kesildi)" : output);
             if (process.ExitCode != 0)
+            {
+                if (IsEnvironmentBuildFailure(output))
+                    return BuildSkippedPrefix + " Derleme ortam nedeniyle tamamlanamadı (SDK eksik veya dosya kilidi/MSB302x vb.); push akışında build atlanacak.\n\n" +
+                           (output.Length > 4000 ? output.AsSpan(0, 4000).ToString() + "\n... (kesildi)" : output);
                 return "BUILD_HATA: Derleme başarısız (exit code " + process.ExitCode + "). Kullanıcıya bu çıktıyı göster, pushlama; düzeltmesini veya PR açmasını öner.\n\n" + (output.Length > 6000 ? output.AsSpan(0, 6000).ToString() + "\n... (kesildi)" : output);
+            }
+
             return "OK: Build başarılı.\n" + (output.Length > 2000 ? output.Substring(output.Length - 2000) : output);
         }
         catch (Exception ex)
@@ -184,14 +275,24 @@ public sealed class AgentTools : IAgentTools
             return "HATA: Bu konuşma için onay bekleyen değişiklik yok. Önce apply_diff veya write_file ile değişiklik yapıp kullanıcı onayı alın.";
         var (paths, commitMessage, _) = pending.Value;
 
+        if (IsPrePushBuildDisabled())
+        {
+            _logger.LogWarning("AgentTools.ConfirmPushAsync: ArabamAi:PrePushBuild=false; build atlanıyor. ConversationId: {ConversationId}", conversationId);
+            _pendingPush.Clear(conversationId);
+            var pushOnly = await _gitService.CommitAndPushAsync(paths, commitMessage, cancellationToken);
+            if (pushOnly.Success)
+                return "OK: Ön derleme kapalı (ArabamAi:PrePushBuild=false); değişiklikler commit edilip main'e pushlandı: " + pushOnly.Message;
+            return "HATA: Push başarısız: " + pushOnly.Message;
+        }
+
         var buildResult = await RunBuildAsync(cancellationToken);
         if (buildResult.StartsWith(BuildSkippedPrefix, StringComparison.Ordinal))
         {
-            _logger.LogWarning("AgentTools.ConfirmPushAsync: Build atlandı (SDK yok). ConversationId: {ConversationId}", conversationId);
+            _logger.LogWarning("AgentTools.ConfirmPushAsync: Build ortam nedeniyle atlandı (SDK/dosya kilidi vb.). ConversationId: {ConversationId}", conversationId);
             _pendingPush.Clear(conversationId);
             var skippedBuildPushResult = await _gitService.CommitAndPushAsync(paths, commitMessage, cancellationToken);
             if (skippedBuildPushResult.Success)
-                return "OK: Build ortamda atlandı (SDK yok), değişiklikler commit edilip main'e pushlandı: " + skippedBuildPushResult.Message;
+                return "OK: Build ortamda atlandı (SDK eksik veya dosya kilidi vb.), değişiklikler commit edilip main'e pushlandı: " + skippedBuildPushResult.Message;
             return "HATA: Build atlandı ama push başarısız: " + skippedBuildPushResult.Message;
         }
         if (buildResult.StartsWith("BUILD_HATA:") || buildResult.StartsWith("HATA:"))
@@ -206,12 +307,35 @@ public sealed class AgentTools : IAgentTools
         return "HATA: Push başarısız: " + result.Message;
     }
 
+    private bool IsPrePushBuildDisabled()
+    {
+        var v = _config["ArabamAi:PrePushBuild"]?.Trim();
+        return string.Equals(v, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Bu çıktı gerçek kod hatası değil; yerelde SDK yok veya başka işlem çıktı dosyalarını kilitliyor gibi durumlarda true.</summary>
+    private static bool IsEnvironmentBuildFailure(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output)) return false;
+        if (IsDotnetSdkMissing(output)) return true;
+        return output.Contains("MSB3021", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("MSB3027", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("MSB3026", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("being used by another process", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("Could not copy", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("The process cannot access the file", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("Access to the path", StringComparison.OrdinalIgnoreCase)
+               || output.Contains("file is locked", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsDotnetSdkMissing(string output)
     {
         if (string.IsNullOrWhiteSpace(output)) return false;
         return output.Contains("A compatible .NET SDK was not found", StringComparison.OrdinalIgnoreCase)
                || output.Contains("No .NET SDKs were found", StringComparison.OrdinalIgnoreCase)
-               || output.Contains("It was not possible to find any installed .NET SDKs", StringComparison.OrdinalIgnoreCase);
+               || output.Contains("It was not possible to find any installed .NET SDKs", StringComparison.OrdinalIgnoreCase)
+               || (output.Contains("The command could not be loaded", StringComparison.OrdinalIgnoreCase)
+                   && output.Contains("SDK", StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<string> CreatePrAsync(int conversationId, CancellationToken cancellationToken = default)

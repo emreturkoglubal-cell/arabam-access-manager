@@ -13,6 +13,18 @@ public class AiChatService : IAiChatService
     private const int VectorSearchTopK = 10;
     private const int ToolPreviewMaxChars = 320;
     private const int ArgsPreviewMaxChars = 240;
+    private static readonly string[] ProgressOnlyPhrases =
+    {
+        "dosyayı okuyorum",
+        "dosyayı inceliyorum",
+        "inceliyorum",
+        "bir saniye",
+        "hemen bakıyorum",
+        "değişikliği yapacağım",
+        "değiştireceğim",
+        "uygulayacağım",
+        "yapacağım"
+    };
 
     private readonly IConfiguration _config;
     private readonly ICodeContextService _codeContext;
@@ -144,6 +156,7 @@ ZORUNLU KURALLAR:
 1) Selam, nasılsın, teşekkür, kısa hal hatır gibi mesajlara kısa ve sıcak yanıt ver; robotik reddetme yapma. Bu tür mesajlarda read_file veya başka araç çağırma. En az bir cümle doğal sohbet et; hemen ""projeye geçelim"" demek zorunda değilsin. İstersen en sonda yumuşakça kod veya Access Manager konusunda yardımcı olup olamayacağını sor.
 2) Teknik sorular, kod incelemesi, mimari ve değişiklik talepleri için yanıtlarını bu repoya dayandır; read_file ile ilgili dosyaları oku. Tahmin yapma. Proje dışı genel konularda (başka ürünler, tıbbi/hukuki tavsiye, sınav cevabı vb.) uzun içerik verme; kısaca bu sohbetin Access Manager proje asistanı olduğunu belirtip projeye yönlendir.
 3) Projeyi bozma veya tehlikeli toplu işlem (tüm dosyaları silmek, .git silmek vb.) kabul etme; reddedip nedenini açıkla. Basit ve güvenli istekleri (metin/label değiştirme, küçük UI düzeltmesi, typo düzeltmesi) reddetme; doğrudan uygula.
+4) ""Bu isteği doğrudan uygulayamam"", ""güvenlik nedeniyle yapamam"" (basit kod/metin değişiklikleri için), ""önce onayını alayım mı?"" gibi gereksiz reddetme veya fazladan soru sorma. Kullanıcı net bir değişiklik istediyse araçları kullanıp uygula.
 
 Tavır ve bilgilendirme:
 - Ne yaptığını kısaca söyle: ""Dosyayı okuyorum..."", ""Değişikliği uyguluyorum..."", ""Build alıyorum..."", ""Pushlandı."" gibi.
@@ -153,9 +166,9 @@ Tavır ve bilgilendirme:
 Araçlar:
 - read_file: Dosya içeriği okumak. Path repo köküne göre. View'lar AccessManager.Web/Views/ altında.
 - write_file: Yeni dosya veya tam içerik. Sonrasında kullanıcıya göster, onay al; onayda confirm_and_push veya create_pr.
-- apply_diff: Mevcut dosyada unified diff uygula. Sonrasında kullanıcıya diff göster, onay al.
-- run_build: Projeyi derler (dotnet build). confirm_and_push zaten içinde build alır; ayrıca kullanıcı ""build al"" derse de çağır. Build hata verirse çıktıyı kullanıcıya göster. Ortamda SDK yoksa araç build'i atlayabilir.
-- confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build alır; normal build hatasında push etmez ve hatayı bildirir. Yalnızca ""SDK yok/uyumlu SDK bulunamadı"" türü ortam hatasında build atlanabilir ve push'a devam edilir.
+- apply_diff: Mevcut dosyada unified diff uygula. Öncesinde mutlaka read_file ile güncel içeriği oku; bağlam satırlarını ("" "" ile başlayan context) dosyadan birebir kopyala, tahmin etme. Sonrasında kullanıcıya diff göster, push/PR için onay iste.
+- run_build: Projeyi derler (dotnet build). confirm_and_push içinde de kullanılır. Gerçek derleme hatasında çıktıyı göster. Ortam sorunu (SDK yok, dosya kilidi/MSB302x) confirm_and_push tarafında push'u genelde bloklamaz.
+- confirm_and_push: Kullanıcı ""Evet, pushla"" / ""Onayla"" / ""Pushla"" dediğinde çağır. Önce build dener; gerçek kod hatasında push etmez. SDK eksikliği veya başka işlem dosyayı kilitlediği için build kopyalama hatası gibi ortam sorunlarında build atlanabilir ve push devam edebilir (arabam AI yapılandırması).
 - create_pr: Kullanıcı ""PR aç"", ""pull request aç"", ""pushlama PR aç"" veya doğrudan main'e push etmek istemediğini söylediğinde çağır. Değişiklikleri yeni branch'e commit edip push eder; kullanıcı GitHub/GitLab'da PR açar.
 - git_commit_and_push: Sadece kullanıcı açıkça ""commit/push yap"" dediğinde (confirm_and_push dışında) kullan.
 - propose_sql: Veritabanından salt okunur veri için kullan. Önce her zaman bunu çağır; tek SELECT (veya WITH…SELECT) ver. Bu araç SQL'i doğrular ve konuşmaya bekleyen sorgu olarak kaydeder. Asla doğrudan veritabanına yazma veya execute_pending_sql dışında SQL çalıştırma.
@@ -167,6 +180,7 @@ Salt okunur SQL akışı:
 3) Onaysız execute_pending_sql kullanma.
 4) execute_pending_sql araç çıktısı geldikten sonra kullanıcıya tek bir nihai Türkçe yanıt ver: sonuç tablosu boş veya 0 satırsa bunu açıkça söyle (""bu kriterlerde kayıt yok"", ""listede eşleşen satır yok"" gibi). Boş sonuç hataya değildir. Araç çıktısında **Sistem (yalnızca asistan)** bölümü varsa onu kullanıcıya gösterme; sadece anlamına uy. Aynı turda propose_sql ile aynı sorguyu TEKRAR önerme, tekrar onay isteme, execute_pending_sql'i yeniden çağırma.
 5) Araç ""bekleyen sorgu yok"" / benzeri dönerse: sorgu çoktan çalıştırılmış veya iptal edilmiş olabilir. Aynı SQL ile yeniden onay bekleme; kullanıcıya durumu kısaca anlat. Gerekirse yeni bir soru için propose_sql ile farklı bir sorgu öner.
+6) execute_pending_sql veya ReadOnlySqlQueryService ""ConnectionStrings:DefaultConnection"" / bağlantı yapılandırması eksik diyorsa: kullanıcıya ortam değişkeni veya yapılandırma eksikliğini net söyle; tahmini SQL ile devam etme.
 
 Veritabanı SQL — PostgreSQL (ZORUNLU):
 - Çalışan bağlantı PostgreSQL'dir. SQL içinde tablo ve sütun adları küçük harf ve snake_case kullanılır (örn. personnel, start_date). C# entity/sınıf adlarını (Personnel, StartDate) doğrudan SQL'de YAZMA.
@@ -178,11 +192,11 @@ Sık kullanılan personnel tablosu (SQL adları): personnel ( id, first_name, la
 Örnek son 1 yıl işe giriş sayısı: SELECT COUNT(*) AS total_hires FROM personnel WHERE start_date >= CURRENT_DATE - INTERVAL '1 year';
 
 Kod değişikliği akışı:
-1) read_file ile ilgili dosyayı oku, apply_diff veya write_file ile değiştir.
-2) Değişikliği (diff veya özet) kod bloğunda göster, hangi dosya(lar)ı değiştirdiğini yaz. Sonra sor: ""Bu değişiklikleri main'e pushlamamı ister misiniz? ('Evet, pushla') Yoksa PR için branch oluşturayım mı? ('PR aç')""
-3) ""Evet, pushla"" / ""Onayla"" → confirm_and_push (içinde build alınır; build hata verirse kullanıcıya söyle, pushlama).
-4) ""PR aç"" / ""Pull request"" / ""Pushlama, PR aç"" → create_pr.
-5) confirm_and_push sonrası build hatası dönerse: Kullanıcıya hatayı açıkla, ""Değişiklikler pushlanmadı. Hatayı düzelttikten sonra tekrar 'Evet, pushla' diyebilir veya 'PR aç' ile sadece branch oluşturup PR açabilirsiniz."" de.
+1) Dosya düzenleme: ÖNCE read_file (hedef path kesin değilse proje yapısından bul). Tek/küçük değişiklikte sıra: read_file → apply_diff (küçük hunk; bağlam satırları az önce okunan dosyadan kopyala). apply_diff araçı ""HATA:"" dönerse aynı konuşma turunda: read_file ile yeniden oku → düzeltilmiş apply_diff dene; yine olmazsa write_file ile güncel tam içeriği yaz (son çare). Kullanıcıya önce ""Visual Studio'yu kapat"" deme; önce bu kurtarma adımlarını dene.
+2) Değişiklik başarılı olunca diff veya özet kod bloğunda göster; hangi dosya(lar) değişti yaz. Sonra sor: ""Bu değişiklikleri main'e pushlamamı ister misiniz? ('Evet, pushla') Yoksa PR için branch oluşturayım mı? ('PR aç')""
+3) ""Evet, pushla"" / ""Onayla"" → confirm_and_push. Gerçek derleme hatasında push olmaz; ortam (SDK / dosya kilidi) nedeniyle build atlandıysa push devam edebilir — kullanıcıya kısaca bildir, Cursor/VS kapat talimatını son çare olarak ver.
+4) ""PR aç"" → create_pr.
+5) confirm_and_push gerçek BUILD_HATA (kod) dönerse: hatayı göster; pushlanmadı de. Ortam nedeniyle build atlandıysa push başarılı mesajına uy.
 Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türkçe ver.
 " + relevantChunksBlock + @"
 
@@ -205,6 +219,8 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
         var temperature = _config.GetValue("OpenAI:Temperature", 0.2);
         var round = 0;
         string? lastContent = null;
+        var progressOnlyRetryUsed = false;
+        var applyDiffContextFailCount = 0;
 
         await Emit("phase", "Model ile konuşma başlıyor (araçlar kullanılabilir).").ConfigureAwait(false);
 
@@ -275,6 +291,17 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
 
                 if (!msg.TryGetProperty("tool_calls", out var toolCallsEl) || toolCallsEl.GetArrayLength() == 0)
                 {
+                    if (!progressOnlyRetryUsed && IsProgressOnlyAssistantReply(lastContent))
+                    {
+                        progressOnlyRetryUsed = true;
+                        await Emit("phase", "Ara durum mesajı algılandı; işlem tamamlatılıyor…").ConfigureAwait(false);
+                        messages.Add(new JsonObject
+                        {
+                            ["role"] = "user",
+                            ["content"] = "Sadece ara durum yazma. Gerekli aracı çağırıp işi tamamla ve kullanıcıya nihai sonucu ver."
+                        });
+                        continue;
+                    }
                     await Emit("phase", "Nihai yanıt hazır (araç zinciri bitti).").ConfigureAwait(false);
                     return lastContent ?? "(Boş cevap)";
                 }
@@ -313,6 +340,29 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
                     await Emit("tool_start", message: null, round: round, toolName: name, argsPreview: argsPreview).ConfigureAwait(false);
 
                     var toolResult = await ExecuteToolAsync(name, argsStr, conversationId, cancellationToken).ConfigureAwait(false);
+
+                    if (string.Equals(name, "apply_diff", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (toolResult.StartsWith("HATA: Bağlam bulunamadı", StringComparison.Ordinal))
+                        {
+                            applyDiffContextFailCount++;
+                            if (applyDiffContextFailCount >= 2)
+                            {
+                                await Emit("phase", "Diff bağlamı tekrar kaçtı; write_file fallback zorlanıyor…", round).ConfigureAwait(false);
+                                messages.Add(new JsonObject
+                                {
+                                    ["role"] = "user",
+                                    ["content"] = "Aynı apply_diff hatası tekrarlandı. Bu dosya için artık apply_diff deneme. read_file ile güncel tam içeriği alıp yalnızca gerekli küçük metin değişimini yaparak write_file kullan ve işi tamamla."
+                                });
+                                applyDiffContextFailCount = 0;
+                            }
+                        }
+                        else if (!toolResult.StartsWith("HATA:", StringComparison.Ordinal))
+                        {
+                            applyDiffContextFailCount = 0;
+                        }
+                    }
+
                     var resultPreview = BuildResultPreview(toolResult);
                     await Emit("tool_end", message: null, round: round, toolName: name, resultPreview: resultPreview).ConfigureAwait(false);
 
@@ -390,6 +440,21 @@ Sadece soru sorulduysa: read_file ile kaynak okuyup cevap ver. Yanıtları Türk
     {
         if (string.IsNullOrEmpty(s)) return "";
         return s.Length <= max ? s : s[..max] + "…";
+    }
+
+    private static bool IsProgressOnlyAssistantReply(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var t = text.Trim();
+        if (t.Length > 260) return false;
+        if (t.Contains("```", StringComparison.Ordinal)) return false;
+        var lower = t.ToLowerInvariant();
+        for (var i = 0; i < ProgressOnlyPhrases.Length; i++)
+        {
+            if (lower.Contains(ProgressOnlyPhrases[i], StringComparison.Ordinal))
+                return true;
+        }
+        return false;
     }
 
     private async Task<string> ExecuteToolAsync(string name, string argumentsJson, int? conversationId, CancellationToken cancellationToken)
